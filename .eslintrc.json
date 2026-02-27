@@ -1,0 +1,41 @@
+{
+  "env": {
+    "node": true,
+    "es2021": true,
+    "jest": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": 2021,
+    "sourceType": "module"
+  },
+  "rules": {
+    "indent": ["error", 2],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "single"],
+    "semi": ["error", "always"],
+    "no-unused-vars": ["warn", { "argsIgnorePattern": "^_" }],
+    "no-console": "off",
+    "no-empty": "warn",
+    "prefer-const": "warn",
+    "eqeqeq": ["error", "always"],
+    "curly": ["error", "all"],
+    "no-var": "error",
+    "object-shorthand": ["warn", "always"],
+    "array-callback-return": "error",
+    "consistent-return": "warn",
+    "no-throw-literal": "error",
+    "require-await": "warn",
+    "no-return-await": "error",
+    "no-unreachable": "error",
+    "no-unsafe-optional-chaining": "error"
+  },
+  "ignorePatterns": [
+    "node_modules/",
+    "output/",
+    "logs/",
+    "*.config.js"
+  ]
+}

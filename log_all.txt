@@ -1,0 +1,16 @@
+
+> wine-article-aggregator@1.0.0 all
+> npm run crawl && npm run generate && npm run publish
+
+
+> wine-article-aggregator@1.0.0 crawl
+> node crawler.js
+
+
+> wine-article-aggregator@1.0.0 generate
+> node generator.js
+
+
+> wine-article-aggregator@1.0.0 publish
+> node publisher.js
+

@@ -1,0 +1,29 @@
+# 依赖
+node_modules
+npm-debug.log
+
+# 开发文件
+.git
+.gitignore
+*.md
+tests/
+*.test.js
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 环境
+.env
+.env.local
+
+# 输出
+output/
+logs/
+
+# 临时文件
+*.log
+tmp/
+temp/
