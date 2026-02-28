@@ -18,6 +18,22 @@ module.exports = {
       ];
     })(),
 
+    // 微信公众号RSS源 - 通过 wewe-rss 服务获取
+    // 部署参考: https://github.com/cooderl/wewe-rss
+    // 获取方式: 扫码授权后，在公众号详情页获取 RSS 链接
+    wechatSources: (() => {
+      const envSources = process.env.WECHAT_RSS_SOURCES;
+      if (envSources) {
+        return envSources.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      // 默认: 示例源，请替换为实际的微信公众号RSS地址
+      // 格式: https://your-wewerss-server.com/feed/user/{biz_id}.xml
+      return [];
+    })(),
+
+    // wewe-rss 服务地址（用于获取最新公众号内容）
+    weweRssServer: process.env.WEWERSS_SERVER || '',
+
     // 备用数据源 - 国内红酒/葡萄酒网站 (按优先级排序)
     backupWebsites: [
       // 葡萄酒资讯网
