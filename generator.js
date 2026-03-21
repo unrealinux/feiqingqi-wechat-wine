@@ -336,9 +336,42 @@ class ArticleGenerator {
     };
   }
 
-  async suggestImages(aggregatedData) {
+    async suggestImages(aggregatedData) {
+    // Analyze content to suggest appropriate wine elements
+    const sampleTitle = aggregatedData.knowledgeGraph?.stats?.topWineTypes?.[0]?.name || '红酒';
+    const sampleContent = aggregatedData.articles?.[0]?.title || '';
+    
+    const elementKeywords = {
+      bottle: ['酒瓶', '红酒瓶', '葡萄酒瓶', '酒庄', 'winery', '瓶装'],
+      grapes: ['葡萄', '葡萄园', '葡萄种植', 'grape', 'vineyard', '采摘'],
+      wineglass: ['品酒', '酒杯', 'tasting', 'glass', '醒酒', '酒杯'],
+      vineyard: ['产区', '酒庄', '葡萄园', 'region', 'estate', '庄园'],
+      luxury: ['顶级', '奢华', '珍藏', '珍品', 'premium', 'luxury', 'rare', '珍稀']
+    };
+    
+    const text = (sampleTitle + ' ' + sampleContent).toLowerCase();
+    const scores = {};
+    for (const [element, keywords] of Object.entries(elementKeywords)) {
+      let score = 0;
+      for (const keyword of keywords) {
+        if (text.includes(keyword.toLowerCase())) {
+          score++;
+        }
+      }
+      scores[element] = score;
+    }
+    
+    let bestElement = 'wineglass';
+    let maxScore = 0;
+    for (const [element, score] of Object.entries(scores)) {
+      if (score > maxScore) {
+        maxScore = score;
+        bestElement = element;
+      }
+    }
+    
     return [
-      { type: 'cover', description: '封面图', suggestedKeywords: ['红酒', '葡萄', '酒杯'] },
+      { type: 'cover', description: '智能封面图', suggestedKeywords: [bestElement, '红酒', '葡萄酒'] },
       { type: 'section', description: '章节配图', suggestedKeywords: ['产区', '品酒'] },
       { type: 'info', description: '信息图', suggestedKeywords: ['数据', '趋势'] },
     ];
