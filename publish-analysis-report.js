@@ -85,7 +85,7 @@ class WeChatPublisherPro {
 
 // 专业排版的HTML内容
 const articleContent = `<section style="margin-bottom: 20px;">
-<p style="color: #999; font-size: 13px; text-align: center;">报告日期：2026-03-21 | 红酒顾问</p>
+<p style="color: #999; font-size: 13px; text-align: center;">报告日期：2026-03-24 | 红酒顾问</p>
 </section>
 
 <section style="background: linear-gradient(135deg, #1a0a10 0%, #2d1424 100%); padding: 25px; border-radius: 10px; margin-bottom: 25px;">
@@ -310,7 +310,7 @@ async function main() {
   console.log('✅ 使用AI写实封面');
 
   const article = {
-    title: '🍷 2026年精品葡萄酒市场分析：Liv-ex回暖，波尔多领涨',
+    title: '🍷 2026.03.24 精品葡萄酒市场分析：Liv-ex回暖，波尔多领涨',
     author: '红酒顾问',
     digest: 'Liv-ex指数连续5个月上涨，波尔多超级二级庄涨幅领先，意大利Barolo价值凸显。一文读懂2026年投资机遇与风险。',
     content: articleContent,

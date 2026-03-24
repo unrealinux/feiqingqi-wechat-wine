@@ -99,7 +99,7 @@ async function generateAICover() {
             </filter>
           </defs>
           <rect x="0" y="260" width="900" height="123" fill="rgba(0,0,0,0.7)"/>
-          <text x="30" y="310" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="34" font-weight="bold" fill="url(#textGrad)" filter="url(#shadow)">🍷 2026年葡萄酒购买指南</text>
+          <text x="30" y="310" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="34" font-weight="bold" fill="url(#textGrad)" filter="url(#shadow)">🍷 2026.03.24 葡萄酒购买指南</text>
           <text x="30" y="355" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="18" fill="rgba(255,255,255,0.9)">高性价比酒款 · 场景推荐 · 趋势品种</text>
           <text x="870" y="370" font-family="Microsoft YaHei, sans-serif" font-size="14" fill="#D4AF37" text-anchor="end">2026-03</text>
         </svg>`;
@@ -449,7 +449,7 @@ async function main() {
     
     // 2. 准备文章
     const article = {
-      title: '🍷 2026年葡萄酒购买指南：高性价比酒款+场景推荐',
+      title: '🍷 2026.03.24 葡萄酒购买指南：高性价比酒款+场景推荐',
       author: '红酒顾问',
       digest: 'Wine Spectator Top 100精选，覆盖100-3000+元全价位，商务宴请/日常佐餐/送礼收藏全覆盖。',
       content: articleContent,
