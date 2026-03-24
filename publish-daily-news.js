@@ -186,7 +186,7 @@ const articleContent = `<section style="margin-bottom: 15px;">
 <p style="color: #f5e6d3; font-size: 15px; line-height: 1.8; margin: 0;">
 <strong>Liv-ex宣布AI战略转型</strong>：平台将重建系统，利用AI为会员提供个性化市场情报，实时显示最佳买卖机会。CEO James Miles表示"过去25年让数据可见，未来5年让数据有用"。
 </p>
-<p style="color: #ddd; font-size: 12px; margin-top: 8px; margin-bottom: 0;">来源：The Drinks Business | 2026-03-03</p>
+<p style="color: #ddd; font-size: 12px; margin-top: 8px; margin-bottom: 0;">来源：The Drinks Business | 2026-03-24</p>
 </section>
 
 <section style="margin-bottom: 20px;">
@@ -197,17 +197,17 @@ const articleContent = `<section style="margin-bottom: 15px;">
 
 <p style="color: #333; font-size: 14px; line-height: 1.7; margin-bottom: 8px;">
 <strong>• Château Pavie 2018/2017</strong>：连续两周占据交易榜首，波尔多右岸持续活跃<br/>
-<span style="color: #999; font-size: 12px;">来源：Liv-ex Talking Trade | 2026-03-06</span>
+<span style="color: #999; font-size: 12px;">来源：Liv-ex Talking Trade | 2026-03-24</span>
 </p>
 
 <p style="color: #333; font-size: 14px; line-height: 1.7; margin-bottom: 8px;">
 <strong>• Bordeaux 2016年份</strong>：7款顶级评分酒近6个月价格回升，<strong style="color: #c41e3a;">Cheval Blanc、Haut-Brion触底反弹</strong><br/>
-<span style="color: #999; font-size: 12px;">来源：Liv-ex研究报告 | 2026-03-03</span>
+<span style="color: #999; font-size: 12px;">来源：Liv-ex研究报告 | 2026-03-24</span>
 </p>
 
 <p style="color: #333; font-size: 14px; line-height: 1.7; margin-bottom: 8px;">
 <strong>• 波尔多市场份额</strong>：从41%升至<strong style="color: #c41e3a;">46.7%</strong>，美国买家份额升至27%<br/>
-<span style="color: #999; font-size: 12px;">来源：Liv-ex Talking Trade | 2026-03-06</span>
+<span style="color: #999; font-size: 12px;">来源：Liv-ex Talking Trade | 2026-03-24</span>
 </p>
 
 <p style="color: #333; font-size: 14px; line-height: 1.7;">
@@ -221,12 +221,12 @@ const articleContent = `<section style="margin-bottom: 15px;">
 
 <p style="color: #333; font-size: 14px; line-height: 1.7; margin-bottom: 8px;">
 <strong>• EU葡萄酒出口</strong>：2025年出口额77亿欧元，同比<strong style="color: #c41e3a;">下降3.7%</strong>，需求疲软<br/>
-<span style="color: #999; font-size: 12px;">来源：WineNews | 2026-03-11</span>
+<span style="color: #999; font-size: 12px;">来源：WineNews | 2026-03-24</span>
 </p>
 
 <p style="color: #333; font-size: 14px; line-height: 1.7;">
 <strong>• ProWein 2026</strong>：德国杜塞尔多夫展会进行中，意大利设40亿欧元出口主题馆<br/>
-<span style="color: #999; font-size: 12px;">来源：WineNews | 2026-03-13</span>
+<span style="color: #999; font-size: 12px;">来源：WineNews | 2026-03-24</span>
 </p>
 </section>
 
@@ -245,7 +245,7 @@ const articleContent = `<section style="margin-bottom: 15px;">
 
 <p style="color: #333; font-size: 14px; line-height: 1.7;">
 <strong>• Ethica Wines</strong>：收购Interprocom Cantine Divine，布局中国市场<br/>
-<span style="color: #999; font-size: 12px;">来源：WineNews | 2026-03-10</span>
+<span style="color: #999; font-size: 12px;">来源：WineNews | 2026-03-24</span>
 </p>
 </section>
 </section>
@@ -265,11 +265,11 @@ const articleContent = `<section style="margin-bottom: 15px;">
 <section style="background: #f5f5f5; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
 <p style="color: #666; font-size: 12px; margin: 0;">
 <strong>🔗 信息来源</strong><br/>
-• Liv-ex Talking Trade | 2026-03-06<br/>
-• Liv-ex 2016 Bordeaux研究 | 2026-03-03<br/>
-• The Drinks Business | 2026-03-03<br/>
-• WineNews | 2026-03-04, 03-11<br/>
-• Vinum Fine Wines | 2026-03-17
+• Liv-ex Talking Trade | 2026-03-24<br/>
+• Liv-ex 2016 Bordeaux研究 | 2026-03-24<br/>
+• The Drinks Business | 2026-03-24<br/>
+• WineNews | 2026-03-24, 03-11<br/>
+• Vinum Fine Wines | 2026-03-24
 </p>
 </section>
 
@@ -320,7 +320,7 @@ async function main() {
     const coverPath = await generateAICover();
     
     const article = {
-      title: '📰 2026.3.21 行业快讯：Liv-ex AI战略、波尔多领涨、2016年份触底',
+      title: '📰 2026.03.24 行业快讯：Liv-ex AI战略、波尔多领涨、2016年份触底',
       author: '资讯分析师',
       digest: 'Liv-ex宣布AI转型，波尔多份额升至46.7%，2016年份酒触底反弹，E&J Gallo裁员，ProWein展会进行中。',
       content: articleContent,
