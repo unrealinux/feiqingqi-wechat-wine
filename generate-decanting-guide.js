@@ -13,6 +13,9 @@ const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
 const config = require('./config');
+const { exec } = require('child_process');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 const today = new Date();
 const date = {
@@ -21,88 +24,63 @@ const date = {
   chinese: `${today.getFullYear()}年${today.getMonth() + 1}月${today.getDate()}日`
 };
 
-async function generateCover() {
-  console.log('🎨 生成醒酒指南封面（DashScope）...');
-  const apiKey = process.env.DASHSCOPE_API_KEY;
+async function generateCoverWithAI() {
+  console.log('🎨 使用 baoyu-imagine + DashScope 生成写实醒酒封面...');
+  
+  const coverPath = path.join(__dirname, 'output', 'decanting_cover_real.png');
+  const prompt = 'Photorealistic editorial wine photography, crystal decanter pouring ruby red wine into elegant glass, warm golden hour lighting, dark mahogany table, bokeh background with vineyard and wine bottles, professional food photography, 8K, ultra-detailed, Vogue style';
   
   try {
-    const submitResponse = await fetch('https://api-inference.modelscope.cn/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'X-ModelScope-Async-Mode': 'true'
-      },
-      body: JSON.stringify({
-        model: 'Tongyi-MAI/Z-Image-2.0-Pro',
-        prompt: 'Elegant wine decanting scene, crystal decanter pouring red wine into glass, warm golden lighting, dark wooden table, wine bottles in background, professional food photography, high detail',
-        negative_prompt: 'cartoon, illustration, blurry, low quality, text, watermark',
-        steps: 20,
-        width: 1280,
-        height: 720
-      })
-    });
-
-    const submitData = await submitResponse.json();
-    if (!submitData.task_id) {
-      throw new Error('提交失败: ' + JSON.stringify(submitData));
-    }
-
-    const taskId = submitData.task_id;
-    console.log('   任务ID:', taskId);
-
-    for (let i = 0; i < 30; i++) {
-      await new Promise(resolve => setTimeout(resolve, 5000));
-      const statusResp = await fetch(`https://api-inference.modelscope.cn/v1/images/generation/${taskId}/status`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` }
-      });
-      const statusData = await statusResp.json();
+    const scriptPath = 'C:\\Users\\Administrator\\.config\\opencode\\skills\\baoyu-skills\\skills\\baoyu-imagine\\scripts\\main.ts';
+    const cmd = `npx -y bun "${scriptPath}" --prompt "${prompt}" --image "${coverPath}" --provider dashscope --model qwen-image-2.0-pro --size 1920x1080`;
+    
+    console.log('   调用 baoyu-imagine...');
+    const { stdout, stderr } = await execPromise(cmd, { timeout: 180000 });
+    
+    if (stdout.includes('cover.png') || stdout.includes('decanting_cover_real.png') || fs.existsSync(coverPath)) {
+      console.log('   ✅ AI图片生成成功');
       
-      if (statusData.status === 'FINISHED' && statusData.images && statusData.images[0]) {
-        console.log('   ✅ 图片生成成功');
-        const imgResp = await fetch(statusData.images[0].url);
-        const imgBuffer = await imgResp.arrayBuffer();
-        const rawImage = Buffer.from(imgBuffer);
-
-        const resizedBuffer = await sharp(rawImage)
-          .resize(900, 383, { fit: 'cover', position: 'center' })
-          .png()
-          .toBuffer();
-
-        const svgText = `<svg width="900" height="383" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" style="stop-color:#D4AF37"/>
-              <stop offset="100%" style="stop-color:#F4E4BC"/>
-            </linearGradient>
-            <filter id="shadow">
-              <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.7"/>
-            </filter>
-          </defs>
-          <rect x="0" y="230" width="900" height="153" fill="rgba(0,0,0,0.7)"/>
-          <text x="30" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="34" font-weight="bold" fill="url(#textGrad)" filter="url(#shadow)">🍷 红酒醒酒完全指南</text>
-          <text x="30" y="335" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="rgba(255,255,255,0.9)">为什么要醒酒 · 醒酒时间 · 正确方法</text>
-          <text x="870" y="375" font-family="Microsoft YaHei" font-size="12" fill="#D4AF37" text-anchor="end">${date.display}</text>
-        </svg>`;
-
-        const textBuffer = Buffer.from(svgText);
-        const finalBuffer = await sharp(resizedBuffer)
-          .composite([{ input: textBuffer, top: 0, left: 0 }])
-          .png()
-          .toBuffer();
-
-        const outputPath = path.join(__dirname, 'output', 'decanting_cover.png');
-        fs.writeFileSync(outputPath, finalBuffer);
-        console.log('📁 封面已保存:', outputPath);
-        return finalBuffer;
-      } else if (statusData.status === 'FAILED') {
-        throw new Error('任务失败: ' + JSON.stringify(statusData));
-      }
-      process.stdout.write(`\r   ⏳ 等待中... (${i * 5}s)`);
+      // 裁剪为微信封面尺寸 900x383
+      const resizedBuffer = await sharp(coverPath)
+        .resize(900, 383, { fit: 'cover', position: 'center' })
+        .png()
+        .toBuffer();
+      
+      // 添加文字叠加
+      const svgText = `<svg width="900" height="383" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" style="stop-color:#D4AF37"/>
+            <stop offset="100%" style="stop-color:#F4E4BC"/>
+          </linearGradient>
+          <filter id="shadow">
+            <feDropShadow dx="2" dy="2" stdDeviation="3" flood-opacity="0.7"/>
+          </filter>
+        </defs>
+        <rect x="0" y="230" width="900" height="153" fill="rgba(0,0,0,0.7)"/>
+        <text x="30" y="290" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="34" font-weight="bold" fill="url(#textGrad)" filter="url(#shadow)">🍷 红酒醒酒完全指南</text>
+        <text x="30" y="335" font-family="Microsoft YaHei, PingFang SC, sans-serif" font-size="16" fill="rgba(255,255,255,0.9)">为什么要醒酒 · 醒酒时间 · 正确方法</text>
+        <text x="870" y="375" font-family="Microsoft YaHei" font-size="12" fill="#D4AF37" text-anchor="end">${date.display}</text>
+      </svg>`;
+      
+      const textBuffer = Buffer.from(svgText);
+      const finalBuffer = await sharp(resizedBuffer)
+        .composite([{ input: textBuffer, top: 0, left: 0 }])
+        .png()
+        .toBuffer();
+      
+      // 保存文件
+      const outputPath = path.join(__dirname, 'output', 'decanting_cover_ai.png');
+      fs.writeFileSync(outputPath, finalBuffer);
+      console.log('   📁 封面已保存:', outputPath);
+      
+      return finalBuffer;
     }
-    throw new Error('超时');
+    
+    throw new Error('生成失败: ' + stderr);
+    
   } catch (err) {
-    console.log('\n   ⚠️ DashScope 生成失败:', err.message);
+    console.warn('   ⚠️ AI 生成失败:', err.message);
     return generateLocalSVG();
   }
 }
@@ -308,8 +286,8 @@ async function main() {
   console.log('='.repeat(60));
   console.log('');
 
-  console.log('🎨 生成封面图片...');
-  await generateCover();
+  // 1. 生成封面
+  const coverBuffer = await generateCoverWithAI();
 
   console.log('📝 生成文章内容...');
   const content = generateContent();
