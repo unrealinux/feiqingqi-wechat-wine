@@ -1,0 +1,44 @@
+async function main(){
+  try{
+    const cb = await gCov();
+    const art = {
+      title: '🍛 川菜配酒终极指南：麻辣与葡萄酒的激情碰撞',
+      author: '红酒顾问',
+      digest: '川菜配酒不是只有啤酒！从水煮鱼到麻婆豆腐，从夫妻肺片到辣子鸡，教你用雷司令、琼瑶浆、黑皮诺搞定一切麻辣菜肴。',
+      content: gen(),
+      coverImage: 'sichuan_pairing_cover_ai.png',
+      category: 'wine-food',
+      tags: ["川菜", "配酒", "麻辣", "雷司令", "琼瑶浆", "黑皮诺", "中餐配酒"],
+      publishDate: date.full
+    };
+    fs.writeFileSync(
+      path.join(__dirname, 'output', 'sichuan_pairing_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const f = new FormData();
+    f.append('media', cb, {filename: 'cover.png', contentType: 'image/png'});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {headers: f.getHeaders()});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {
+      articles: [{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }]
+    });
+    console.log('✅ sichuan_pairing, media_id:', d.data.media_id);
+  }catch(e){
+    console.error('❌ sichuan_pairing:', e.message);
+    process.exit(1);
+  }
+}
+
+main();

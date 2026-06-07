@@ -1,0 +1,13 @@
+const art = {
+      title: '🍛 川菜配酒终极指南：麻辣与葡萄酒的激情碰撞',
+      author: '红酒顾问',
+      digest: '川菜配酒不是只有啤酒！从水煮鱼到麻婆豆腐，从夫妻肺片到辣子鸡，教你用雷司令、琼瑶浆、黑皮诺搞定一切麻辣菜肴。',
+      content: gen(),
+      coverImage: 'sichuan_pairing_cover_ai.png',
+      category: 'wine-food',
+      tags: ["川菜", "配酒", "麻辣", "雷司令", "琼瑶浆", "黑皮诺", "中餐配酒"],
+      publishDate: date.full
+    };
+    fs.writeFileSync(
+      path.join(__dirname, 'outpu
+...(truncated)
