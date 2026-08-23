@@ -10,12 +10,13 @@ module.exports = {
       if (envSources) {
         return envSources.split(',').map(s => s.trim()).filter(Boolean);
       }
-      return [
-        'https://www.wine-world.com/articlerss/rss.aspx',
+      // 英文RSS源（优先-稳定可访问）
+      const enSources = [
         'https://www.decanter.com/feed/',
         'https://www.vinepair.com/feed/',
         'https://www.wine-searcher.com/news/rss',
       ];
+      return enSources;
     })(),
 
     // 微信公众号RSS源 - 通过 wewe-rss 服务获取
@@ -34,30 +35,21 @@ module.exports = {
     // wewe-rss 服务地址（用于获取最新公众号内容）
     weweRssServer: process.env.WEWERSS_SERVER || '',
 
-    // 备用数据源 - 国内红酒/葡萄酒网站 (按优先级排序)
     backupWebsites: [
-      // 葡萄酒资讯网
-      { name: '葡萄酒资讯网', url: 'https://www.winesinfo.com', selector: '.news-list a, .article-list a', titleSel: 'h1, .title', contentSel: '.content, .article-content' },
-      // 食品伙伴网-葡萄酒
-      { name: '食品伙伴网-葡萄酒', url: 'http://wine.foodmate.net', selector: '.news_list a, .article-list a', titleSel: 'h1, .title', contentSel: '.content, .article-content' },
-      // 葡萄酒商业观察
-      { name: '葡萄酒商业观察', url: 'https://www.wbo529.com', selector: '.news-list a, .article-list a', titleSel: 'h1, .title', contentSel: '.content, .article-content' },
-      // 中国酒业新闻网
-      { name: '中国酒业新闻网', url: 'http://www.cnwinenews.com', selector: '.news-list a, .article-list a', titleSel: 'h1, .title', contentSel: '.content, .article-content' },
-      // 国家葡萄葡萄酒产业网
+      { name: '葡萄酒资讯网', url: 'https://winesinfo.com', selector: '.news-list a, .article-list a', titleSel: 'h1, .title', contentSel: '.content, .article-content' },
+      { name: '食品伙伴网-葡萄酒', url: 'https://wine.foodmate.net', selector: '.news_list a, .article-list a', titleSel: 'h1, .title', contentSel: '.content, .article-content' },
       { name: '国家葡萄葡萄酒产业网', url: 'http://www.chngw.net', selector: '.news-list a, ul li a', titleSel: 'h1, .title', contentSel: '.content, .article-content' },
     ],
 
-    // 搜索关键词
     keywords: [
-      '红酒',
-      '葡萄酒',
-      'wine',
-      '品酒',
+      '红酒 2026',
+      '葡萄酒 行业动态',
+      'wine news 2026',
+      '品酒 知识',
       '红酒推荐',
-      '红酒知识',
-      '葡萄酒产区',
-      '酒庄',
+      '宁夏 葡萄酒',
+      '波尔多 2026',
+      '进口葡萄酒',
     ],
     interval: 30000,
     maxConcurrent: 3,
@@ -134,8 +126,8 @@ module.exports = {
     publishInterval: 5000,
     // 测试模式（只创建草稿，不发布）
     testMode: process.env.WECHAT_TEST_MODE === 'true',
-    // 封面图配置
-    defaultThumb: 'https://example.com/wine-cover.jpg',
+    // 封面图配置（使用本地素材）
+    defaultThumb: './assets/backgrounds/wine_bg_4.jpg',
   },
 
   // 数据库配置

@@ -56,6 +56,7 @@ class ArticleGenerator {
               'Content-Type': 'application/json',
             },
             timeout: 60000,
+            proxy: false, // 禁用代理，HTTPS直连
           }
         );
         if (response.data?.base_resp?.status_code === 0 && response.data?.choices?.[0]?.message?.content) {
@@ -171,43 +172,51 @@ class ArticleGenerator {
 
     const { articles, categories, knowledgeGraph } = aggregatedData;
     
-    const prompt = `你是一位资深的红酒类微信公众号编辑。现在需要根据以下信息规划一篇原创文章。
+    const prompt = `微信公众号红酒编辑。2026年4月。${articles.length}篇素材。
 
-【重要】当前时间是2026年，请务必在文章标题和内容中使用2026年相关的表述！
-
-背景信息：
-- 本次采集了 ${articles.length} 篇红酒相关文章
-- 涉及类别：${Object.keys(categories).join('、')}
-- 热点话题：${knowledgeGraph.stats?.topWineTypes?.map(t => t.name).join('、') || '红酒'}
-- 热门产区：${knowledgeGraph.stats?.topRegions?.map(r => r.name).join('、') || '主要产区'}
-
-要求：
-1. 微信公众号风格 - 标题吸引人，开头抓人眼球
-2. 字数要求：${this.config.targetLength} 字左右
-3. 内容要原创
-4. 包含3-5个章节
-5. 【关键】标题和内容必须使用"2026年"或"2026年度"等表述
-
-请以JSON格式输出结构：
-{
-  "mainTitle": "主标题（必须包含2026）",
-  "subtitle": "副标题",
-  "intro": "开头引入语",
-  "chapters": [{"title": "章节标题", "points": ["要点1", "要点2"], "estimatedLength": 500}],
-  "conclusion": "结尾升华语",
-  "callToAction": "引导互动语"
-}`;
+输出精简JSON（仅3章，每章2要点）：
+{"mainTitle":"2026红酒标题","subtitle":"副标题","intro":"开头20字","chapters":[{"title":"章1","points":["A","B"]},{"title":"章2","points":["C","D"]},{"title":"章3","points":["E","F"]}],"conclusion":"结尾15字","callToAction":"互动"}`
 
     try {
       const response = await this.callLLM([
-        { role: 'system', content: '你是一位资深的红酒类微信公众号编辑，擅长创作既专业又有趣的红酒相关文章。' },
+        { role: 'system', content: '你是一位微信公众号编辑。只输出JSON。' },
         { role: 'user', content: prompt },
-      ]);
+      ], { maxTokens: 3000 });
 
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+      // 尝试多种方式提取JSON
+      let parsed = null;
+
+      // 方式1: 清理Markdown代码块标记后解析
+      const cleaned = response
+        .replace(/```json\s*/g, '')
+        .replace(/```\s*/g, '')
+        .trim();
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch (e) {}
+
+      // 方式2: 直接解析
+      if (!parsed) {
+        try {
+          parsed = JSON.parse(response);
+        } catch (e) {}
       }
+
+      // 方式3: 提取第一个 { } 块
+      if (!parsed) {
+        const match = response.match(/\{[\s\S]*\}/);
+        if (match) {
+          try {
+            parsed = JSON.parse(match[0]);
+          } catch (e) {}
+        }
+      }
+
+      if (parsed && parsed.mainTitle && parsed.chapters) {
+        return parsed;
+      }
+
+      console.log('JSON解析失败，使用默认大纲');
       return this.getDefaultOutline();
     } catch (error) {
       console.error('生成outline失败:', error.message);
@@ -230,6 +239,15 @@ class ArticleGenerator {
     };
   }
 
+fixAndParseJSON(str) {
+    try {
+      return JSON.parse(str);
+    } catch (e) {
+      console.log('JSON修复失败，使用默认大纲');
+      return this.getDefaultOutline();
+    }
+  }
+
   async generateChapters(outline, aggregatedData) {
     console.log('正在生成各章节内容...');
 
@@ -239,17 +257,19 @@ class ArticleGenerator {
     for (let i = 0; i < outline.chapters.length; i++) {
       const chapter = outline.chapters[i];
       
-      const prompt = `请撰写微信公众号文章的一个章节。
+      const prompt = `撰写微信公众号文章章节。
 
-标题：${chapter.title}
-核心要点：${chapter.points.join('、')}
-字数：${chapter.estimatedLength}
+章节标题：${chapter.title}
+要点：${chapter.points.join('、')}
+目标字数：${chapter.estimatedLength}
 
-写作要求：
-1. 微信公众号风格 - 语言生动有趣
-2. 内容原创有新意
-3. 适当使用emoji增加趣味性（🍷🍇🍾🏰🌍📊）
-4. 直接输出内容，无需额外说明。`;
+要求：
+1. 语言专业但易懂，避免空洞套话
+2. 内容有深度，提供实用信息
+3. 适当使用emoji（🍷🍇🍾🏰）增加趣味
+4. 直接输出纯HTML内容（p/strong/em/ul/li标签）
+5. 禁止使用代码块标记
+6. 不要输出h3子标题，用加粗文字替代`;
 
       try {
         const content = await this.callLLM([
@@ -312,14 +332,29 @@ class ArticleGenerator {
     }
   }
 
+  cleanHTML(text) {
+    let cleaned = text
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/^#+\s+/gm, '')
+      .replace(/^[-*]\s+/gm, '')
+      .replace(/<p>\s*<p>/gi, '<p>')
+      .replace(/<\/p>\s*<\/p>/gi, '</p>')
+      .replace(/<p><\/?(h[123]|ul|ol|li|strong|em|br)>/gi, '<$1>')
+      .replace(/<p>\s*<\/p>/gi, '')
+      .trim();
+    return cleaned;
+  }
+
   async assembleArticle(titleAndMeta, chapters, outline) {
     console.log('正在组装完整文章...');
 
     let content = `<p>${outline.intro}</p>\n\n`;
 
     for (const chapter of chapters) {
+      const cleanContent = this.cleanHTML(chapter.content);
       content += `<h2>${chapter.title}</h2>\n\n`;
-      content += `<p>${chapter.content.replace(/\n\n/g, '</p>\n\n<p>')}</p>\n\n`;
+      content += `<p>${cleanContent.replace(/\n\n+/g, '</p>\n\n<p>')}</p>\n\n`;
     }
 
     content += `<p>${outline.conclusion}</p>\n\n`;

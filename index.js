@@ -38,7 +38,6 @@ class WineArticleApp {
       // 3. 生成微信公众号文章
       const generatedArticle = await this.generator.generate(aggregatedData);
       
-      // 4. 发布到微信公众号
       if (config.publish.autoPublish) {
         const publishResult = await this.publisher.publish(generatedArticle);
         
@@ -95,22 +94,28 @@ class WineArticleApp {
     fs.writeFileSync(filePath, JSON.stringify(article, null, 2), 'utf8');
     console.log(`\n文章已保存到: ${filePath}`);
 
-    // 同时保存HTML版本
-    const htmlContent = `
-<!DOCTYPE html>
+    const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>${article.title}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    h1 { color: #722F37; }
-    h2 { color: #8B0000; margin-top: 30px; }
-    .subtitle { color: #666; font-size: 18px; }
-    .meta { color: #999; font-size: 14px; margin-bottom: 20px; }
-    .content { line-height: 1.8; }
-    .tags { margin-top: 30px; }
-    .tag { background: #f0f0f0; padding: 5px 10px; margin-right: 10px; border-radius: 3px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', sans-serif; max-width: 680px; margin: 0 auto; padding: 24px; background: #fafafa; line-height: 1.75; color: #333; }
+    h1 { font-size: 26px; font-weight: 700; color: #722F37; margin-bottom: 12px; line-height: 1.4; letter-spacing: -0.5px; }
+    .subtitle { color: #666; font-size: 17px; margin-bottom: 8px; }
+    .meta { color: #999; font-size: 13px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+    .content { font-size: 16px; }
+    .content p { margin-bottom: 16px; text-align: justify; }
+    .content h2 { font-size: 20px; color: #722F37; margin: 32px 0 16px; padding-left: 16px; border-left: 3px solid #722F37; font-weight: 600; }
+    .content blockquote { background: #f5f5f5; padding: 16px 20px; margin: 20px 0; border-radius: 8px; font-style: italic; color: #555; }
+    .content ul, .content ol { margin: 16px 0; padding-left: 24px; }
+    .content li { margin-bottom: 8px; }
+    .content strong { color: #722F37; font-weight: 600; }
+    .content img { max-width: 100%; height: auto; border-radius: 8px; margin: 16px 0; }
+    .tags { margin-top: 32px; padding-top: 20px; border-top: 1px solid #eee; }
+    .tag { display: inline-block; background: #722F37; color: #fff; padding: 4px 12px; margin: 0 8px 8px 0; border-radius: 16px; font-size: 13px; }
   </style>
 </head>
 <body>
@@ -118,9 +123,7 @@ class WineArticleApp {
   <p class="subtitle">${article.subtitle}</p>
   <p class="meta">生成时间: ${new Date().toLocaleString()}</p>
   <div class="content">${article.content}</div>
-  <div class="tags">
-    ${article.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
-  </div>
+  <div class="tags">${article.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
 </body>
 </html>`;
 

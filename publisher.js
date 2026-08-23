@@ -157,9 +157,10 @@ class WeChatPublisher {
       console.log(`  AppID: ${params.appid}`);
     }
 
-    const response = await axios.get(url, { 
+const response = await axios.get(url, { 
       params,
       timeout: 10000,
+      proxy: false,
     });
 
     if (response.data.errcode) {
@@ -176,34 +177,41 @@ class WeChatPublisher {
     return this.accessToken;
   }
 
-  /**
-   * 上传封面图到微信素材库
-   */
   async uploadThumb(thumbUrl) {
     try {
       const token = await this.getAccessToken();
-      // 生成本地封面图 (900x383 红酒色)
-      const imageBuffer = this.generateCoverImage();
-      console.log('  使用本地生成的封面图');
+      const fs = require('fs');
+      const path = require('path');
+      let imageBuffer;
+      let filename = 'wine_cover.png';
+      let contentType = 'image/png';
+
+      if (thumbUrl && thumbUrl.startsWith('./')) {
+        const imagePath = path.resolve(thumbUrl);
+        console.log(`  读取本地封面图: ${imagePath}`);
+        imageBuffer = fs.readFileSync(imagePath);
+        filename = path.basename(imagePath);
+        contentType = imagePath.endsWith('.jpg') || imagePath.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
+      } else {
+        imageBuffer = this.generateCoverImage();
+        console.log('  使用程序生成的封面图');
+      }
       
-      // 上传到微信素材库
       const url = `https://api.weixin.qq.com/cgi-bin/material/add_material?access_token=${token}&type=image`;
       const FormData = require('form-data');
       const formData = new FormData();
-      formData.append('media', imageBuffer, {
-        filename: 'wine_cover.png',
-        contentType: 'image/png',
-      });
+      formData.append('media', imageBuffer, { filename, contentType });
       const response = await axios.post(url, formData, {
         headers: { ...formData.getHeaders() },
         timeout: 30000,
+        proxy: false,
       });
       if (response.data.errcode) {
         console.error(`  上传失败: ${response.data.errmsg} (错误码: ${response.data.errcode})`);
         return null;
       }
       
-      console.log('  ✅ 封面图上传成功');
+      console.log('  ✅ 封面上传成功');
       return response.data.media_id;
     } catch (error) {
       console.error(`  上传封面图失败: ${error.message}`);
@@ -544,6 +552,7 @@ class WeChatPublisher {
 
     const response = await axios.post(url, payload, {
       timeout: 30000,
+      proxy: false,
     });
 
     if (response.data.errcode) {
@@ -568,6 +577,7 @@ class WeChatPublisher {
 
     const response = await axios.post(url, payload, {
       timeout: 30000,
+      proxy: false,
     });
 
     if (response.data.errcode && response.data.errcode !== 0) {
@@ -646,7 +656,7 @@ class WeChatPublisher {
   async getPublishStatus(token, publishId) {
     const url = `https://api.weixin.qq.com/cgi-bin/freepublish/get?access_token=${token}`;
     
-    const response = await axios.post(url, { publish_id: publishId });
+    const response = await axios.post(url, { publish_id: publishId }, { proxy: false });
     return response.data;
   }
 
@@ -661,7 +671,7 @@ class WeChatPublisher {
       offset,
       count,
       no_content: 0,
-    });
+    }, { proxy: false });
 
     return response.data;
   }
@@ -673,7 +683,7 @@ class WeChatPublisher {
     const token = await this.getAccessToken();
     const url = `https://api.weixin.qq.com/cgi-bin/draft/delete?access_token=${token}`;
 
-    const response = await axios.post(url, { media_id: mediaId });
+    const response = await axios.post(url, { media_id: mediaId }, { proxy: false });
 
     if (response.data.errcode && response.data.errcode !== 0) {
       throw new AppError(`删除失败: ${response.data.errmsg}`);
