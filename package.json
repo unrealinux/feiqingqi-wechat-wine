@@ -11,13 +11,13 @@
     "all": "npm run crawl && npm run generate && npm run publish",
     "validate": "node validate-config.js",
     "test": "jest",
-
     "engine:check": "node engine/cli.js --all --check",
     "engine:render": "node engine/cli.js --all --cover --html",
     "engine:verify": "node tools/verify_parity.js",
     "engine:extract": "python tools/extract_articles.py --all",
     "wechat:check": "node tools/check-wechat-ip.js",
-
+    "wechat:watch": "node tools/ip-watch.js --daemon",
+    "wechat:watch:once": "node tools/ip-watch.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
@@ -34,6 +34,7 @@
     "jsdom": "^22.1.0",
     "lodash": "^4.17.21",
     "node-cron": "^3.0.3",
+    "nodemailer": "^10.0.3",
     "openai": "^4.20.0",
     "rss-parser": "^3.13.0",
     "sharp": "^0.34.5",

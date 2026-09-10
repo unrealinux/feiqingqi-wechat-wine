@@ -101,14 +101,14 @@ function parseArgs(argv) {
  * 构建 axios 配置：显式决定是否走代理，避免 axios 隐式读取环境变量导致
  * 自检与实际发布走了不同的出口。
  */
-function buildAxiosConfig() {
+function buildAxiosConfig({ silent = false } = {}) {
   const proxy = getProxyConfig();
   let config = { proxy: false, timeout: TIMEOUT };
 
   if (proxy.enabled) {
-    // proxy.js 内部会打印一行日志，--json 模式下不污染 stdout
+    // proxy.js 内部会打印一行日志，静默模式下（--json / 被其他脚本调用）不污染输出
     const original = console.log;
-    if (process.argv.includes('--json')) {console.log = () => {};}
+    if (silent) {console.log = () => {};}
     try {
       config = { ...getAxiosProxyConfig(), timeout: TIMEOUT };
     } finally {
@@ -253,20 +253,21 @@ function renderReport(result) {
   return out.join('\n');
 }
 
-async function main() {
-  const opts = parseArgs(process.argv.slice(2));
+/**
+ * 执行一次完整的发布前置检查（供 CLI 与其他工具复用）。
+ *
+ * 结果对象**绝不含明文凭据**：只给 appSecretConfigured 布尔值。
+ * 因为它会被 --json 输出、也可能被写入日志。
+ *
+ * @param {{skipIp?: boolean, appId?: string, appSecret?: string, silent?: boolean}} [options]
+ * @returns {Promise<object>} 含 verdict ('ok'|'blocked'|'credentials') 与 exitCode
+ */
+async function runPreflight(options = {}) {
+  const appId = options.appId !== undefined ? options.appId : process.env.WECHAT_APPID;
+  const appSecret = options.appSecret !== undefined ? options.appSecret : process.env.WECHAT_SECRET;
 
-  if (opts.help) {
-    printHelp();
-    process.exit(0);
-  }
+  const { config: axiosConfig, proxy } = buildAxiosConfig({ silent: options.silent !== false });
 
-  const appId = process.env.WECHAT_APPID;
-  const appSecret = process.env.WECHAT_SECRET;
-  const { config: axiosConfig, proxy } = buildAxiosConfig();
-
-  // 重要：结果对象绝不包含明文凭据 —— 本脚本会以 --json 输出，
-  // 一旦把 secret 放进来就会被写进日志/CI 产物。
   const result = {
     appId: appId || '',
     appSecretConfigured: Boolean(appSecret),
@@ -274,14 +275,15 @@ async function main() {
     ip: null,
     ipProvider: null,
     reportedIp: null,
-    ipSkipped: opts.skipIp,
+    ipSkipped: Boolean(options.skipIp),
     errcode: null,
     errmsg: null,
     networkError: null,
-    expiresIn: null
+    expiresIn: null,
+    checkedAt: new Date().toISOString()
   };
 
-  if (!opts.skipIp) {
+  if (!result.ipSkipped) {
     const ipResult = await detectEgressIp(axiosConfig);
     result.ip = ipResult.ip;
     result.ipProvider = ipResult.provider;
@@ -306,13 +308,30 @@ async function main() {
     }
   }
 
+  /** 真正需要加进白名单的 IP：优先用微信报出的那一个 */
+  result.effectiveIp = result.reportedIp || result.ip || null;
+  result.exitCode = result.verdict === 'ok' ? 0 : result.verdict === 'credentials' ? 2 : 1;
+
+  return result;
+}
+
+async function main() {
+  const opts = parseArgs(process.argv.slice(2));
+
+  if (opts.help) {
+    printHelp();
+    process.exit(0);
+  }
+
+  const result = await runPreflight({ skipIp: opts.skipIp });
+
   if (opts.json) {
     console.log(JSON.stringify(result, null, 2));
   } else if (!opts.quiet) {
     console.log(renderReport(result));
   }
 
-  process.exit(result.verdict === 'ok' ? 0 : result.verdict === 'credentials' ? 2 : 1);
+  process.exit(result.exitCode);
 }
 
 if (require.main === module) {
@@ -322,4 +341,16 @@ if (require.main === module) {
   });
 }
 
-module.exports = { mask, detectEgressIp, checkWeChat, renderReport, buildAxiosConfig, extractReportedIp, extractDocComment, IPV4_RE, HINTS };
+module.exports = {
+  mask,
+  detectEgressIp,
+  checkWeChat,
+  renderReport,
+  buildAxiosConfig,
+  extractReportedIp,
+  extractDocComment,
+  runPreflight,
+  IPV4_RE,
+  IP_PROVIDERS,
+  HINTS
+};

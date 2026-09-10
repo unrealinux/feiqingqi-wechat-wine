@@ -46,10 +46,13 @@ engine/                渲染引擎
 tools/
   extract_articles.py  从旧 build_*.py 提取数据为 JSON（AST 静态解析）
   verify_parity.js     与历史产物逐字节回归比对
-tests/                 222 个测试
+tests/                 254 个测试
 tools/
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
+  ip-watch.js          出口 IP 变化监控 + 告警
+  notifier.js          统一通知（Webhook / 邮件）
 output/                生成产物（gitignore）
+logs/                  日志与监控状态（gitignore）
 ```
 
 ## 命令速查
@@ -57,6 +60,8 @@ output/                生成产物（gitignore）
 | 命令 | 说明 |
 |---|---|
 | `npm run wechat:check` | **发布前自检**：出口 IP / IP 白名单 / 凭据 |
+| `npm run wechat:watch` | **常驻监控**出口 IP 变化，变了就通知你 |
+| `npm run wechat:watch:once` | 检查一次（必要时通知） |
 | `npm run engine:check` | 校验 `articles/` 下全部数据 |
 | `npm run engine:render` | 渲染全部文章并生成封面与预览 |
 | `npm run engine:verify` | 与历史产物做回归比对 |
@@ -90,10 +95,50 @@ npm run wechat:check
 
 退出码：`0` 可发布 ｜ `1` 被阻断 ｜ `2` 凭据未配置（便于接入 CI 或发布脚本）。
 
+### 动态 IP 监控
+
+家用宽带多为动态 IP，换网或运营商重分配后白名单随即失效，**下一次发布才会失败**。
+用常驻监控把这件事提前：
+
+```bash
+npm run wechat:watch          # 常驻，默认每天 8:00 检查（IP_WATCH_CRON 可改）
+node tools/ip-watch.js --interval 60   # 或改成每 60 分钟
+```
+
+通知策略（避免刷屏）：
+
+| 情形 | 行为 |
+|---|---|
+| 被白名单阻断 | 🔴 立即告警，附要添加的 IP 与操作路径 |
+| 从阻断恢复 | ✅ 告知已恢复 |
+| IP 变了但仍可用 | ⚠️ 提醒（换网后下次可能失效） |
+| 一切正常且无变化 | 静默 |
+
+同一个结论在 `IP_WATCH_COOLDOWN_HOURS`（默认 6 小时）内只告警一次；
+IP 变化与恢复属于状态跃迁，**不受冷却期限制**。
+
+**配置通知渠道**（都留空则只做本地检查）：
+
+```env
+# Webhook：钉钉 / 企业微信 / 飞书 / Slack / Discord
+NOTIFY_WEBHOOK_TYPE=dingtalk
+NOTIFY_WEBHOOK_URL=
+NOTIFY_WEBHOOK_SECRET=
+
+# 邮件
+SMTP_HOST=
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=
+SMTP_PASS=
+MAIL_FROM=
+MAIL_TO=
+```
+
 ## 测试与质量
 
 ```bash
-npm test        # 222 个用例，10 个套件
+npm test        # 254 个用例，12 个套件
 npm run lint    # 0 error
 ```
 
@@ -115,6 +160,8 @@ WECHAT_SECRET=
 LLM_API_KEY=
 GEMINI_API_KEY=
 ZIMAGE_API_KEY=
+NOTIFY_WEBHOOK_URL=
+SMTP_PASS=
 ```
 
 `.gitignore` 已覆盖 `.env*`、`*.pem`、`*.pub`、`id_rsa*`、`id_ed25519*` 等。

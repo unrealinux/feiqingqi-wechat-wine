@@ -15,7 +15,8 @@ const { describeApiError, ERROR_HINTS } = require('../engine/wechat');
 
 describe('mask', () => {
   test('should not leak the full secret', () => {
-    const masked = mask('a7d00f777ea5123456789');
+    // 刻意用明显的虚构值，避免与真实凭据前缀相撞而被密钥扫描器误报
+    const masked = mask('fake-secret-for-mask-test-0123456789');
     expect(masked).not.toContain('123456789');
     expect(masked.endsWith('…')).toBe(true);
   });
