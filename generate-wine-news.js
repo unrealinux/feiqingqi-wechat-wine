@@ -14,6 +14,7 @@ const http = require('http');
 const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
+const config = require('./config');
 
 const today = new Date();
 const date = {
@@ -167,7 +168,12 @@ async function main() {
   console.log('📤 发布到微信...');
 
   console.log('   获取Token...');
-  const tokenData = await httpRequest(`https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=REDACTED_WECHAT_APPID&secret=REDACTED_WECHAT_SECRET`, 'GET');
+  const { appId: _appId, appSecret: _appSecret } = config.publish;
+  if (!_appId || !_appSecret) {
+    console.log('❌ 缺少 WECHAT_APPID / WECHAT_SECRET，请先在 .env 中配置');
+    return;
+  }
+  const tokenData = await httpRequest(`https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${encodeURIComponent(_appId)}&secret=${encodeURIComponent(_appSecret)}`, 'GET');
   console.log('   Token响应:', JSON.stringify(tokenData));
   if (tokenData.errcode) { console.log('❌ Token获取失败:', tokenData.errmsg); return; }
   const token = tokenData.access_token;
