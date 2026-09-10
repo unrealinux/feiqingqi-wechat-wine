@@ -81,9 +81,11 @@ function parseArgs(argv) {
 }
 
 function usage() {
-  const text = fs.readFileSync(__filename, 'utf8');
-  const doc = text.split('*/')[0].replace(/^#![^\n]*\n/, '').replace(/^\/\*\*\n/, '').replace(/^ \* ?/gm, '');
-  console.log(doc.trim());
+  // 不用 split('*/')：文件开头的 '/**' 自身不含 '*/'，会把 'use strict' 一并带入
+  const src = fs.readFileSync(__filename, 'utf8');
+  const match = src.match(/\/\*\*([\s\S]*?)\*\//);
+  const doc = match ? match[1].replace(/^\s*\* ?/gm, '').trim() : '(无帮助文本)';
+  console.log(doc);
 }
 
 function log(opts, ...args) {
@@ -195,6 +197,17 @@ async function processOne(file, opts) {
   if (opts.publish) {
     const { WeChatClient } = require('./wechat');
     const client = new WeChatClient();
+
+    // 发布前置检查：先确认凭据与 IP 白名单可用，再动任何上传。
+    // getAccessToken 会缓存结果，后面的 uploadThumb 直接复用，不产生额外请求。
+    try {
+      await client.getAccessToken();
+      log(opts, '   🔑 微信凭据与 IP 白名单校验通过');
+    } catch (err) {
+      throw new Error(
+        `发布前置检查未通过，已中止（未上传任何内容）:\n  ${err.message.split('\n').join('\n  ')}`
+      );
+    }
 
     const material = await client.uploadThumb(coverBuffer, article.coverImage.replace(/\.png$/i, '.png'));
     log(opts, `   ⬆️  封面素材 media_id=${material.media_id}`);

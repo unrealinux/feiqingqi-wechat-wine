@@ -44,7 +44,8 @@ engine/
 articles/                文章数据（唯一真相）
 tools/
 ├── extract_articles.py  从旧 build_*.py 一次性抽取数据（AST 静态解析）
-└── verify_parity.js     与新引擎输出做逐字节回归比对
+├── verify_parity.js     与新引擎输出做逐字节回归比对
+└── check-wechat-ip.js   发布前自检（出口 IP / IP 白名单 / 凭据）
 ```
 
 ## 快速开始
@@ -64,6 +65,19 @@ node engine/cli.js articles/bbq_pairing.json --cover --html
 
 # 发布到公众号草稿箱
 node engine/cli.js articles/bbq_pairing.json --publish
+```
+
+### 发布前自检
+
+`--publish` 会**先做一次前置检查**（凭据 + IP 白名单），失败时在**上传任何内容之前**中止，
+不会留下「封面已传、草稿没建成」的中间态。该检查复用 `getAccessToken` 的缓存，
+不产生额外接口调用。
+
+也可以单独运行：
+
+```bash
+npm run wechat:check        # 人类可读报告
+node tools/check-wechat-ip.js --json   # 机器可读（不包含明文凭据）
 ```
 
 ### CLI 选项
@@ -243,9 +257,10 @@ node tools/verify_parity.js --verbose
 ## 相关命令
 
 ```bash
+npm run wechat:check     # 发布前自检（出口 IP / 白名单 / 凭据）
 npm run engine:check     # 校验全部数据文件
 npm run engine:render    # 渲染全部文章
 npm run engine:verify    # 回归比对
 npm run engine:extract   # 从旧 build_*.py 提取数据
-npm test                 # 204 个用例（engine 相关 63 个）
+npm test                 # 222 个用例（engine 相关 80 个）
 ```

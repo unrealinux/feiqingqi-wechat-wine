@@ -34,6 +34,41 @@ const LIMITS = {
 /** token 失效相关错误码，遇到时应清缓存重取后重试。 */
 const TOKEN_ERROR_CODES = new Set([40001, 40014, 41001, 42001]);
 
+/**
+ * 微信错误码 -> 可执行的排查建议。
+ *
+ * 微信接口失败时只给一个数字，排查成本很高。这里把最常见的几个错误码
+ * 翻译成「去哪里改什么」，让 --publish 失败时能自解释。
+ */
+const ERROR_HINTS = {
+  40001: '凭据无效或已过期。若刚在公众平台重置过 AppSecret，请同步更新 .env 的 WECHAT_SECRET。',
+  40013: 'AppID 无效。请核对 .env 的 WECHAT_APPID 是否与公众号一致。',
+  40125: 'AppSecret 无效。请在公众平台重置后更新 .env 的 WECHAT_SECRET。',
+  40164: '当前出口 IP 不在公众号的 IP 白名单中。请到「公众平台 → 开发 → 基本配置 → IP白名单」添加；'
+       + '运行 `npm run wechat:check` 可查看当前出口 IP。',
+  41002: 'appid 缺失。请检查 .env 的 WECHAT_APPID。',
+  45009: '接口调用超过每日上限（token 接口为 2000 次/天）。请稍后重试，并检查是否有脚本在重复取 token。',
+  48001: '接口未授权。草稿箱/发布接口需要已认证的服务号，请确认公众号类型与权限。',
+  48002: '调用方 IP 与后台配置不符，请检查 IP 白名单。',
+  40007: 'media_id 无效或已过期。请重新上传封面素材。',
+  40005: '文件类型不合法。封面需为 PNG/JPG 的真实图片字节（不能是 SVG 文本）。',
+};
+
+/**
+ * 把微信接口的 errcode 翻译成带建议的错误描述。
+ * @param {{errcode: number, errmsg?: string}} payload
+ * @param {string} [action] 出错的动件，如 '获取 access_token'
+ * @returns {string}
+ */
+function describeApiError(payload, action = '') {
+  const code = payload && payload.errcode;
+  const errmsg = (payload && payload.errmsg) || '未知错误';
+  const prefix = action ? `${action}失败 ` : '';
+  const head = `${prefix}[${code}] ${errmsg}`;
+  const hint = ERROR_HINTS[code];
+  return hint ? `${head}\n  可能原因：${hint}` : head;
+}
+
 class WeChatError extends Error {
   constructor(message, payload) {
     super(message);
@@ -114,7 +149,7 @@ class WeChatClient {
 
     // 注意：不要把 secret 打进日志
     if (res.data.errcode) {
-      throw new WeChatError(`获取 access_token 失败 [${res.data.errcode}] ${res.data.errmsg}`, res.data);
+      throw new WeChatError(describeApiError(res.data, '获取 access_token'), res.data);
     }
 
     this._token = res.data.access_token;
@@ -163,7 +198,7 @@ class WeChatClient {
         maxBodyLength: Infinity,
       });
       if (res.data.errcode) {
-        throw new WeChatError(`上传封面素材失败 [${res.data.errcode}] ${res.data.errmsg}`, res.data);
+        throw new WeChatError(describeApiError(res.data, '上传封面素材'), res.data);
       }
       return res.data;
     });
@@ -186,7 +221,7 @@ class WeChatClient {
         maxBodyLength: Infinity,
       });
       if (res.data.errcode) {
-        throw new WeChatError(`上传正文图片失败 [${res.data.errcode}] ${res.data.errmsg}`, res.data);
+        throw new WeChatError(describeApiError(res.data, '上传正文图片'), res.data);
       }
       return res.data.url;
     });
@@ -224,7 +259,7 @@ class WeChatClient {
         maxBodyLength: Infinity,
       });
       if (res.data.errcode) {
-        throw new WeChatError(`创建草稿失败 [${res.data.errcode}] ${res.data.errmsg}`, res.data);
+        throw new WeChatError(describeApiError(res.data, '创建草稿'), res.data);
       }
       return res.data;
     });
@@ -237,7 +272,7 @@ class WeChatClient {
         timeout: this.timeout,
       });
       if (res.data.errcode) {
-        throw new WeChatError(`查询草稿数失败 [${res.data.errcode}] ${res.data.errmsg}`, res.data);
+        throw new WeChatError(describeApiError(res.data, '查询草稿数'), res.data);
       }
       return res.data;
     });
@@ -257,6 +292,8 @@ module.exports = {
   WeChatClient,
   WeChatError,
   validateArticle,
+  describeApiError,
+  ERROR_HINTS,
   LIMITS,
   API,
 };

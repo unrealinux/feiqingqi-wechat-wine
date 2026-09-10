@@ -46,7 +46,9 @@ engine/                渲染引擎
 tools/
   extract_articles.py  从旧 build_*.py 提取数据为 JSON（AST 静态解析）
   verify_parity.js     与历史产物逐字节回归比对
-tests/                 204 个测试
+tests/                 222 个测试
+tools/
+  check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
 output/                生成产物（gitignore）
 ```
 
@@ -54,6 +56,7 @@ output/                生成产物（gitignore）
 
 | 命令 | 说明 |
 |---|---|
+| `npm run wechat:check` | **发布前自检**：出口 IP / IP 白名单 / 凭据 |
 | `npm run engine:check` | 校验 `articles/` 下全部数据 |
 | `npm run engine:render` | 渲染全部文章并生成封面与预览 |
 | `npm run engine:verify` | 与历史产物做回归比对 |
@@ -63,10 +66,34 @@ output/                生成产物（gitignore）
 
 `node engine/cli.js --help` 查看全部选项。
 
+## 发布前必读：IP 白名单
+
+微信要求调用方 IP 在公众号后台的「IP 白名单」内，否则接口返回 `40164`。
+这个错误会在发布流程**走到一半**时才暴露（封面已上传、草稿没建成），排查成本很高。
+
+```bash
+npm run wechat:check
+```
+
+脚本会做三件事：
+
+1. 探测当前**出口 IP**（走与发布相同的代理路径）
+2. 校验 `.env` 凭据是否齐备
+3. 实际调用一次 token 接口，判断白名单是否放行
+
+失败时会**直接给出要添加的 IP**与操作路径。其中 IP 以**微信接口自己报出的**为准
+（微信的 40164 消息里会写明它看到的 IP），比任何外部回声服务都可靠 ——
+本机可能同时具备 IPv4/IPv6，回声服务可能返回 IPv6，而白名单需要的是 IPv4。
+
+> `node engine/cli.js --publish` 已内置该检查：会在**上传任何内容之前**失败，
+> 不会留下「封面已传、草稿没建成」的中间态。
+
+退出码：`0` 可发布 ｜ `1` 被阻断 ｜ `2` 凭据未配置（便于接入 CI 或发布脚本）。
+
 ## 测试与质量
 
 ```bash
-npm test        # 204 个用例，9 个套件
+npm test        # 222 个用例，10 个套件
 npm run lint    # 0 error
 ```
 
@@ -139,9 +166,11 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
 
 ## 已知问题
 
-1. **第一代流水线停滞**：`crawler/aggregator/generator/publisher` 与调度器久未更新，
+1. **发布当前被 IP 白名单阻断** —— 本机出口 IP（`120.208.99.249`）不在白名单内，
+   `--publish` 会失败。用 `npm run wechat:check` 查看并修复。
+2. **第一代流水线停滞**：`crawler/aggregator/generator/publisher` 与调度器久未更新，
    且其测试曾与实际实现严重脱节（已修复测试，但流水线本身仍未验证可用）。
-2. **`deduplicator.js` / `quality-scorer.js` 尚未接线**：功能已实现且有测试覆盖，
+3. **`deduplicator.js` / `quality-scorer.js` 尚未接线**：功能已实现且有测试覆盖，
    但 `aggregator.js` 未调用它们，README 中承诺的「去重」实际未生效。
-3. **175 个 lint warning**：主要是 `no-unused-vars` 与 `require-await`。
+4. **180 个 lint warning**：主要是 `no-unused-vars` 与 `require-await`。
    后者不可批量修复 —— 去掉 `async` 会改变抛错语义（同步抛出 vs 返回 rejected Promise）。

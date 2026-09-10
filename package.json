@@ -16,6 +16,7 @@
     "engine:render": "node engine/cli.js --all --cover --html",
     "engine:verify": "node tools/verify_parity.js",
     "engine:extract": "python tools/extract_articles.py --all",
+    "wechat:check": "node tools/check-wechat-ip.js",
 
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
