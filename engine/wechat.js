@@ -146,10 +146,12 @@ class WeChatClient {
 
   /**
    * 上传永久图片素材，返回 media_id（用于封面 thumb_media_id）。
+   * 保持 async：保证任何失败都以 rejected Promise 形式暴露，
+   * 而不是同步抛出（否则调用方 .catch() 会失效）。
    * @param {Buffer} buffer PNG/JPG 图片数据
    * @param {string} [filename]
    */
-  uploadThumb(buffer, filename = 'cover.png') {
+  async uploadThumb(buffer, filename = 'cover.png') {
     const contentType = filename.endsWith('.jpg') || filename.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
 
     return this.withToken(async (token) => {
@@ -172,7 +174,7 @@ class WeChatClient {
    * @param {Buffer} buffer
    * @param {string} [filename]
    */
-  uploadContentImage(buffer, filename = 'image.png') {
+  async uploadContentImage(buffer, filename = 'image.png') {
     const contentType = filename.endsWith('.jpg') || filename.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
 
     return this.withToken(async (token) => {
@@ -195,7 +197,7 @@ class WeChatClient {
    * @param {{title, content, thumbMediaId, author?, digest?, showCoverPic?, needOpenComment?}} article
    * @returns {Promise<{media_id: string}>}
    */
-  addDraft(article) {
+  async addDraft(article) {
     const errors = validateArticle(article);
     if (errors.length) {
       throw new WeChatError(`文章字段校验失败:\n  - ${errors.join('\n  - ')}`);
@@ -229,7 +231,7 @@ class WeChatClient {
   }
 
   /** 查询草稿箱总数（可用于连通性自检）。 */
-  getDraftCount() {
+  async getDraftCount() {
     return this.withToken(async (token) => {
       const res = await axios.get(`${this.endpoints.getDraftCount}?access_token=${token}`, {
         timeout: this.timeout,

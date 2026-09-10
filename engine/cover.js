@@ -134,11 +134,13 @@ ${categoryEl}
 
 /**
  * 渲染封面为 PNG Buffer。
+ * 保持 async：buildCoverSvg 可能因参数异常同步抛错，async 可保证调用方
+ * 始终能以 Promise 方式统一处理错误。
  * @param {{title: string, subtitle?: string, category?: string}} spec
  * @param {object} [options]
  * @returns {Promise<Buffer>}
  */
-function renderCoverPng(spec, options = {}) {
+async function renderCoverPng(spec, options = {}) {
   const opt = { ...DEFAULTS, ...options };
   const svg = buildCoverSvg(spec, opt);
   return getSharp()(Buffer.from(svg), { density: 96 })
