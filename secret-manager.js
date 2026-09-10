@@ -46,7 +46,7 @@ class SecretManager {
    * @returns {string} 加密后的字符串 (base64)
    */
   encrypt(plaintext) {
-    if (!plaintext) return '';
+    if (!plaintext) {return '';}
     
     // 生成随机 IV
     const iv = crypto.randomBytes(this.ivLength);
@@ -75,7 +75,7 @@ class SecretManager {
    * @returns {string} 明文
    */
   decrypt(encryptedText) {
-    if (!encryptedText) return '';
+    if (!encryptedText) {return '';}
     
     try {
       // 解码 base64
@@ -150,7 +150,7 @@ class SecretManager {
    * @returns {boolean}
    */
   isEncrypted(text) {
-    if (!text || text.length < 24) return false;
+    if (!text || text.length < 24) {return false;}
     
     try {
       const buffer = Buffer.from(text, 'base64');
@@ -222,7 +222,7 @@ class EnvEncryptor {
       }
       
       const [key, ...valueParts] = line.split('=');
-      if (!key || valueParts.length === 0) return line;
+      if (!key || valueParts.length === 0) {return line;}
       
       const value = valueParts.join('=').trim();
       const keyUpper = key.trim().toUpperCase();
@@ -249,7 +249,7 @@ class EnvEncryptor {
    * @returns {string} 解密后的值
    */
   decryptValue(value) {
-    if (typeof value !== 'string') return value;
+    if (typeof value !== 'string') {return value;}
     
     if (value.startsWith('ENC:')) {
       const encrypted = value.slice(4);

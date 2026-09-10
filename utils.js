@@ -56,7 +56,7 @@ class LRUCache {
 
   has(key) {
     const item = this.cache.get(key);
-    if (!item) return false;
+    if (!item) {return false;}
     if (item.expiry && Date.now() > item.expiry) {
       this.cache.delete(key);
       return false;
@@ -216,8 +216,8 @@ class Redis {
       return true;
     }
     try {
-      if (ttl) await this.client.setex(key, ttl, serialized);
-      else await this.client.set(key, serialized);
+      if (ttl) {await this.client.setex(key, ttl, serialized);}
+      else {await this.client.set(key, serialized);}
       return true;
     } catch (error) {
       this.usingMemoryFallback = true;
@@ -227,7 +227,7 @@ class Redis {
   }
 
   async del(key) {
-    if (!this.isConnected) return false;
+    if (!this.isConnected) {return false;}
     try {
       await this.client.del(key);
       return true;
@@ -237,7 +237,7 @@ class Redis {
   }
 
   async exists(key) {
-    if (!this.isConnected) return false;
+    if (!this.isConnected) {return false;}
     try {
       return await this.client.exists(key);
     } catch (error) {
@@ -246,7 +246,7 @@ class Redis {
   }
 
   async keys(pattern) {
-    if (!this.isConnected) return [];
+    if (!this.isConnected) {return [];}
     try {
       return await this.client.keys(pattern);
     } catch (error) {
@@ -255,7 +255,7 @@ class Redis {
   }
 
   async hset(key, field, value) {
-    if (!this.isConnected) return false;
+    if (!this.isConnected) {return false;}
     try {
       await this.client.hset(key, field, JSON.stringify(value));
       return true;
@@ -265,7 +265,7 @@ class Redis {
   }
 
   async hget(key, field) {
-    if (!this.isConnected) return null;
+    if (!this.isConnected) {return null;}
     try {
       const value = await this.client.hget(key, field);
       return value ? JSON.parse(value) : null;
@@ -296,7 +296,7 @@ class Redis {
   }
 
   async lpush(key, value) {
-    if (!this.isConnected) return false;
+    if (!this.isConnected) {return false;}
     try {
       await this.client.lpush(key, JSON.stringify(value));
       return true;
@@ -306,7 +306,7 @@ class Redis {
   }
 
   async lrange(key, start, stop) {
-    if (!this.isConnected) return [];
+    if (!this.isConnected) {return [];}
     try {
       const results = await this.client.lrange(key, start, stop);
       return results.map(item => JSON.parse(item));
@@ -355,7 +355,7 @@ class Database {
   }
 
   async query(sql, params = []) {
-    if (!this.isConnected) return [];
+    if (!this.isConnected) {return [];}
     try {
       const [rows] = await this.pool.execute(sql, params);
       return rows;
@@ -374,12 +374,12 @@ class Database {
 
 class TextProcessor {
   static truncate(text, maxLength = 100, suffix = '...') {
-    if (!text || text.length <= maxLength) return text;
+    if (!text || text.length <= maxLength) {return text;}
     return text.slice(0, maxLength - suffix.length) + suffix;
   }
 
   static extractFirstSentence(text) {
-    if (!text) return '';
+    if (!text) {return '';}
     const match = text.match(/[^。！？.!?]+[。！？.!?]/);
     return match ? match[0] : text.slice(0, 100);
   }
@@ -393,7 +393,7 @@ class TextProcessor {
   }
 
   static extractKeywords(text, maxKeywords = 10) {
-    if (!text) return [];
+    if (!text) {return [];}
     const stopWords = new Set([
       '的', '是', '在', '和', '与', '或', '等', '了', '一个', '一些',
       '这个', '那个', '我们', '你们', '他们', '自己', '什么',
@@ -418,12 +418,12 @@ class TextProcessor {
   }
 
   static countWords(text) {
-    if (!text) return 0;
+    if (!text) {return 0;}
     return text.split(/\s+/).filter(word => word.length > 0).length;
   }
 
   static countChineseCharacters(text) {
-    if (!text) return 0;
+    if (!text) {return 0;}
     return (text.match(/[\u4e00-\u9fa5]/g) || []).length;
   }
 }
@@ -474,7 +474,7 @@ class FileManager {
   }
 
   static backupFile(filePath) {
-    if (!fs.existsSync(filePath)) return false;
+    if (!fs.existsSync(filePath)) {return false;}
     const backupPath = `${filePath}.${Date.now()}.bak`;
     try {
       fs.copyFileSync(filePath, backupPath);

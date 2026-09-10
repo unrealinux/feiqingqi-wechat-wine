@@ -14,7 +14,7 @@ console.log('');
 // 定时任务配置
 const CRON_SCHEDULE = process.env.CRON_SCHEDULE || '0 9 * * *'; // 默认每天早上9点
 
-console.log(`📅 定时任务已启动`);
+console.log('📅 定时任务已启动');
 console.log(`⏰ 执行时间: ${CRON_SCHEDULE}`);
 console.log(`📝 发布文章: ${CONFIG.articles.length} 篇`);
 console.log('');

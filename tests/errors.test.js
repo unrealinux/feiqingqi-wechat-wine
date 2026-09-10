@@ -103,7 +103,7 @@ describe('Error Module', () => {
     test('should continue on error when configured', async () => {
       const items = [1, 2, 3];
       const fn = jest.fn().mockImplementation(async (item) => {
-        if (item === 2) throw new Error('fail');
+        if (item === 2) {throw new Error('fail');}
         return item;
       });
       

@@ -201,9 +201,9 @@ class TaskScheduler {
     logger.info(`手动触发任务: ${type}`);
     
     if (type === 'crawl') {
-      return await this.runCrawl();
+      return this.runCrawl();
     } else if (type === 'full') {
-      return await this.runFullPipeline();
+      return this.runFullPipeline();
     } else {
       throw new Error(`未知任务类型: ${type}`);
     }

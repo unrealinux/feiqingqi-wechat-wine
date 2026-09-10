@@ -41,7 +41,7 @@ async function configureGemini(apiKey) {
   fs.writeFileSync(envPath, envContent);
 
   console.log('✅ Gemini API配置成功！');
-  console.log(`   GEMINI_API_KEY=已保存到 .env 文件\n`);
+  console.log('   GEMINI_API_KEY=已保存到 .env 文件\n');
 
   // 测试API
   console.log('正在测试API...\n');

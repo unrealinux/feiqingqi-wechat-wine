@@ -50,8 +50,8 @@ const B_LEVEL_SOURCES = [
 // ==================== 拍卖行来源====================
 
 const AUCTION_SOURCES = [
-  { name: "Sotheby's Wine", url: 'https://www.sothebys.com/en/wine/feed', priority: 'S', type: 'auction' },
-  { name: "Christie's Wine", url: 'https://www.christies.com/results?category=wine&feed=rss', priority: 'S', type: 'auction' },
+  { name: 'Sotheby\'s Wine', url: 'https://www.sothebys.com/en/wine/feed', priority: 'S', type: 'auction' },
+  { name: 'Christie\'s Wine', url: 'https://www.christies.com/results?category=wine&feed=rss', priority: 'S', type: 'auction' },
   { name: 'Hart Davis Hart', url: 'https://www.hdhwine.com/feed/', priority: 'A', type: 'auction' },
 ];
 

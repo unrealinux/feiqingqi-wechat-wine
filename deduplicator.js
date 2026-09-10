@@ -48,15 +48,15 @@ class ArticleDeduplicator {
    * 因此对 CJK 单独按「相邻两字」切分为 bigram。
    */
   extractTitleFeatures(title) {
-    if (!title) return new Set();
+    if (!title) {return new Set();}
 
     const normalized = String(title).toLowerCase();
     const features = new Set();
 
     // 拉丁词（长度 > 2）与数字（数字即使很短也具有区分度，必须保留）
     for (const word of normalized.replace(/[^\w\s]/g, ' ').split(/\s+/)) {
-      if (!word) continue;
-      if (/\d/.test(word) || word.length > 2) features.add(word);
+      if (!word) {continue;}
+      if (/\d/.test(word) || word.length > 2) {features.add(word);}
     }
 
     // CJK bigram
@@ -77,7 +77,7 @@ class ArticleDeduplicator {
    * 检查是否为重复链接
    */
   isDuplicateLink(link) {
-    if (!link) return true;
+    if (!link) {return true;}
     const normalized = this.normalizeUrl(link);
     if (this.seenLinks.has(normalized)) {
       return true;
@@ -107,7 +107,7 @@ class ArticleDeduplicator {
    * 检查标题是否重复
    */
   isDuplicateTitle(title, threshold = 0.7) {
-    if (!title) return true;
+    if (!title) {return true;}
     
     const normalized = title.toLowerCase().trim();
     const features = this.extractTitleFeatures(title);
@@ -141,7 +141,7 @@ class ArticleDeduplicator {
    * 检查内容哈希是否重复
    */
   isDuplicateHash(content) {
-    if (!content) return true;
+    if (!content) {return true;}
     const hash = this.generateHash(content);
     if (this.seenHashes.has(hash)) {
       return true;
@@ -243,7 +243,7 @@ class ArticleDeduplicator {
  * 简易Jaccard相似度计算
  */
 function JaccardSimilarity(setA, setB) {
-  if (setA.size === 0 || setB.size === 0) return 0;
+  if (setA.size === 0 || setB.size === 0) {return 0;}
   
   const intersection = new Set([...setA].filter(x => setB.has(x)));
   const union = new Set([...setA, ...setB]);
@@ -258,13 +258,13 @@ function LevenshteinDistance(str1, str2) {
   const m = str1.length;
   const n = str2.length;
   
-  if (m === 0) return n;
-  if (n === 0) return m;
+  if (m === 0) {return n;}
+  if (n === 0) {return m;}
   
   const dp = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
   
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 0; i <= m; i++) {dp[i][0] = i;}
+  for (let j = 0; j <= n; j++) {dp[0][j] = j;}
   
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {

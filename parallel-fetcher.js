@@ -61,7 +61,11 @@ class ParallelFetcher {
             
             return { url, data, cached: false };
           } catch (error) {
-            throw { url, error };
+            // 不要 throw 字面量对象：保留 err.url / err.error 形状供下游使用
+            const err = new Error(`抓取失败: ${url} - ${error?.message || '未知错误'}`);
+            err.url = url;
+            err.error = error;
+            throw err;
           }
         })
       );

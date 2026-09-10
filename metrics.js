@@ -192,20 +192,20 @@ class Registry {
 
     let metric;
     switch (type) {
-      case 'counter':
-        metric = new Counter(name, help, options.labels);
-        break;
-      case 'gauge':
-        metric = new Gauge(name, help, options.labels);
-        break;
-      case 'histogram':
-        metric = new Histogram(name, help, options.buckets);
-        break;
-      case 'summary':
-        metric = new Summary(name, help, options.percentiles);
-        break;
-      default:
-        throw new Error(`Unknown metric type: ${type}`);
+    case 'counter':
+      metric = new Counter(name, help, options.labels);
+      break;
+    case 'gauge':
+      metric = new Gauge(name, help, options.labels);
+      break;
+    case 'histogram':
+      metric = new Histogram(name, help, options.buckets);
+      break;
+    case 'summary':
+      metric = new Summary(name, help, options.percentiles);
+      break;
+    default:
+      throw new Error(`Unknown metric type: ${type}`);
     }
 
     this.metrics.set(name, metric);

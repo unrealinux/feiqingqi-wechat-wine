@@ -80,7 +80,7 @@ class Aggregator {
   }
 
   cleanText(text) {
-    if (!text) return '';
+    if (!text) {return '';}
     
     return text
       .replace(/<[^>]*>/g, '') // 移除HTML标签
@@ -283,7 +283,7 @@ class Aggregator {
           if (score >= 50 && score <= 100) {
             ratings.push({
               score,
-              source: match.replace(/[\d.\/\s]/g, '') || '评分',
+              source: match.replace(/[\d./\s]/g, '') || '评分',
             });
           }
         }
@@ -342,12 +342,12 @@ class Aggregator {
     const type = article.category || '其他';
     const templates = {
       '行业动态': `关于${article.source}发布的最新行业动态报道`,
-      '品酒评测': `专业品酒师对相关红酒的深度评测`,
-      '知识科普': `红酒知识的全面科普与解析`,
+      '品酒评测': '专业品酒师对相关红酒的深度评测',
+      '知识科普': '红酒知识的全面科普与解析',
       '产区新闻': `来自${article.keyInfo.regions[0] || '主要产区'}的最新消息`,
-      '市场趋势': `红酒市场发展趋势分析`,
-      '人物访谈': `业内专家深度访谈`,
-      '其他': `红酒相关资讯分享`,
+      '市场趋势': '红酒市场发展趋势分析',
+      '人物访谈': '业内专家深度访谈',
+      '其他': '红酒相关资讯分享',
     };
 
     return templates[type] || '红酒相关资讯';

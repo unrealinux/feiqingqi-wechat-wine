@@ -26,7 +26,7 @@ class PromptManager {
     }
 
     // 加载模板
-    let template = this.loadTemplate(name);
+    const template = this.loadTemplate(name);
     
     // 替换变量
     const rendered = this.render(template, vars);
@@ -81,7 +81,7 @@ class PromptManager {
     // 替换 {{#each items}}...{{/each}} 格式
     result = result.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, itemTemplate) => {
       const items = vars[arrayName];
-      if (!Array.isArray(items)) return '';
+      if (!Array.isArray(items)) {return '';}
       
       return items.map(item => {
         let itemResult = itemTemplate;

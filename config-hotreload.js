@@ -57,16 +57,14 @@ class ConfigHotReloader extends EventEmitter {
 
   /**
    * 获取配置
-   */
-  get() {
-    return this.config;
-  }
-
-  /**
-   * 获取特定配置项
+   * 不传 path 时返回整个配置对象；传 path（支持 'a.b.c'）时返回指定项。
+   *
+   * 注：原实现定义了两个同名 get()，后者会静默覆盖前者，
+   * 导致无参调用 get() 时 path 为 undefined，在 path.split 处抛 TypeError。
    */
   get(path, defaultValue = undefined) {
-    if (!this.config) return defaultValue;
+    if (path === undefined) {return this.config;}
+    if (!this.config) {return defaultValue;}
     
     const keys = path.split('.');
     let value = this.config;

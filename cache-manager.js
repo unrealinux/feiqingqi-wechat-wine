@@ -14,7 +14,7 @@ class CacheEntry {
   }
 
   isExpired() {
-    if (this.ttl <= 0) return false;
+    if (this.ttl <= 0) {return false;}
     return Date.now() - this.createdAt > this.ttl;
   }
 
@@ -80,7 +80,7 @@ class CacheManager {
     
     if (!entry) {
       this.stats.misses++;
-      if (options.onMiss) options.onMiss(key);
+      if (options.onMiss) {options.onMiss(key);}
       return options.defaultValue !== undefined ? options.defaultValue : null;
     }
 
@@ -101,7 +101,7 @@ class CacheManager {
    */
   has(key) {
     const entry = this.cache.get(key);
-    if (!entry) return false;
+    if (!entry) {return false;}
     if (entry.isExpired()) {
       this.cache.delete(key);
       this.stats.expirations++;
@@ -320,12 +320,12 @@ class HttpCache {
    * 检查是否应该缓存
    */
   shouldCache(req, res) {
-    if (!this.options.enabled) return false;
-    if (req.method !== 'GET') return false;
-    if (res.statusCode !== 200) return false;
+    if (!this.options.enabled) {return false;}
+    if (req.method !== 'GET') {return false;}
+    if (res.statusCode !== 200) {return false;}
     
     const cacheControl = res.getHeader('cache-control');
-    if (cacheControl && cacheControl.includes('no-cache')) return false;
+    if (cacheControl && cacheControl.includes('no-cache')) {return false;}
     
     return true;
   }

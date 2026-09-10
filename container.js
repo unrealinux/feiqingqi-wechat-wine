@@ -20,7 +20,7 @@ class Container {
    * 初始化容器，注册所有服务
    */
   async init() {
-    if (this.isInitialized) return;
+    if (this.isInitialized) {return;}
 
     // 注册日志服务
     this.register('logger', () => new Logger());

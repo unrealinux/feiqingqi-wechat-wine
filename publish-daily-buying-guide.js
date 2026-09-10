@@ -88,7 +88,7 @@ async function generateCover() {
   
   // 尝试多个AI服务
   const coverResult = await tryAIGenerators();
-  if (coverResult) return coverResult;
+  if (coverResult) {return coverResult;}
   
   // 使用优化的本地封面
   return generateEnhancedLocalCover();
@@ -104,7 +104,7 @@ async function tryAIGenerators() {
     try {
       console.log('   尝试 Z-Image...');
       const result = await generateWithZImage(zimageKey);
-      if (result) return result;
+      if (result) {return result;}
     } catch (e) { console.log('   Z-Image 失败:', e.message); }
   }
 
@@ -114,7 +114,7 @@ async function tryAIGenerators() {
     try {
       console.log('   尝试 DashScope...');
       const result = await generateWithDashScope(dashscopeKey);
-      if (result) return result;
+      if (result) {return result;}
     } catch (e) { console.log('   DashScope 失败:', e.message); }
   }
 
@@ -124,7 +124,7 @@ async function tryAIGenerators() {
     try {
       console.log('   尝试 GLM...');
       const result = await generateWithGLM(glmKey);
-      if (result) return result;
+      if (result) {return result;}
     } catch (e) { console.log('   GLM 失败:', e.message); }
   }
 
@@ -397,11 +397,11 @@ async function main() {
   
   const publisher = new WeChatPublisher();
   const res = await publisher.publish({ ...article, thumbUrl: coverPath });
-  if (res.success) console.log('✅ 发布成功，草稿 ID:', res.draftId);
-  else console.error('❌ 发布失败:', res.error);
+  if (res.success) {console.log('✅ 发布成功，草稿 ID:', res.draftId);}
+  else {console.error('❌ 发布失败:', res.error);}
   
   fs.writeFileSync(path.join(__dirname, 'output', `guide_${DATE_SHORT.replace(/\./g, '')}.json`), JSON.stringify(article, null, 2));
 }
 
-if (require.main === module) main();
+if (require.main === module) {main();}
 module.exports = { main };

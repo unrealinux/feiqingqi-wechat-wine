@@ -31,16 +31,16 @@ class TextIllustrationGenerator {
 
     // 选择模板
     switch (template) {
-      case 'wine':
-        return this._generateWineStyle(title, subtitle, author, date, category, backgroundPath);
-      case 'modern':
-        return this._generateModernStyle(title, subtitle, author, date, category, backgroundPath);
-      case 'minimalist':
-        return this._generateMinimalistStyle(title, subtitle, author, date, category, backgroundPath);
-      case 'bold':
-        return this._generateBoldStyle(title, subtitle, author, date, category, backgroundPath);
-      default:
-        return this._generateDefaultStyle(title, subtitle, author, date, category, backgroundPath);
+    case 'wine':
+      return this._generateWineStyle(title, subtitle, author, date, category, backgroundPath);
+    case 'modern':
+      return this._generateModernStyle(title, subtitle, author, date, category, backgroundPath);
+    case 'minimalist':
+      return this._generateMinimalistStyle(title, subtitle, author, date, category, backgroundPath);
+    case 'bold':
+      return this._generateBoldStyle(title, subtitle, author, date, category, backgroundPath);
+    default:
+      return this._generateDefaultStyle(title, subtitle, author, date, category, backgroundPath);
     }
   }
 
@@ -59,14 +59,14 @@ class TextIllustrationGenerator {
     this.height = height;
 
     switch (style) {
-      case 'quote':
-        return this._generateQuoteCard(text);
-      case 'stat':
-        return this._generateStatCard(text);
-      case 'tip':
-        return this._generateTipCard(text);
-      default:
-        return this._generateQuoteCard(text);
+    case 'quote':
+      return this._generateQuoteCard(text);
+    case 'stat':
+      return this._generateStatCard(text);
+    case 'tip':
+      return this._generateTipCard(text);
+    default:
+      return this._generateQuoteCard(text);
     }
   }
 
@@ -222,7 +222,7 @@ class TextIllustrationGenerator {
           </linearGradient>
         </defs>
         ${category ? `<text x="50" y="40" font-family="Georgia,serif" font-size="12" fill="#d4af37" letter-spacing="2">${category.toUpperCase()}</text>` : ''}
-        ${category ? `<line x1="50" y1="48" x2="150" y2="48" stroke="#d4af37" opacity="0.5"/>` : ''}
+        ${category ? '<line x1="50" y1="48" x2="150" y2="48" stroke="#d4af37" opacity="0.5"/>' : ''}
         <text x="50" y="${category ? 95 : 75}" font-family="Microsoft YaHei,PingFang SC" font-size="36" font-weight="bold" fill="url(#t)" filter="url(#s)">${this._escapeXml(title1)}</text>
         ${title2 ? `<text x="50" y="${category ? 135 : 115}" font-family="Microsoft YaHei,PingFang SC" font-size="36" font-weight="bold" fill="url(#t)" filter="url(#s)">${this._escapeXml(title2)}</text>` : ''}
         ${displaySubtitle ? `<text x="50" y="${category ? 175 : 155}" font-family="Microsoft YaHei,PingFang SC" font-size="18" fill="rgba(255,255,255,0.8)">${this._escapeXml(displaySubtitle)}</text>` : ''}
@@ -369,13 +369,13 @@ class TextIllustrationGenerator {
     
     for (const word of words) {
       if (currentLine.length + word.length > maxLen) {
-        if (currentLine) lines.push(currentLine);
+        if (currentLine) {lines.push(currentLine);}
         currentLine = word;
       } else {
         currentLine += word;
       }
     }
-    if (currentLine) lines.push(currentLine);
+    if (currentLine) {lines.push(currentLine);}
     return lines.slice(0, 5);
   }
 

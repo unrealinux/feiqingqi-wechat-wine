@@ -71,7 +71,7 @@ class AssetManager {
    */
   getRandomAsset(category = 'backgrounds') {
     const assets = this.listAssets(category);
-    if (assets.length === 0) return null;
+    if (assets.length === 0) {return null;}
     return assets[Math.floor(Math.random() * assets.length)];
   }
 

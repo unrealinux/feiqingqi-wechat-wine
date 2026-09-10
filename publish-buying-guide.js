@@ -138,12 +138,12 @@ class WeChatPublisher {
 
   async getAccessToken() {
     const now = Date.now();
-    if (this.accessToken && now < this.tokenExpireTime) return this.accessToken;
+    if (this.accessToken && now < this.tokenExpireTime) {return this.accessToken;}
     const response = await axios.get(config.publish.endpoints.token, {
       params: { grant_type: 'client_credential', appid: config.publish.appId, secret: config.publish.appSecret },
       timeout: 10000
     });
-    if (response.data.errcode) throw new Error(response.data.errmsg);
+    if (response.data.errcode) {throw new Error(response.data.errmsg);}
     this.accessToken = response.data.access_token;
     this.tokenExpireTime = now + (response.data.expires_in - 300) * 1000;
     return this.accessToken;
@@ -158,7 +158,7 @@ class WeChatPublisher {
       `https://api.weixin.qq.com/cgi-bin/material/add_material?access_token=${token}&type=image`,
       formData, { headers: formData.getHeaders(), timeout: 30000 }
     );
-    if (response.data.errcode) throw new Error(response.data.errmsg);
+    if (response.data.errcode) {throw new Error(response.data.errmsg);}
     return response.data.media_id;
   }
 
@@ -169,7 +169,7 @@ class WeChatPublisher {
       { articles: [{ ...article, thumb_media_id: thumbMediaId, need_open_comment: 0, only_fans_can_comment: 0 }] },
       { headers: { 'Content-Type': 'application/json' }, timeout: 30000 }
     );
-    if (response.data.errcode) throw new Error(response.data.errmsg);
+    if (response.data.errcode) {throw new Error(response.data.errmsg);}
     return response.data.media_id;
   }
 

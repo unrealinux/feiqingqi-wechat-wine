@@ -237,7 +237,7 @@ async function withBatch(items, fn, options = {}) {
   async function processQueue() {
     while (queue.length > 0) {
       const item = queue.shift();
-      if (!item) break;
+      if (!item) {break;}
 
       try {
         const result = await fn(item);

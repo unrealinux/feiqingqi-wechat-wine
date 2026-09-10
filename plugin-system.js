@@ -225,7 +225,7 @@ class PluginManager extends EventEmitter {
     const loaded = [];
 
     for (const file of files) {
-      if (!file.endsWith('.js')) continue;
+      if (!file.endsWith('.js')) {continue;}
       
       const filepath = path.join(pluginDir, file);
       
@@ -326,7 +326,7 @@ class PluginManager extends EventEmitter {
     };
 
     for (const plugin of this.plugins.values()) {
-      if (plugin.enabled) status.enabled++;
+      if (plugin.enabled) {status.enabled++;}
       
       if (!status.byType[plugin.type]) {
         status.byType[plugin.type] = { total: 0, enabled: 0 };

@@ -79,11 +79,11 @@ class ArticleQualityScorer {
     // 14-30天: 30分
     // 30天以上: 10分
     
-    if (dayAge <= 1) return 100;
-    if (dayAge <= 3) return 90;
-    if (dayAge <= 7) return 70;
-    if (dayAge <= 14) return 50;
-    if (dayAge <= 30) return 30;
+    if (dayAge <= 1) {return 100;}
+    if (dayAge <= 3) {return 90;}
+    if (dayAge <= 7) {return 70;}
+    if (dayAge <= 14) {return 50;}
+    if (dayAge <= 30) {return 30;}
     return 10;
   }
 
@@ -95,26 +95,26 @@ class ArticleQualityScorer {
     
     // 标题长度 (5-50字: 20分)
     const titleLen = (article.title || '').length;
-    if (titleLen >= 5 && titleLen <= 50) score += 20;
-    else if (titleLen > 0) score += 10;
+    if (titleLen >= 5 && titleLen <= 50) {score += 20;}
+    else if (titleLen > 0) {score += 10;}
     
     // 内容长度 (500-5000字: 30分)
     const contentLen = (article.content || '').length;
-    if (contentLen >= 500 && contentLen <= 5000) score += 30;
-    else if (contentLen >= 100) score += 20;
-    else if (contentLen > 0) score += 10;
+    if (contentLen >= 500 && contentLen <= 5000) {score += 30;}
+    else if (contentLen >= 100) {score += 20;}
+    else if (contentLen > 0) {score += 10;}
     
     // 有摘要/描述 (15分)
-    if (article.abstract || article.description) score += 15;
+    if (article.abstract || article.description) {score += 15;}
     
     // 有作者 (10分)
-    if (article.author && article.author !== '未知') score += 10;
+    if (article.author && article.author !== '未知') {score += 10;}
     
     // 有标签 (10分)
-    if (article.tags && article.tags.length > 0) score += 10;
+    if (article.tags && article.tags.length > 0) {score += 10;}
     
     // 有图片 (15分)
-    if (article.thumbnail || article.image || article.images?.length > 0) score += 15;
+    if (article.thumbnail || article.image || article.images?.length > 0) {score += 15;}
     
     return Math.min(score, 100);
   }
@@ -165,9 +165,9 @@ class ArticleQualityScorer {
     let score = 50; // 基础分
     
     // 如果有分享数、评论数等
-    if (article.shares) score += Math.min(article.shares * 2, 20);
-    if (article.comments) score += Math.min(article.comments * 3, 20);
-    if (article.views) score += Math.min(Math.log10(article.views) * 5, 10);
+    if (article.shares) {score += Math.min(article.shares * 2, 20);}
+    if (article.comments) {score += Math.min(article.comments * 3, 20);}
+    if (article.views) {score += Math.min(Math.log10(article.views) * 5, 10);}
     
     return Math.min(score, 100);
   }

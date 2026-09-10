@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 const axios = require('axios');
 
 const originsCache = new Map();
@@ -29,14 +29,14 @@ function parseRobots(text) {
   const disallows = [];
   for (const raw of lines) {
     const line = raw.trim();
-    if (!line) continue;
+    if (!line) {continue;}
     if (line.toLowerCase().startsWith('user-agent')) {
       currentAgent = line.includes('*');
       continue;
     }
     if (currentAgent && line.toLowerCase().startsWith('disallow')) {
       const val = line.split(':')[1]?.trim();
-      if (val) disallows.push(val);
+      if (val) {disallows.push(val);}
     }
   }
   return { disallows };

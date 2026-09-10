@@ -157,10 +157,10 @@ class EnhancedCoverGenerator {
       try {
         console.log('🎨 Attempting AI-generated cover...');
         const result = await generateAICover({
-          title: title,
-          subtitle: subtitle,
-          element: element,
-          date: date
+          title,
+          subtitle,
+          element,
+          date
         });
         
         imageBuffer = await fs.promises.readFile(result.path);
@@ -180,20 +180,20 @@ class EnhancedCoverGenerator {
         // Choose between wine element and professional generator based on theme
         if (options.theme === 'professional' || options.forceProfessional) {
           imageBuffer = await this.professionalGen.generateWineCover({
-            title: title,
-            subtitle: subtitle,
+            title,
+            subtitle,
             author: author || '红酒顾问',
             style: options.theme || 'elegant'
           });
           generationMethod = 'Professional Vector';
         } else {
           imageBuffer = await this.wineElementGen.generate({
-            title: title,
-            subtitle: subtitle,
-            author: author,
-            date: date,
-            category: category,
-            element: element,
+            title,
+            subtitle,
+            author,
+            date,
+            category,
+            element,
             theme: options.theme || 'elegant'
           });
           generationMethod = 'Wine Element Vector';

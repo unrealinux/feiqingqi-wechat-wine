@@ -97,15 +97,15 @@ class CoverGenerator {
     let colors;
     
     switch (style) {
-      case 'modern':
-        colors = ['#1a1a2e', '#16213e', '#0f3460'];
-        break;
-      case 'classic':
-        colors = ['#2D1436', '#500F23', '#800020', '#6B0F1A'];
-        break;
-      case 'elegant':
-      default:
-        colors = ['#1E0F1E', '#3D1A2E', '#5C1A2E', '#801E32'];
+    case 'modern':
+      colors = ['#1a1a2e', '#16213e', '#0f3460'];
+      break;
+    case 'classic':
+      colors = ['#2D1436', '#500F23', '#800020', '#6B0F1A'];
+      break;
+    case 'elegant':
+    default:
+      colors = ['#1E0F1E', '#3D1A2E', '#5C1A2E', '#801E32'];
     }
 
     // 创建 SVG 渐变背景
@@ -368,7 +368,7 @@ Requirements:
     try {
       const response = await this.openai.images.generate({
         model: 'dall-e-3',
-        prompt: prompt,
+        prompt,
         size: '1792x1024',
         quality: 'standard',
         n: 1,
@@ -433,7 +433,7 @@ Requirements:
       const textSvgBuffer = this._createTextSvg(title, subtitle, author, style);
 
       // 3. 合成所有层
-      let pipeline = sharp(backgroundBuffer);
+      const pipeline = sharp(backgroundBuffer);
       
       const composites = [{
         input: textSvgBuffer,

@@ -408,7 +408,7 @@ class WineElementCoverGenerator {
       svg += `<text x="${this.width - 50}" y="${this.height - 30}" font-family="Microsoft YaHei" font-size="14" fill="${accentColor}" text-anchor="end" opacity="0.8">${date}</text>`;
     }
 
-    svg += `</svg>`;
+    svg += '</svg>';
     return sharp(Buffer.from(svg)).png().toBuffer();
   }
 
@@ -416,7 +416,7 @@ class WineElementCoverGenerator {
    * 文字换行
    */
   wrapText(text, maxChars) {
-    if (!text) return [''];
+    if (!text) {return [''];}
     const lines = [];
     let line = '';
     for (const char of text) {
@@ -427,7 +427,7 @@ class WineElementCoverGenerator {
         line += char;
       }
     }
-    if (line) lines.push(line);
+    if (line) {lines.push(line);}
     return lines.slice(0, 2);
   }
 
@@ -435,7 +435,7 @@ class WineElementCoverGenerator {
    * XML转义
    */
   escape(text) {
-    if (!text) return '';
+    if (!text) {return '';}
     return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 }

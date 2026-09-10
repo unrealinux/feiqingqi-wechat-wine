@@ -280,7 +280,7 @@ class ProfessionalCoverGenerator {
           svg += `<text x="50" y="${this.height - 30}" font-family="Microsoft YaHei" font-size="14" fill="${accentColor}">${this.escapeXml(author)}</text>`;
         }
 
-        svg += `</svg>`;
+        svg += '</svg>';
         return sharp(Buffer.from(svg)).png().toBuffer();
       },
 
@@ -307,7 +307,7 @@ class ProfessionalCoverGenerator {
           svg += `<text x="40" y="${this.height - 25}" font-family="Microsoft YaHei" font-size="14" fill="#ffffff" opacity="0.7">${this.escapeXml(author)}</text>`;
         }
 
-        svg += `</svg>`;
+        svg += '</svg>';
         return sharp(Buffer.from(svg)).png().toBuffer();
       },
 
@@ -331,7 +331,7 @@ class ProfessionalCoverGenerator {
           svg += `<text x="40" y="${this.height - 30}" font-family="Microsoft YaHei" font-size="14" fill="#801E32">${this.escapeXml(author)}</text>`;
         }
 
-        svg += `</svg>`;
+        svg += '</svg>';
         return sharp(Buffer.from(svg)).png().toBuffer();
       },
 
@@ -358,7 +358,7 @@ class ProfessionalCoverGenerator {
           svg += `<text x="40" y="${this.height - 35}" font-family="Microsoft YaHei" font-size="14" fill="#ffffff" opacity="0.7">${this.escapeXml(author)}</text>`;
         }
 
-        svg += `</svg>`;
+        svg += '</svg>';
         return sharp(Buffer.from(svg)).png().toBuffer();
       },
 
@@ -392,7 +392,7 @@ class ProfessionalCoverGenerator {
           svg += `<text x="50" y="${this.height - 30}" font-family="Georgia,serif" font-size="14" fill="url(#goldGrad)">${this.escapeXml(author)}</text>`;
         }
 
-        svg += `</svg>`;
+        svg += '</svg>';
         return sharp(Buffer.from(svg)).png().toBuffer();
       }
     };
@@ -404,7 +404,7 @@ class ProfessionalCoverGenerator {
    * 文字换行
    */
   wrapText(text, maxCharsPerLine) {
-    if (!text) return [''];
+    if (!text) {return [''];}
     const lines = [];
     let currentLine = '';
     
@@ -417,7 +417,7 @@ class ProfessionalCoverGenerator {
       }
     }
     
-    if (currentLine) lines.push(currentLine);
+    if (currentLine) {lines.push(currentLine);}
     return lines.slice(0, 3); // 最多3行
   }
 
@@ -425,7 +425,7 @@ class ProfessionalCoverGenerator {
    * XML转义
    */
   escapeXml(text) {
-    if (!text) return '';
+    if (!text) {return '';}
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

@@ -85,7 +85,7 @@ class InputValidator {
     };
 
     const pattern = patterns[country] || patterns.CN;
-    const sanitized = phone.replace(/[\s\-\(\)]/g, '');
+    const sanitized = phone.replace(/[\s()]/g, '');
 
     if (!pattern.test(sanitized)) {
       return { valid: false, error: '手机号格式不正确' };
@@ -261,22 +261,22 @@ class InputValidator {
    */
   validateType(value, type) {
     switch (type) {
-      case 'string':
-        return typeof value === 'string';
-      case 'number':
-        return typeof value === 'number' && !isNaN(value);
-      case 'boolean':
-        return typeof value === 'boolean';
-      case 'array':
-        return Array.isArray(value);
-      case 'object':
-        return typeof value === 'object' && value !== null && !Array.isArray(value);
-      case 'url':
-        return this.validateUrl(value).valid;
-      case 'email':
-        return this.validateEmail(value).valid;
-      default:
-        return true;
+    case 'string':
+      return typeof value === 'string';
+    case 'number':
+      return typeof value === 'number' && !isNaN(value);
+    case 'boolean':
+      return typeof value === 'boolean';
+    case 'array':
+      return Array.isArray(value);
+    case 'object':
+      return typeof value === 'object' && value !== null && !Array.isArray(value);
+    case 'url':
+      return this.validateUrl(value).valid;
+    case 'email':
+      return this.validateEmail(value).valid;
+    default:
+      return true;
     }
   }
 
@@ -286,11 +286,12 @@ class InputValidator {
    * @returns {string}
    */
   sanitizeText(text) {
-    if (!text || typeof text !== 'string') return '';
+    if (!text || typeof text !== 'string') {return '';}
 
     return text
-      .replace(/[\x00-\x1F\x7F]/g, '') // 移除控制字符
-      .replace(/[​]/g, '') // 移除零宽空格
+      // eslint-disable-next-line no-control-regex -- 此处刻意剔除控制字符，属预期行为
+      .replace(/[\x00-\x1F\x7F]/g, '')
+      .replace(/\u200B/g, '') // 移除零宽空格（原实现字面量中嵌入了真实的 U+200B）
       .trim();
   }
 
@@ -300,7 +301,7 @@ class InputValidator {
    * @returns {string}
    */
   stripHtml(html) {
-    if (!html || typeof html !== 'string') return '';
+    if (!html || typeof html !== 'string') {return '';}
 
     return html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -311,7 +312,7 @@ class InputValidator {
       .replace(/&gt;/g, '>')
       .replace(/&amp;/g, '&')
       .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
+      .replace(/&#39;/g, '\'')
       .trim();
   }
 
@@ -321,7 +322,7 @@ class InputValidator {
    * @returns {string}
    */
   sanitizeHtml(html) {
-    if (!html || typeof html !== 'string') return '';
+    if (!html || typeof html !== 'string') {return '';}
 
     // 允许的标签
     const allowedTags = [

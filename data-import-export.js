@@ -30,12 +30,12 @@ class DataImporterExporter {
     const filepath = path.join(this.outputDir, `${filename}.${format}`);
 
     switch (format) {
-      case 'json':
-        return this.exportJSON(data, filepath);
-      case 'csv':
-        return this.exportCSV(articles, filepath);
-      default:
-        throw new Error(`Unsupported format: ${format}`);
+    case 'json':
+      return this.exportJSON(data, filepath);
+    case 'csv':
+      return this.exportCSV(articles, filepath);
+    default:
+      throw new Error(`Unsupported format: ${format}`);
     }
   }
 
@@ -69,7 +69,7 @@ class DataImporterExporter {
     articles.forEach(article => {
       const row = headerArr.map(header => {
         const value = article[header];
-        if (value === null || value === undefined) return '';
+        if (value === null || value === undefined) {return '';}
         const str = String(value).replace(/"/g, '""');
         return str.includes(',') || str.includes('"') || str.includes('\n') 
           ? `"${str}"` 
@@ -94,12 +94,12 @@ class DataImporterExporter {
     }
 
     switch (format) {
-      case 'json':
-        return this.importJSON(filepath);
-      case 'csv':
-        return this.importCSV(filepath);
-      default:
-        throw new Error(`Unsupported format: ${format}`);
+    case 'json':
+      return this.importJSON(filepath);
+    case 'csv':
+      return this.importCSV(filepath);
+    default:
+      throw new Error(`Unsupported format: ${format}`);
     }
   }
 

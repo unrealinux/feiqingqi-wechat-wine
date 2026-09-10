@@ -175,7 +175,7 @@ class ArticleGenerator {
     const prompt = `微信公众号红酒编辑。2026年4月。${articles.length}篇素材。
 
 输出精简JSON（仅3章，每章2要点）：
-{"mainTitle":"2026红酒标题","subtitle":"副标题","intro":"开头20字","chapters":[{"title":"章1","points":["A","B"]},{"title":"章2","points":["C","D"]},{"title":"章3","points":["E","F"]}],"conclusion":"结尾15字","callToAction":"互动"}`
+{"mainTitle":"2026红酒标题","subtitle":"副标题","intro":"开头20字","chapters":[{"title":"章1","points":["A","B"]},{"title":"章2","points":["C","D"]},{"title":"章3","points":["E","F"]}],"conclusion":"结尾15字","callToAction":"互动"}`;
 
     try {
       const response = await this.callLLM([
@@ -239,7 +239,7 @@ class ArticleGenerator {
     };
   }
 
-fixAndParseJSON(str) {
+  fixAndParseJSON(str) {
     try {
       return JSON.parse(str);
     } catch (e) {
@@ -333,7 +333,7 @@ fixAndParseJSON(str) {
   }
 
   cleanHTML(text) {
-    let cleaned = text
+    const cleaned = text
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
       .replace(/\*([^*]+)\*/g, '<em>$1</em>')
       .replace(/^#+\s+/gm, '')
@@ -359,7 +359,7 @@ fixAndParseJSON(str) {
 
     content += `<p>${outline.conclusion}</p>\n\n`;
     content += `<p>${outline.callToAction}</p>\n\n`;
-    content += `<p><strong>参考资料：</strong>本文综合整理自最新红酒资讯。</p>`;
+    content += '<p><strong>参考资料：</strong>本文综合整理自最新红酒资讯。</p>';
 
     return {
       title: titleAndMeta.mainTitle,
@@ -371,7 +371,7 @@ fixAndParseJSON(str) {
     };
   }
 
-    async suggestImages(aggregatedData) {
+  async suggestImages(aggregatedData) {
     // Analyze content to suggest appropriate wine elements
     const sampleTitle = aggregatedData.knowledgeGraph?.stats?.topWineTypes?.[0]?.name || '红酒';
     const sampleContent = aggregatedData.articles?.[0]?.title || '';

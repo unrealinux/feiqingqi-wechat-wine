@@ -161,7 +161,7 @@ class MemoryManager {
    * 开始监控
    */
   startMonitoring() {
-    if (this.cleanupInterval) return;
+    if (this.cleanupInterval) {return;}
     
     this.cleanupInterval = setInterval(() => {
       this.check();
@@ -248,7 +248,7 @@ function memorySafe(options = {}) {
       const queue = [];
       
       const process = async () => {
-        if (running >= concurrency || queue.length === 0) return;
+        if (running >= concurrency || queue.length === 0) {return;}
         
         const health = manager.getHealthStatus();
         if (health.status === 'critical') {

@@ -32,7 +32,9 @@ class BloomFilter {
     const nblocks = Math.floor(len / 4);
 
     for (let i = 0; i < nblocks; i++) {
-      const k = str.charCodeAt(i * 4) |
+      // 必须是 let：下面会对 k 连续重新赋值，用 const 会在运行时抛
+      // TypeError: Assignment to constant variable
+      let k = str.charCodeAt(i * 4) |
         (str.charCodeAt(i * 4 + 1) << 8) |
         (str.charCodeAt(i * 4 + 2) << 16) |
         (str.charCodeAt(i * 4 + 3) << 24);
@@ -341,7 +343,7 @@ class TFIDFClassifier {
       norm2 += v2 * v2;
     }
 
-    if (norm1 === 0 || norm2 === 0) return 0;
+    if (norm1 === 0 || norm2 === 0) {return 0;}
     return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));
   }
 
@@ -365,7 +367,7 @@ class TFIDFClassifier {
   getStatus() {
     const categories = new Set();
     for (const doc of this.documents.values()) {
-      if (doc.category) categories.add(doc.category);
+      if (doc.category) {categories.add(doc.category);}
     }
     return {
       documentCount: this.documents.size,
@@ -438,13 +440,13 @@ class QualityScorer {
    * 长度评分 (0-1)
    */
   _scoreLength(content) {
-    if (!content) return 0;
+    if (!content) {return 0;}
     const length = content.length;
-    if (length < 100) return 0.2;
-    if (length < 500) return 0.4;
-    if (length < 1000) return 0.6;
-    if (length < 3000) return 0.8;
-    if (length < 8000) return 1.0;
+    if (length < 100) {return 0.2;}
+    if (length < 500) {return 0.4;}
+    if (length < 1000) {return 0.6;}
+    if (length < 3000) {return 0.8;}
+    if (length < 8000) {return 1.0;}
     return 0.9; // 太长反而降低
   }
 
@@ -473,12 +475,12 @@ class QualityScorer {
     const pub = pubDate instanceof Date ? pubDate : new Date(pubDate);
     const daysDiff = (now - pub) / (1000 * 60 * 60 * 24);
 
-    if (daysDiff <= 1) return 1.0;
-    if (daysDiff <= 3) return 0.9;
-    if (daysDiff <= 7) return 0.8;
-    if (daysDiff <= 14) return 0.6;
-    if (daysDiff <= 30) return 0.4;
-    if (daysDiff <= 90) return 0.2;
+    if (daysDiff <= 1) {return 1.0;}
+    if (daysDiff <= 3) {return 0.9;}
+    if (daysDiff <= 7) {return 0.8;}
+    if (daysDiff <= 14) {return 0.6;}
+    if (daysDiff <= 30) {return 0.4;}
+    if (daysDiff <= 90) {return 0.2;}
     return 0.1;
   }
 
@@ -523,11 +525,11 @@ class QualityScorer {
   _scoreCompleteness(article) {
     let score = 0.5;
 
-    if (article.title && article.title.length > 10) score += 0.1;
-    if (article.content && article.content.length > 100) score += 0.1;
-    if (article.pubDate) score += 0.1;
-    if (article.source) score += 0.1;
-    if (article.author && article.author !== '未知') score += 0.1;
+    if (article.title && article.title.length > 10) {score += 0.1;}
+    if (article.content && article.content.length > 100) {score += 0.1;}
+    if (article.pubDate) {score += 0.1;}
+    if (article.source) {score += 0.1;}
+    if (article.author && article.author !== '未知') {score += 0.1;}
 
     return score;
   }
@@ -540,9 +542,9 @@ class QualityScorer {
     const content = article.content || '';
     const uniqueRatio = new Set(content).size / content.length;
     
-    if (uniqueRatio < 0.1) return 0.2;
-    if (uniqueRatio < 0.3) return 0.5;
-    if (uniqueRatio < 0.5) return 0.8;
+    if (uniqueRatio < 0.1) {return 0.2;}
+    if (uniqueRatio < 0.3) {return 0.5;}
+    if (uniqueRatio < 0.5) {return 0.8;}
     
     return 1.0;
   }
@@ -551,11 +553,11 @@ class QualityScorer {
    * 评分等级
    */
   _getGrade(score) {
-    if (score >= 0.9) return 'A+';
-    if (score >= 0.8) return 'A';
-    if (score >= 0.7) return 'B+';
-    if (score >= 0.6) return 'B';
-    if (score >= 0.5) return 'C';
+    if (score >= 0.9) {return 'A+';}
+    if (score >= 0.8) {return 'A';}
+    if (score >= 0.7) {return 'B+';}
+    if (score >= 0.6) {return 'B';}
+    if (score >= 0.5) {return 'C';}
     return 'D';
   }
 

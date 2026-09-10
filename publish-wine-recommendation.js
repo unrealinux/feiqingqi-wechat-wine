@@ -69,8 +69,8 @@ const COVER_TEMPLATES = {
  */
 function generateWineRecommendationContent() {
   const title = `🍷 ${DATE_STRING} 红酒推荐 | 今日精选5款佳酿`;
-  const subtitle = `从入门到进阶，总有一款适合你`;
-  const abstract = `今天为大家精心挑选了5款不同风格的红酒，涵盖不同价位和口味偏好，无论你是红酒新手还是资深爱好者，都能找到心仪之选。`;
+  const subtitle = '从入门到进阶，总有一款适合你';
+  const abstract = '今天为大家精心挑选了5款不同风格的红酒，涵盖不同价位和口味偏好，无论你是红酒新手还是资深爱好者，都能找到心仪之选。';
   
   // 微信公众号富文本样式
   const styles = `

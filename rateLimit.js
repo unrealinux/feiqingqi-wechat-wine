@@ -208,39 +208,39 @@ class RobotsTxt {
 
     for (const line of lines) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
+      if (!trimmed || trimmed.startsWith('#')) {continue;}
 
       const [directive, value] = trimmed.split(':').map(s => s.trim());
       
       switch (directive.toLowerCase()) {
-        case 'user-agent':
-          currentUserAgent = value.toLowerCase();
-          if (!this.rules.has(currentUserAgent)) {
-            this.rules.set(currentUserAgent, { allowed: [], disallowed: [] });
-          }
-          break;
+      case 'user-agent':
+        currentUserAgent = value.toLowerCase();
+        if (!this.rules.has(currentUserAgent)) {
+          this.rules.set(currentUserAgent, { allowed: [], disallowed: [] });
+        }
+        break;
         
-        case 'disallow':
-          if (currentUserAgent) {
-            const rules = this.rules.get(currentUserAgent);
-            rules.disallowed.push(value);
-          }
-          break;
+      case 'disallow':
+        if (currentUserAgent) {
+          const rules = this.rules.get(currentUserAgent);
+          rules.disallowed.push(value);
+        }
+        break;
         
-        case 'allow':
-          if (currentUserAgent) {
-            const rules = this.rules.get(currentUserAgent);
-            rules.allowed.push(value);
-          }
-          break;
+      case 'allow':
+        if (currentUserAgent) {
+          const rules = this.rules.get(currentUserAgent);
+          rules.allowed.push(value);
+        }
+        break;
         
-        case 'crawl-delay':
-          this.crawlDelay = parseFloat(value);
-          break;
+      case 'crawl-delay':
+        this.crawlDelay = parseFloat(value);
+        break;
         
-        case 'sitemap':
-          this.sitemaps.push(value);
-          break;
+      case 'sitemap':
+        this.sitemaps.push(value);
+        break;
       }
     }
   }
@@ -281,8 +281,8 @@ class RobotsTxt {
    * 简单的glob模式匹配
    */
   matchPattern(path, pattern) {
-    if (!pattern || pattern === '/') return false;
-    if (pattern === '/') return true;
+    if (!pattern || pattern === '/') {return false;}
+    if (pattern === '/') {return true;}
 
     // 转换glob模式为正则
     const regex = pattern

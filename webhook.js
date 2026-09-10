@@ -41,7 +41,7 @@ class WebhookNotifier {
     const results = [];
     
     for (const webhook of this.webhooks) {
-      if (!webhook.enabled) continue;
+      if (!webhook.enabled) {continue;}
       
       try {
         const payload = this.buildPayload(webhook.type, message, options);
@@ -70,18 +70,18 @@ class WebhookNotifier {
     };
 
     switch (type) {
-      case 'dingtalk':
-        return this.formatDingtalk(message, options);
-      case 'wecom':
-        return this.formatWecom(message, options);
-      case 'feishu':
-        return this.formatFeishu(message, options);
-      case 'slack':
-        return this.formatSlack(message, options);
-      case 'discord':
-        return this.formatDiscord(message, options);
-      default:
-        return base;
+    case 'dingtalk':
+      return this.formatDingtalk(message, options);
+    case 'wecom':
+      return this.formatWecom(message, options);
+    case 'feishu':
+      return this.formatFeishu(message, options);
+    case 'slack':
+      return this.formatSlack(message, options);
+    case 'discord':
+      return this.formatDiscord(message, options);
+    default:
+      return base;
     }
   }
 
@@ -213,21 +213,21 @@ class WebhookNotifier {
    * 快捷方法: 发送成功通知
    */
   async notifySuccess(title, details) {
-    return await this.send('✅ 任务执行成功', { title, details });
+    return this.send('✅ 任务执行成功', { title, details });
   }
 
   /**
    * 快捷方法: 发送失败通知
    */
   async notifyFailure(title, details) {
-    return await this.send('❌ 任务执行失败', { title, details });
+    return this.send('❌ 任务执行失败', { title, details });
   }
 
   /**
    * 快捷方法: 发送文章发布通知
    */
   async notifyPublish(article) {
-    return await this.send(`新文章已发布: ${article.title}`, {
+    return this.send(`新文章已发布: ${article.title}`, {
       title: '📝 文章发布通知',
       details: {
         标题: article.title,

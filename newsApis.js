@@ -56,7 +56,7 @@ class NewsApiSource {
     }
 
     try {
-      console.log(`  聚合数据: 获取新闻头条...`);
+      console.log('  聚合数据: 获取新闻头条...');
       
       // 获取多种类型的新闻
       const types = ['top', 'guonei', 'guoji', 'keji', 'shehui'];
@@ -69,7 +69,7 @@ class NewsApiSource {
             headers: this.headers,
             timeout: this.timeout,
           });
-      if (response.data?.error_code === 0 && response.data?.result?.data) {
+          if (response.data?.error_code === 0 && response.data?.result?.data) {
             response.data.result.data.forEach(item => {
               allArticles.push({
                 id: uuidv4(),
@@ -121,12 +121,12 @@ class NewsApiSource {
     }
 
     try {
-      console.log(`  天行数据: 获取国内新闻...`);
+      console.log('  天行数据: 获取国内新闻...');
       
       const response = await withRetry(
         () => axios.get(API_CONFIG.tianapi.baseUrl, {
           params: {
-            key: key,
+            key,
             num: 20,
           },
           headers: this.headers,

@@ -157,7 +157,7 @@ class WeChatPublisher {
       console.log(`  AppID: ${params.appid}`);
     }
 
-const response = await axios.get(url, { 
+    const response = await axios.get(url, { 
       params,
       timeout: 10000,
       proxy: false,
@@ -508,7 +508,7 @@ const response = await axios.get(url, {
     return crc ^ 0xFFFFFFFF;
   }
   getCrcTable() {
-    if (this._crcTable) return this._crcTable;
+    if (this._crcTable) {return this._crcTable;}
     this._crcTable = new Uint32Array(256);
     for (let i = 0; i < 256; i++) {
       let c = i;

@@ -1,7 +1,7 @@
-"use strict";
+'use strict';
 
 // 简单的健康指标与观测点
-let _health = {
+const _health = {
   startedAt: Date.now(),
   counters: {
     crawled: 0,

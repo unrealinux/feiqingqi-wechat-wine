@@ -337,7 +337,7 @@ class Crawler {
       const seenTitles = new Set();
 
       $(site.articleSelector).each((i, el) => {
-        if (i > 50) return;
+        if (i > 50) {return;}
         
         const href = $(el).attr('href');
         let title = $(el).text().trim();
@@ -347,8 +347,8 @@ class Crawler {
         
         if (href && title && title.length > 15 && title.length < 200) {
           const fullUrl = href.startsWith('http') ? href : 
-                          href.startsWith('/') ? site.url + href : 
-                          site.url + '/' + href;
+            href.startsWith('/') ? site.url + href : 
+              site.url + '/' + href;
           
           const titleHash = this.hashString(title);
           if (!seenTitles.has(titleHash) && !visitedUrls.has(fullUrl)) {
@@ -428,7 +428,7 @@ class Crawler {
       let content = '';
       for (const selector of [site.contentSelector, 'article', '.article-content', '.content', '.post-content', '.entry-content', '.article-body', '.detail', 'main', '.main']) {
         content = $(selector).text()?.trim() || '';
-        if (content.length > 100) break;
+        if (content.length > 100) {break;}
       }
 
       if (!content || content.length < 50) {
@@ -702,7 +702,7 @@ class Crawler {
   async crawlFromNewsAPIs() {
     const newsApi = new NewsApiSource();
     const keywords = config.crawl.keywords || ['红酒', '葡萄酒'];
-    return await newsApi.fetchAll(keywords);
+    return newsApi.fetchAll(keywords);
   }
 
 
@@ -734,8 +734,8 @@ class Crawler {
     // 过滤低质量文章
     const filteredArticles = articles.filter(article => {
       // 过滤条件
-      if (!article.title || article.title.length < 10) return false;
-      if (article.title.includes('广告') || article.title.includes('推广')) return false;
+      if (!article.title || article.title.length < 10) {return false;}
+      if (article.title.includes('广告') || article.title.includes('推广')) {return false;}
       
       return true;
     });

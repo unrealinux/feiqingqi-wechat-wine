@@ -104,7 +104,7 @@ class EnhancedCrawler {
       const duration = Date.now() - startTime;
       console.log('');
       console.log('='.repeat(60));
-      console.log(`✅ 采集完成！`);
+      console.log('✅ 采集完成！');
       console.log(`   总计: ${this.articles.length} 篇文章`);
       console.log(`   耗时: ${duration}ms`);
       console.log('='.repeat(60));
@@ -293,7 +293,7 @@ class EnhancedCrawler {
         const links = [];
         
         $(site.selector || site.articleSelector).each((i, el) => {
-          if (i >= (site.maxArticles || 10)) return;
+          if (i >= (site.maxArticles || 10)) {return;}
           
           const href = $(el).attr('href');
           const title = $(el).text().trim();
@@ -346,7 +346,7 @@ class EnhancedCrawler {
         const links = [];
         
         $(site.articleSelector).each((i, el) => {
-          if (i >= (site.maxArticles || 10)) return;
+          if (i >= (site.maxArticles || 10)) {return;}
           
           const href = $(el).attr('href');
           const title = $(el).text().trim();
@@ -386,7 +386,7 @@ class EnhancedCrawler {
     const seen = new Set();
     return articles.filter(article => {
       const key = article.title.toLowerCase().replace(/\s+/g, '');
-      if (seen.has(key)) return false;
+      if (seen.has(key)) {return false;}
       seen.add(key);
       return true;
     });
@@ -402,7 +402,7 @@ class EnhancedCrawler {
       // 先按优先级
       const pA = priorityOrder[a.priority] || 3;
       const pB = priorityOrder[b.priority] || 3;
-      if (pA !== pB) return pA - pB;
+      if (pA !== pB) {return pA - pB;}
       
       // 再按日期
       const dA = new Date(a.pubDate || 0);

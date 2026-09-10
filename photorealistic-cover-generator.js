@@ -63,29 +63,29 @@ class PhotorealisticCoverGenerator {
 
     let colors;
     switch (style) {
-      case 'vintage':
-        colors = {
-          base: '#1a0f0a',      // 深褐底
-          mid: '#2d1f18',       // 中褐
-          highlight: '#4a2f20', // 暖褐
-          accent: '#6b3a25'     // 焦糖
-        };
-        break;
-      case 'classic':
-        colors = {
-          base: '#0f0a1a',      // 深紫底
-          mid: '#1a102d',       // 中紫
-          highlight: '#2a1840', // 紫罗兰
-          accent: '#3d2055'     // 深紫
-        };
-        break;
-      default: // modern
-        colors = {
-          base: '#0a0a0a',      // 黑底
-          mid: '#1a1a1a',       // 深灰
-          highlight: '#2a2a2a', // 中灰
-          accent: '#3a3a3a'     // 浅灰
-        };
+    case 'vintage':
+      colors = {
+        base: '#1a0f0a',      // 深褐底
+        mid: '#2d1f18',       // 中褐
+        highlight: '#4a2f20', // 暖褐
+        accent: '#6b3a25'     // 焦糖
+      };
+      break;
+    case 'classic':
+      colors = {
+        base: '#0f0a1a',      // 深紫底
+        mid: '#1a102d',       // 中紫
+        highlight: '#2a1840', // 紫罗兰
+        accent: '#3d2055'     // 深紫
+      };
+      break;
+    default: // modern
+      colors = {
+        base: '#0a0a0a',      // 黑底
+        mid: '#1a1a1a',       // 深灰
+        highlight: '#2a2a2a', // 中灰
+        accent: '#3a3a3a'     // 浅灰
+      };
     }
 
     const svg = `
@@ -139,7 +139,7 @@ class PhotorealisticCoverGenerator {
    */
   async createWineElement(element, style) {
     const accentColor = style === 'classic' ? '#8b4a7a' : 
-                        style === 'vintage' ? '#7a3a2a' : '#6a6a6a';
+      style === 'vintage' ? '#7a3a2a' : '#6a6a6a';
     const width = 1024;
     const height = 1024;
 
@@ -183,7 +183,7 @@ class PhotorealisticCoverGenerator {
         </g>`;
     }
 
-    svg += `</svg>`;
+    svg += '</svg>';
 
     return sharp(Buffer.from(svg))
       .png()
@@ -195,7 +195,7 @@ class PhotorealisticCoverGenerator {
    */
   async createTextLayer(title, subtitle, date, style) {
     const accentColor = style === 'classic' ? '#d4af37' : 
-                        style === 'vintage' ? '#c9a66b' : '#ffffff';
+      style === 'vintage' ? '#c9a66b' : '#ffffff';
     
     const titleSize = 42;
     const subtitleSize = 20;
@@ -219,7 +219,7 @@ class PhotorealisticCoverGenerator {
       <rect x="0" y="250" width="${this.width}" height="133" fill="rgba(0,0,0,0.6)"/>`;
 
     // 标题
-    let titleY = 280;
+    const titleY = 280;
     titleLines.forEach((line, i) => {
       svg += `<text x="30" y="${titleY + i * (titleSize + 10)}" 
                 font-family="Microsoft YaHei, PingFang SC, sans-serif" 
@@ -245,7 +245,7 @@ class PhotorealisticCoverGenerator {
               text-anchor="end" 
               opacity="0.9">${date}</text>`;
 
-    svg += `</svg>`;
+    svg += '</svg>';
 
     return sharp(Buffer.from(svg))
       .png()
@@ -278,7 +278,7 @@ class PhotorealisticCoverGenerator {
   }
 
   wrapText(text, maxChars) {
-    if (!text) return [''];
+    if (!text) {return [''];}
     const lines = [];
     let line = '';
     for (const char of text) {
@@ -289,12 +289,12 @@ class PhotorealisticCoverGenerator {
         line += char;
       }
     }
-    if (line) lines.push(line);
+    if (line) {lines.push(line);}
     return lines.slice(0, 2);
   }
 
   escapeXml(text) {
-    if (!text) return '';
+    if (!text) {return '';}
     return text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')

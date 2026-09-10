@@ -11,24 +11,24 @@ const path = require('path');
 // Wine-themed prompts for AI image generation
 const WINE_PROMPTS = {
   wineglass: {
-    prompt: "A crystal wine glass filled with deep red burgundy wine, soft studio lighting, elegant reflection on table, dark wooden background, professional product photography, shallow depth of field, high detail, dark moody atmosphere",
-    negative: "blurry, low quality, cartoon, text, watermark, deformed, overexposed"
+    prompt: 'A crystal wine glass filled with deep red burgundy wine, soft studio lighting, elegant reflection on table, dark wooden background, professional product photography, shallow depth of field, high detail, dark moody atmosphere',
+    negative: 'blurry, low quality, cartoon, text, watermark, deformed, overexposed'
   },
   bottle: {
-    prompt: "Premium red wine bottle and glass on wooden table, wine cork, ambient candlelight, elegant restaurant setting, dark moody atmosphere, professional photography, rich burgundy colors",
-    negative: "blurry, overexposed, cartoon, text, watermark, ugly"
+    prompt: 'Premium red wine bottle and glass on wooden table, wine cork, ambient candlelight, elegant restaurant setting, dark moody atmosphere, professional photography, rich burgundy colors',
+    negative: 'blurry, overexposed, cartoon, text, watermark, ugly'
   },
   vineyard: {
-    prompt: "French Bordeaux vineyard at golden hour, rolling hills, rows of grapevines, distant chateau, warm sunset sky, professional landscape photography, breathtaking view, wine country",
-    negative: "blurry, ugly, deformed, low quality, text, watermark, modern building"
+    prompt: 'French Bordeaux vineyard at golden hour, rolling hills, rows of grapevines, distant chateau, warm sunset sky, professional landscape photography, breathtaking view, wine country',
+    negative: 'blurry, ugly, deformed, low quality, text, watermark, modern building'
   },
   grapes: {
-    prompt: "Fresh wine grapes cluster with wine glass, autumn lighting, professional food photography, rich colors, elegant presentation, dark background, wine making",
-    negative: "blurry, low quality, cartoon, text, watermark"
+    prompt: 'Fresh wine grapes cluster with wine glass, autumn lighting, professional food photography, rich colors, elegant presentation, dark background, wine making',
+    negative: 'blurry, low quality, cartoon, text, watermark'
   },
   luxury: {
-    prompt: "Elegant wine tasting setup, crystal decanter, premium red wine bottles, mahogany table, leather, warm ambient lighting, luxury lifestyle, professional photography",
-    negative: "blurry, low quality, cartoon, text, watermark, modern"
+    prompt: 'Elegant wine tasting setup, crystal decanter, premium red wine bottles, mahogany table, leather, warm ambient lighting, luxury lifestyle, professional photography',
+    negative: 'blurry, low quality, cartoon, text, watermark, modern'
   }
 };
 
@@ -48,7 +48,7 @@ async function generateWithGLM(apiKey, prompt) {
       },
       body: JSON.stringify({
         model: 'cogview-4',
-        prompt: prompt,
+        prompt,
         size: '1024x1024'
       })
     }
@@ -87,7 +87,7 @@ async function generateWithZImage(apiKey, prompt) {
       },
       body: JSON.stringify({
         model: 'z-image-turbo',
-        prompt: prompt,
+        prompt,
         negative_prompt: 'blurry, low quality, cartoon, text, watermark',
         steps: 8,
         width: 1024,
@@ -133,7 +133,7 @@ async function generateWithGemini(apiKey, prompt, negativePrompt) {
           }]
         }],
         generationConfig: {
-          responseModalities: "image"
+          responseModalities: 'image'
         }
       })
     }
@@ -207,7 +207,7 @@ async function addTextOverlay(imageBuffer, title, subtitle, date) {
     </style>
   `;
   
-  svg += `<rect x="0" y="250" width="900" height="133" fill="rgba(0,0,0,0.6)"/>`;
+  svg += '<rect x="0" y="250" width="900" height="133" fill="rgba(0,0,0,0.6)"/>';
   
   const titleStartY = textY;
   titleLines.forEach((line, i) => {
@@ -222,7 +222,7 @@ async function addTextOverlay(imageBuffer, title, subtitle, date) {
     svg += `<text x="870" y="365" class="date" font-size="14" fill="${accentColor}" text-anchor="end" opacity="0.9">${escapeXml(date)}</text>`;
   }
   
-  svg += `</svg>`;
+  svg += '</svg>';
   
   const textBuffer = Buffer.from(svg);
   
@@ -237,7 +237,7 @@ async function addTextOverlay(imageBuffer, title, subtitle, date) {
 }
 
 function escapeXml(text) {
-  if (!text) return '';
+  if (!text) {return '';}
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

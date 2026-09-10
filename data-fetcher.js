@@ -65,7 +65,7 @@ async function fetchLatestNews(maxAgeDays = 3) {
             allNews.push({
               title: item.title,
               link: item.link,
-              pubDate: pubDate,
+              pubDate,
               source: source.name,
               priority: source.priority,
               snippet: item.contentSnippet?.slice(0, 300) || item.content?.slice(0, 300) || '',
@@ -87,7 +87,7 @@ async function fetchLatestNews(maxAgeDays = 3) {
     const pOrder = { S: 0, A: 1, B: 2 };
     const pA = pOrder[a.priority] || 3;
     const pB = pOrder[b.priority] || 3;
-    if (pA !== pB) return pA - pB;
+    if (pA !== pB) {return pA - pB;}
     return b.pubDate - a.pubDate;
   });
   

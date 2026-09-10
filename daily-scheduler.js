@@ -114,7 +114,7 @@ async function main() {
   const date = new Date().toISOString().slice(0, 10);
   
   console.log('='.repeat(60));
-  console.log(`🍷 每日自动发布系统`);
+  console.log('🍷 每日自动发布系统');
   console.log(`📅 日期: ${date}`);
   console.log(`📝 计划发布: ${CONFIG.articles.length} 篇文章`);
   console.log('='.repeat(60));

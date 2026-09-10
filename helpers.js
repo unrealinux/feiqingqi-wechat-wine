@@ -64,7 +64,7 @@ function extractDomain(url) {
  * 清理文本
  */
 function cleanText(text) {
-  if (!text) return '';
+  if (!text) {return '';}
   
   return text
     .replace(/[\r\n]+/g, ' ')
@@ -77,7 +77,7 @@ function cleanText(text) {
  * 提取摘要
  */
 function extractSummary(content, maxLength = 200) {
-  if (!content) return '';
+  if (!content) {return '';}
   
   // 移除HTML标签
   const plain = content
@@ -200,7 +200,7 @@ function unique(arr, key) {
   const seen = new Set();
   return arr.filter(item => {
     const value = typeof key === 'function' ? key(item) : item[key];
-    if (seen.has(value)) return false;
+    if (seen.has(value)) {return false;}
     seen.add(value);
     return true;
   });
@@ -210,7 +210,7 @@ function unique(arr, key) {
  * 格式化字节大小
  */
 function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -223,9 +223,9 @@ function formatBytes(bytes) {
  * 格式化时间差
  */
 function formatDuration(ms) {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  if (ms < 3600000) return `${(ms / 60000).toFixed(1)}m`;
+  if (ms < 1000) {return `${ms}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
+  if (ms < 3600000) {return `${(ms / 60000).toFixed(1)}m`;}
   return `${(ms / 3600000).toFixed(1)}h`;
 }
 

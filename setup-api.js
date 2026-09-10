@@ -31,45 +31,45 @@ async function setupAPI() {
   let apiName = '';
 
   switch (choice) {
-    case '1':
-      apiName = 'GLM_API_KEY';
-      console.log('\n📌 智谱AI 配置：');
-      console.log('   1. 访问 https://open.bigmodel.cn');
-      console.log('   2. 注册并登录');
-      console.log('   3. 进入控制台 → API密钥');
-      console.log('   4. 复制密钥并粘贴到下面：');
-      apiKey = await new Promise(resolve => {
-        rl.question('\n请输入 GLM API 密钥: ', resolve);
-      });
-      break;
+  case '1':
+    apiName = 'GLM_API_KEY';
+    console.log('\n📌 智谱AI 配置：');
+    console.log('   1. 访问 https://open.bigmodel.cn');
+    console.log('   2. 注册并登录');
+    console.log('   3. 进入控制台 → API密钥');
+    console.log('   4. 复制密钥并粘贴到下面：');
+    apiKey = await new Promise(resolve => {
+      rl.question('\n请输入 GLM API 密钥: ', resolve);
+    });
+    break;
 
-    case '2':
-      apiName = 'ZIMAGE_API_KEY';
-      console.log('\n📌 阿里Z-Image 配置：');
-      console.log('   1. 访问 https://www.modelscope.cn');
-      console.log('   2. 注册并登录');
-      console.log('   3. 进入个人中心 → 访问令牌');
-      console.log('   4. 复制令牌并粘贴到下面：');
-      apiKey = await new Promise(resolve => {
-        rl.question('\n请输入 Z-Image API 令牌: ', resolve);
-      });
-      break;
+  case '2':
+    apiName = 'ZIMAGE_API_KEY';
+    console.log('\n📌 阿里Z-Image 配置：');
+    console.log('   1. 访问 https://www.modelscope.cn');
+    console.log('   2. 注册并登录');
+    console.log('   3. 进入个人中心 → 访问令牌');
+    console.log('   4. 复制令牌并粘贴到下面：');
+    apiKey = await new Promise(resolve => {
+      rl.question('\n请输入 Z-Image API 令牌: ', resolve);
+    });
+    break;
 
-    case '3':
-      apiName = 'GEMINI_API_KEY';
-      console.log('\n📌 Google Gemini 配置：');
-      console.log('   1. 访问 https://aistudio.google.com/app/apikey');
-      console.log('   2. 创建API密钥');
-      console.log('   3. 复制密钥并粘贴到下面：');
-      apiKey = await new Promise(resolve => {
-        rl.question('\n请输入 Gemini API 密钥: ', resolve);
-      });
-      break;
+  case '3':
+    apiName = 'GEMINI_API_KEY';
+    console.log('\n📌 Google Gemini 配置：');
+    console.log('   1. 访问 https://aistudio.google.com/app/apikey');
+    console.log('   2. 创建API密钥');
+    console.log('   3. 复制密钥并粘贴到下面：');
+    apiKey = await new Promise(resolve => {
+      rl.question('\n请输入 Gemini API 密钥: ', resolve);
+    });
+    break;
 
-    default:
-      console.log('\n❌ 跳过API配置，继续使用矢量风格封面');
-      rl.close();
-      return;
+  default:
+    console.log('\n❌ 跳过API配置，继续使用矢量风格封面');
+    rl.close();
+    return;
   }
 
   if (apiKey.trim()) {

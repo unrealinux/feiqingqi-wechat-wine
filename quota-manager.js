@@ -33,17 +33,18 @@ class QuotaManager {
     const now = new Date();
     
     switch (window) {
-      case 'minute':
-        return new Date(now.getTime() + 60000);
-      case 'hourly':
-        return new Date(now.getTime() + 3600000);
-      case 'daily':
-      default:
-        // 重置到明天0点
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        return tomorrow;
+    case 'minute':
+      return new Date(now.getTime() + 60000);
+    case 'hourly':
+      return new Date(now.getTime() + 3600000);
+    case 'daily':
+    default: {
+      // 重置到明天0点
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      return tomorrow;
+    }
     }
   }
 
@@ -51,7 +52,7 @@ class QuotaManager {
    * 检查配额是否足够
    */
   async canUse(name, amount = 1) {
-    if (!this.checkEnabled) return { allowed: true };
+    if (!this.checkEnabled) {return { allowed: true };}
 
     const quota = this.quotas.get(name);
     if (!quota) {
@@ -82,10 +83,10 @@ class QuotaManager {
    * 使用配额
    */
   async use(name, amount = 1) {
-    if (!this.checkEnabled) return true;
+    if (!this.checkEnabled) {return true;}
 
     const quota = this.quotas.get(name);
-    if (!quota) return true;
+    if (!quota) {return true;}
 
     // 检查并重置
     await this.checkAndReset(name);
@@ -106,7 +107,7 @@ class QuotaManager {
    */
   async checkAndReset(name) {
     const quota = this.quotas.get(name);
-    if (!quota) return;
+    if (!quota) {return;}
 
     const now = new Date();
     
@@ -160,7 +161,7 @@ class QuotaManager {
    */
   async reset(name) {
     const quota = this.quotas.get(name);
-    if (!quota) return false;
+    if (!quota) {return false;}
 
     quota.used = 0;
     quota.resetAt = this.calculateResetTime(quota.window);

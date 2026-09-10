@@ -28,7 +28,7 @@ async function main() {
   const articleContent = fs.readFileSync(articlePath, 'utf-8');
   
   // Parse markdown to HTML
-  let htmlContent = articleContent
+  const htmlContent = articleContent
     .replace(/^# .+$/gm, '')  // Remove main title
     .replace(/^## (.+)$/gm, '<h2>$1</h2>')  // H2 headers
     .replace(/^\*\*(.+)\*\*$/gm, '<strong>$1</strong>')  // Bold

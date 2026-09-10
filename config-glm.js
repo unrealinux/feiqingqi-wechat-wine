@@ -63,7 +63,7 @@ async function configureGLM() {
   fs.writeFileSync(envPath, envContent);
 
   console.log('\n✅ 智谱AI API配置成功！');
-  console.log(`   GLM_API_KEY=已保存到 .env 文件\n`);
+  console.log('   GLM_API_KEY=已保存到 .env 文件\n');
 
   console.log('您可以现在生成写实封面了：\n');
   console.log('  node ai-image-generator.js "🍷 2026葡萄酒投资" "市场分析" "luxury" "2026-02"\n');

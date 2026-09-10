@@ -208,7 +208,7 @@ class LogManager extends EventEmitter {
    */
   rotateFile(category) {
     const streamInfo = this.streams.get(category);
-    if (!streamInfo) return;
+    if (!streamInfo) {return;}
 
     const timestamp = Date.now();
     const rotatedFile = streamInfo.file.replace(
