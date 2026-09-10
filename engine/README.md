@@ -165,6 +165,25 @@ node tools/verify_parity.js --verbose
 
 `tools/extract_articles.py` 使用 **AST 静态解析**，不会执行脚本，因此**不会触发发布**。
 
+### 旧脚本已移出工作区
+
+72 个 `build_*.py` 与 211 个 `generate-*.js` 已在迁移完成后删除，
+但它们完整保留在 git 历史中（commit `7babd19` 是归档点）。
+若需要重新提取，先把它们取出来：
+
+```bash
+mkdir -p /tmp/legacy
+for f in $(git ls-tree --name-only 7babd19 | grep -E '^build_.*\.py$'); do
+  git show 7babd19:$f > /tmp/legacy/$f
+done
+python tools/extract_articles.py /tmp/legacy/build_*.py --out /tmp/extracted
+```
+
+### 同名冲突的处理
+
+不同来源定义相同 `name` 时，**按 `publishDate` 最新者胜**（确定性规则），
+落选版本写入 `articles/_superseded/` 存档，不参与发布。详见该目录的 README。
+
 ## 已修复的历史缺陷
 
 | # | 缺陷 | 证据 | 修复 |
@@ -227,4 +246,6 @@ node tools/verify_parity.js --verbose
 npm run engine:check     # 校验全部数据文件
 npm run engine:render    # 渲染全部文章
 npm run engine:verify    # 回归比对
+npm run engine:extract   # 从旧 build_*.py 提取数据
+npm test                 # 204 个用例（engine 相关 63 个）
 ```

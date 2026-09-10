@@ -27,7 +27,10 @@ jobs:
       
       - name: Run linter
         run: npm run lint
-      
+
+      - name: Validate article data
+        run: npm run engine:check
+
       - name: Run tests
         run: npm test
       
@@ -89,14 +92,13 @@ jobs:
   notify:
     needs: [test, build]
     runs-on: ubuntu-latest
-    
+    if: always()
+
     steps:
       - name: Send notification
-        if: always()
         run: |
           STATUS="✅ Tests passed"
           if [ "${{ needs.test.result }}" != "success" ]; then
             STATUS="❌ Tests failed"
           fi
-          echo "::set-output name=status::$STATUS"
           echo "$STATUS"
