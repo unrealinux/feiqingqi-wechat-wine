@@ -10,6 +10,7 @@ class CacheEntry {
     this.ttl = ttl || 0;
     this.hits = 0;
     this.lastAccessed = this.createdAt;
+    this.accessSeq = 0;
   }
 
   isExpired() {
@@ -17,9 +18,15 @@ class CacheEntry {
     return Date.now() - this.createdAt > this.ttl;
   }
 
-  touch() {
+  touch(seq) {
     this.hits++;
     this.lastAccessed = Date.now();
+    // 使用单调递增序号而非时间戳判定 LRU 顺序。
+    // Date.now() 只有毫秒精度，同毫秒内多次读写会导致顺序不可区分，
+    // 使 evictLRU 误法淘汰刚被访问过的条目。
+    if (seq !== undefined) {
+      this.accessSeq = seq;
+    }
   }
 }
 
@@ -31,6 +38,8 @@ class CacheManager {
     this.enableStats = options.enableStats !== false;
     
     this.cache = new Map();
+    // 单调递增的访问序号，用于确定性 LRU 排序
+    this.accessSeq = 0;
     this.stats = {
       hits: 0,
       misses: 0,
@@ -52,6 +61,7 @@ class CacheManager {
     }
 
     const entry = new CacheEntry(value, ttl);
+    entry.accessSeq = ++this.accessSeq;
     this.cache.set(key, entry);
     this.stats.sets++;
 
@@ -81,7 +91,7 @@ class CacheManager {
       return options.defaultValue !== undefined ? options.defaultValue : null;
     }
 
-    entry.touch();
+    entry.touch(++this.accessSeq);
     this.stats.hits++;
     return entry.value;
   }
@@ -112,7 +122,15 @@ class CacheManager {
   }
 
   /**
+   * 当前条目数
+   */
+  get size() {
+    return this.cache.size;
+  }
+
+  /**
    * 清空缓存
+   * @returns {number} 被清除的条目数
    */
   clear() {
     const count = this.cache.size;
@@ -126,11 +144,11 @@ class CacheManager {
    */
   evictLRU() {
     let lruKey = null;
-    let oldestTime = Infinity;
+    let oldestSeq = Infinity;
 
     for (const [key, entry] of this.cache) {
-      if (entry.lastAccessed < oldestTime) {
-        oldestTime = entry.lastAccessed;
+      if (entry.accessSeq < oldestSeq) {
+        oldestSeq = entry.accessSeq;
         lruKey = key;
       }
     }
@@ -143,6 +161,7 @@ class CacheManager {
 
   /**
    * 清理过期条目
+   * @returns {number} 被清理的条目数
    */
   cleanup() {
     let cleaned = 0;
@@ -162,12 +181,14 @@ class CacheManager {
    * 获取统计信息
    */
   getStats() {
+    const total = this.stats.hits + this.stats.misses;
     return {
       ...this.stats,
       size: this.cache.size,
       maxSize: this.maxSize,
       memoryUsage: this.currentMemory,
-      hitRate: this.stats.hits / (this.stats.hits + this.stats.misses) || 0
+      // 保留 3 位小数，便于断言与展示
+      hitRate: Number((total > 0 ? this.stats.hits / total : 0).toFixed(3))
     };
   }
 

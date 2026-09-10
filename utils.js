@@ -446,6 +446,8 @@ class FileManager {
 
   static async writeJson(filePath, data) {
     try {
+      // 自动创建父目录，否则写入会因 ENOENT 静默失败
+      FileManager.ensureDir(path.dirname(filePath));
       await fsPromises.writeFile(filePath, JSON.stringify(data, null, 2), 'utf8');
       return true;
     } catch (error) {
@@ -463,6 +465,7 @@ class FileManager {
 
   static async appendToFile(filePath, content) {
     try {
+      FileManager.ensureDir(path.dirname(filePath));
       await fsPromises.appendFile(filePath, content, 'utf8');
       return true;
     } catch (error) {

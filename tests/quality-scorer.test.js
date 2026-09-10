@@ -1,219 +1,200 @@
 const { ArticleQualityScorer } = require('../quality-scorer');
 
+/**
+ * 说明：本模块的五个维度均返回 0-100 分，综合得分按权重加权后仍在 0-100 区间。
+ * （历史测试曾按 0-1 区间断言，与实现不符，属于测试与实现脱节。）
+ */
 describe('QualityScorer', () => {
-  let scorer;
-
   let scorer;
 
   beforeEach(() => {
     scorer = new ArticleQualityScorer();
   });
-    scorer = new QualityScorer();
-  });
 
   describe('relevance scoring', () => {
-    test('should score high for wine-related keywords', () => {
+    test('should score high for wine-related content', () => {
       const article = {
-        title: '法国红酒品鉴与产区介绍',
-        content: '本文介绍法国波尔多产区的红酒，包含详细的品酒笔记。'
+        title: '法国红酒品鉴与波尔多产区介绍',
+        content: '本文介绍法国波尔多产区的红酒，包含详细的品酒笔记与酒庄走访记录。',
+        tags: ['红酒', '波尔多'],
+        source: 'decanter'
       };
-      
-      const score = scorer.scoreRelevance(article);
-      expect(score).toBeGreaterThan(0.7);
+      expect(scorer.scoreRelevance(article)).toBeGreaterThan(50);
     });
 
     test('should score low for irrelevant content', () => {
       const article = {
-        title: '今日天气',
-        content: '今天天气晴朗，适合外出。'
+        title: '今日天气预报',
+        content: '今天天气晴朗，气温适宜，适合外出散步。'
       };
-      
-      const score = scorer.scoreRelevance(article);
-      expect(score).toBeLessThan(0.3);
+      expect(scorer.scoreRelevance(article)).toBeLessThan(20);
     });
 
-    test('should return 0 for empty content', () => {
-      const article = { title: '', content: '' };
-      expect(scorer.scoreRelevance(article)).toBe(0);
+    test('should never exceed 100', () => {
+      const article = {
+        title: '红酒 葡萄酒 品酒 酒庄 产区 葡萄 干红 干白 起泡酒 香槟 酿酒 赤霞珠 梅洛 霞多丽 黑皮诺 波尔多 勃艮第',
+        content: '红酒 葡萄酒 品酒 酒庄 产区 葡萄 干红 干白 起泡酒 香槟 酿酒'.repeat(20),
+        tags: ['a', 'b', 'c', 'd', 'e', 'f'],
+        source: 'decanter'
+      };
+      expect(scorer.scoreRelevance(article)).toBeLessThanOrEqual(100);
+    });
+
+    test('should give bonus for authoritative wine sources', () => {
+      const base = { title: '波尔多红酒', content: '波尔多红酒介绍' };
+      const withSource = { ...base, source: 'wine-world.com' };
+      expect(scorer.scoreRelevance(withSource)).toBeGreaterThan(scorer.scoreRelevance(base));
     });
   });
 
   describe('freshness scoring', () => {
-    test('should score high for recent articles', () => {
-      const article = {
-        publishedAt: new Date().toISOString()
-      };
-      
-      const score = scorer.scoreFreshness(article);
-      expect(score).toBeGreaterThan(0.9);
+    test('should score 100 for articles published within a day', () => {
+      expect(scorer.scoreFreshness({ pubDate: new Date().toISOString() })).toBe(100);
     });
 
     test('should score low for old articles', () => {
-      const article = {
-        publishedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      };
-      
-      const score = scorer.scoreFreshness(article);
-      expect(score).toBeLessThan(0.3);
+      const old = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
+      expect(scorer.scoreFreshness({ pubDate: old })).toBeLessThanOrEqual(30);
     });
 
-    test('should handle missing publishedAt', () => {
-      const article = {};
-      const score = scorer.scoreFreshness(article);
-      expect(score).toBe(0.5); // default score
+    test('should default to 50 when date is missing or invalid', () => {
+      expect(scorer.scoreFreshness({})).toBe(50);
+      expect(scorer.scoreFreshness({ pubDate: 'not-a-date' })).toBe(50);
+    });
+
+    test('should accept publishedAt and date as aliases for pubDate', () => {
+      const now = new Date().toISOString();
+      expect(scorer.scoreFreshness({ publishedAt: now })).toBe(100);
+      expect(scorer.scoreFreshness({ date: now })).toBe(100);
     });
   });
 
   describe('completeness scoring', () => {
     test('should score high for complete articles', () => {
       const article = {
-        title: '完整的文章标题',
-        content: '这是一篇内容丰富的文章，包含多个段落和详细的论述。文章讨论了红酒的各个方面，从酿造工艺到品鉴技巧，从产区特色到配餐建议。',
+        title: '完整的文章标题示例',
+        content: '内容'.repeat(400), // 800 字，落在 500-5000 区间
         author: '张三',
-        publishedAt: '2026-01-01',
-        source: '葡萄酒杂志'
+        tags: ['红酒'],
+        thumbnail: 'https://example.com/cover.jpg'
       };
-      
-      const score = scorer.scoreCompleteness(article);
-      expect(score).toBeGreaterThan(0.7);
+      expect(scorer.scoreCompleteness(article)).toBeGreaterThanOrEqual(85);
     });
 
     test('should score low for incomplete articles', () => {
-      const article = {
-        title: '短标题',
-        content: '短内容'
-      };
-      
-      const score = scorer.scoreCompleteness(article);
-      expect(score).toBeLessThan(0.5);
+      expect(scorer.scoreCompleteness({ title: '短标题', content: '短内容' })).toBeLessThan(40);
     });
 
-    test('should require minimum content length', () => {
-      const article = {
-        title: '标题',
-        content: '内容太短'
-      };
-      
-      const score = scorer.scoreCompleteness(article);
-      expect(score).toBeLessThan(0.3);
+    test('should penalize over-long titles', () => {
+      const longTitle = '标题'.repeat(30); // 超过 50 字
+      const withLongTitle = scorer.scoreCompleteness({ title: longTitle, content: '内容'.repeat(400) });
+      const withGoodTitle = scorer.scoreCompleteness({ title: '合适的标题长度', content: '内容'.repeat(400) });
+      expect(withLongTitle).toBeLessThan(withGoodTitle);
+    });
+
+    test('should not count placeholder author', () => {
+      const withUnknown = scorer.scoreCompleteness({ title: '标题示例文本', author: '未知' });
+      const withReal = scorer.scoreCompleteness({ title: '标题示例文本', author: '李四' });
+      expect(withReal).toBeGreaterThan(withUnknown);
     });
   });
 
   describe('authority scoring', () => {
     test('should score high for authoritative sources', () => {
       const article = {
-        source: 'Decanter',
-        author: '知名酒评家',
-        url: 'https://www.decanter.com/article'
+        source: 'decanter',
+        author: '葡萄酒专家',
+        link: 'https://www.decanter.com/article'
       };
-      
-      const score = scorer.scoreAuthority(article);
-      expect(score).toBeGreaterThan(0.7);
+      expect(scorer.scoreAuthority(article)).toBeGreaterThan(60);
     });
 
-    test('should score low for unknown sources', () => {
-      const article = {
-        source: '未知网站',
-        author: '网友'
-      };
-      
-      const score = scorer.scoreAuthority(article);
-      expect(score).toBeLessThan(0.5);
+    test('should fall back to base score for unknown sources', () => {
+      expect(scorer.scoreAuthority({ source: '未知网站', author: '网友' })).toBe(40);
+    });
+
+    test('should ignore example.com placeholder links', () => {
+      const withPlaceholder = scorer.scoreAuthority({ link: 'https://example.com/a' });
+      const withReal = scorer.scoreAuthority({ link: 'https://decanter.com/a' });
+      expect(withReal).toBeGreaterThan(withPlaceholder);
     });
   });
 
   describe('engagement scoring', () => {
-    test('should consider engagement metrics', () => {
-      const article = {
-        likes: 100,
-        comments: 50,
-        shares: 30
-      };
-      
-      const score = scorer.scoreEngagement(article);
-      expect(score).toBeGreaterThan(0.6);
+    test('should default to 50 without metrics', () => {
+      expect(scorer.scoreEngagement({})).toBe(50);
     });
 
-    test('should return default for no metrics', () => {
-      const article = {};
-      const score = scorer.scoreEngagement(article);
-      expect(score).toBe(0.5);
+    test('should reward shares, comments and views', () => {
+      const article = { shares: 10, comments: 10, views: 10000 };
+      expect(scorer.scoreEngagement(article)).toBeGreaterThan(50);
+    });
+
+    test('should never exceed 100', () => {
+      expect(scorer.scoreEngagement({ shares: 9999, comments: 9999, views: 10 ** 9 })).toBeLessThanOrEqual(100);
     });
   });
 
   describe('overall scoring', () => {
-    test('should calculate weighted overall score', () => {
-      const article = {
+    test('should return total, breakdown and weights', () => {
+      const result = scorer.score({
         title: '法国红酒品鉴指南',
-        content: '这是一篇详细的法国红酒品鉴指南，介绍了波尔多、勃艮第等知名产区的红酒特点。文章包含了丰富的品酒笔记和专业的酒评分析。',
+        content: '内容'.repeat(300),
         author: '李四',
-        publishedAt: new Date().toISOString(),
-        source: 'Wine Spectator',
-        likes: 200,
-        comments: 50
-      };
-      
-      const result = scorer.scoreArticle(article);
-      
-      expect(result.totalScore).toBeDefined();
-      expect(result.totalScore).toBeGreaterThan(0.6);
-      expect(result.scores.relevance).toBeDefined();
-      expect(result.scores.freshness).toBeDefined();
-      expect(result.scores.completeness).toBeDefined();
-      expect(result.scores.authority).toBeDefined();
-      expect(result.scores.engagement).toBeDefined();
+        pubDate: new Date().toISOString(),
+        source: 'decanter'
+      });
+
+      expect(result.total).toBeGreaterThan(0);
+      expect(result.total).toBeLessThanOrEqual(100);
+      expect(Object.keys(result.breakdown).sort()).toEqual(
+        ['authority', 'completeness', 'engagement', 'freshness', 'relevance']
+      );
+      expect(result.weight).toEqual(scorer.weights);
     });
 
-    test('should include breakdown in result', () => {
-      const article = {
-        title: '测试文章',
-        content: '这是测试内容。'.repeat(10)
-      };
-      
-      const result = scorer.scoreArticle(article);
-      
-      expect(result.breakdown).toBeDefined();
-      expect(result.recommendation).toBeDefined();
+    test('weights should sum to 1', () => {
+      const sum = Object.values(scorer.weights).reduce((a, b) => a + b, 0);
+      expect(sum).toBeCloseTo(1);
     });
 
-    test('should provide recommendation based on score', () => {
-      const goodArticle = {
-        title: '优质红酒文章',
-        content: '这是详细的红酒评测内容，包含品酒笔记、产区介绍、配餐建议等专业内容。'.repeat(10),
-        author: '专业酒评家',
-        publishedAt: new Date().toISOString(),
-        source: 'Decanter'
-      };
-      
-      const result = scorer.scoreArticle(goodArticle);
-      expect(['highly_recommended', 'recommended', 'acceptable']).toContain(result.recommendation);
+    test('should honor custom weights', () => {
+      const relevanceOnly = new ArticleQualityScorer({ relevanceWeight: 1, freshnessWeight: 0, completenessWeight: 0, authorityWeight: 0, engagementWeight: 0 });
+      const article = { title: '波尔多红酒品鉴', content: '波尔多红酒品鉴内容' };
+      expect(relevanceOnly.score(article).total).toBe(Math.round(relevanceOnly.scoreRelevance(article)));
     });
   });
 
-  describe('sorting and filtering', () => {
-    test('should sort articles by score', () => {
+  describe('batch sorting and filtering', () => {
+    test('scoreBatch should sort by total descending', () => {
       const articles = [
-        { id: '1', title: '低质量', content: '短' },
-        { id: '2', title: '法国红酒介绍', content: '这是详细的红酒评测内容。'.repeat(10) },
-        { id: '3', title: '中等质量', content: '这是一篇中等的红酒文章。'.repeat(5) }
+        { id: 'low', title: '短', content: '短' },
+        { id: 'high', title: '法国红酒品鉴指南', content: '波尔多红酒'.repeat(200), author: '专家', source: 'decanter', pubDate: new Date().toISOString() },
+        { id: 'mid', title: '中等质量的葡萄酒文章', content: '红酒内容'.repeat(100) }
       ];
-      
-      const sorted = scorer.sortByQuality(articles);
-      
-      expect(sorted[0].id).toBe('2'); // highest score
-      expect(sorted[2].id).toBe('1'); // lowest score
+
+      const sorted = scorer.scoreBatch(articles);
+      expect(sorted).toHaveLength(3);
+      expect(sorted[0].article.id).toBe('high');
+      expect(sorted[2].article.id).toBe('low');
+      expect(sorted[0].score.total).toBeGreaterThanOrEqual(sorted[1].score.total);
     });
 
-    test('should filter by minimum score', () => {
+    test('filterHighQuality should keep only articles above the threshold', () => {
       const articles = [
-        { id: '1', title: '低质量', content: '短' },
-        { id: '2', title: '法国红酒介绍', content: '这是详细的红酒评测内容。'.repeat(10) }
+        { id: 'low', title: '短', content: '短' },
+        { id: 'high', title: '法国红酒品鉴指南', content: '波尔多红酒'.repeat(200), author: '专家', source: 'decanter', pubDate: new Date().toISOString() }
       ];
-      
-      const filtered = scorer.filterByQuality(articles, 0.5);
-      
-      expect(filtered.length).toBe(1);
-      expect(filtered[0].id).toBe('2');
+
+      const filtered = scorer.filterHighQuality(articles, 60);
+      expect(filtered.map(a => a.id)).toEqual(['high']);
+    });
+
+    test('filterHighQuality should return articles, not score wrappers', () => {
+      const articles = [{ id: 'x', title: '法国红酒品鉴指南', content: '波尔多红酒'.repeat(200) }];
+      const filtered = scorer.filterHighQuality(articles, 0);
+      expect(filtered[0]).toHaveProperty('id', 'x');
+      expect(filtered[0]).not.toHaveProperty('score');
     });
   });
 });

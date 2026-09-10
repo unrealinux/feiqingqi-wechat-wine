@@ -72,11 +72,16 @@ describe('Utils Module', () => {
       cache.set('key1', 'value1');
       cache.set('key2', 'value2');
       cache.clear();
-      
-      expect(cache.get('key1')).toBeNull();
+
+      // 先断言统计：clear() 应同时清空条目与计数器
       const stats = cache.getStats();
+      expect(stats.size).toBe(0);
       expect(stats.hits).toBe(0);
       expect(stats.misses).toBe(0);
+
+      // 清空后的读取应计为 miss（放在断言之后，避免干扰上面的计数）
+      expect(cache.get('key1')).toBeNull();
+      expect(cache.getStats().misses).toBe(1);
     });
   });
 
@@ -176,7 +181,8 @@ describe('Utils Module', () => {
     });
 
     test('should backup file', () => {
-      // Create test file
+      // 必须先建目录：ensureDir 在测试间会被 afterEach 清理
+      FileManager.ensureDir(testDir);
       fs.writeFileSync(testFile, 'test content');
       
       const backupPath = FileManager.backupFile(testFile);

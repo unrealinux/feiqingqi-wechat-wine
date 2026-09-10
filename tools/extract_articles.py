@@ -239,25 +239,46 @@ def main():
     if only:
         all_articles = [a for a in all_articles if a['name'] in only]
 
-    # 同名冲突检测：不同 build 文件定义了相同 name，后写入的会覆盖先写入的
+    # 同名冲突处理：保留 publishDate 最新的一份（确定性规则）
+    # 早期实现依赖「文件字母序后者覆盖」，结果取决于文件名，不可复现。
     by_name = {}
     for art in all_articles:
-        by_name.setdefault(art['name'], []).append(art.get('source', '?'))
-    collisions = {n: srcs for n, srcs in by_name.items() if len(srcs) > 1}
+        by_name.setdefault(art['name'], []).append(art)
 
-    deduped = {}
-    for art in all_articles:
-        deduped[art['name']] = art  # 后者覆盖前者，保持原行为
-    final_articles = list(deduped.values())
+    collisions = {n: arts for n, arts in by_name.items() if len(arts) > 1}
+    final_articles, superseded = [], []
+    for name, arts in by_name.items():
+        if len(arts) == 1:
+            final_articles.append(arts[0])
+            continue
+        ordered = sorted(arts, key=lambda a: str(a.get('publishDate') or ''), reverse=True)
+        final_articles.append(ordered[0])
+        superseded.extend(ordered[1:])
 
     if collisions:
-        print(f'⚠️  发现 {len(collisions)} 组同名文章（后者将覆盖前者）:')
-        for name, srcs in sorted(collisions.items()):
-            print(f'    - {name}: {" vs ".join(srcs)}')
-        print('    请人工确认保留哪一份，并重命名另一份')
-        if args.strict:
-            print('❌ --strict 模式下视为错误，已终止')
-            return 1
+        print(f'⚠️  发现 {len(collisions)} 组同名文章，按「发布日期最新者胜」保留:')
+        for name, arts in sorted(collisions.items()):
+            ordered = sorted(arts, key=lambda a: str(a.get('publishDate') or ''), reverse=True)
+            winner = ordered[0]
+            losers = ', '.join(f"{a.get('source')}@{a.get('publishDate')}" for a in ordered[1:])
+            print(f'    ✔ {name}: 保留 {winner.get("source")}@{winner.get("publishDate")}'
+                  f'  |  落选 {losers}')
+
+    if superseded and not args.dry_run:
+        arch_dir = os.path.join(args.out, '_superseded')
+        os.makedirs(arch_dir, exist_ok=True)
+        for art in superseded:
+            src_tag = os.path.splitext(art.get('source', 'unknown'))[0]
+            dest = os.path.join(arch_dir, f"{art['name']}__{src_tag}.json")
+            with open(dest, 'w', encoding='utf-8') as fh:
+                json.dump(art, fh, ensure_ascii=False, indent=2)
+                fh.write('\n')
+        arch_display = os.path.relpath(arch_dir, ROOT) if os.path.isabs(arch_dir) and os.path.splitdrive(arch_dir)[0] == os.path.splitdrive(ROOT)[0] else arch_dir
+        print(f'    📦 落选的 {len(superseded)} 份已存档到 {arch_display}/')
+
+    if collisions and args.strict:
+        print('❌ --strict 模式下同名冲突视为错误，已终止')
+        return 1
 
     if not args.dry_run:
         os.makedirs(args.out, exist_ok=True)

@@ -5,12 +5,13 @@
 
 class ArticleQualityScorer {
   constructor(options = {}) {
+    // 必须用 ?? 而非 ||：否则调用方显式传 0（禁用某个维度）会被当成 falsy 而回退到默认值
     this.weights = {
-      relevance: options.relevanceWeight || 0.35,    // 相关性
-      freshness: options.freshnessWeight || 0.25,    // 时效性
-      completeness: options.completenessWeight || 0.20, // 完整性
-      authority: options.authorityWeight || 0.15,    // 权威性
-      engagement: options.engagementWeight || 0.05   // 互动性
+      relevance: options.relevanceWeight ?? 0.35,        // 相关性
+      freshness: options.freshnessWeight ?? 0.25,        // 时效性
+      completeness: options.completenessWeight ?? 0.20,  // 完整性
+      authority: options.authorityWeight ?? 0.15,        // 权威性
+      engagement: options.engagementWeight ?? 0.05       // 互动性
     };
     
     // 红酒相关关键词
@@ -60,7 +61,9 @@ class ArticleQualityScorer {
    * 计算时效性得分
    */
   scoreFreshness(article) {
-    const pubDate = article.pubDate ? new Date(article.pubDate) : null;
+    // 兼容多种字段命名：不同数据源用 pubDate / publishedAt / date
+    const raw = article.pubDate || article.publishedAt || article.date || null;
+    const pubDate = raw ? new Date(raw) : null;
     if (!pubDate || isNaN(pubDate.getTime())) {
       return 50; // 默认中等分数
     }

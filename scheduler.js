@@ -102,6 +102,8 @@ class TaskScheduler {
     } catch (error) {
       logger.error('定时流程失败', { error: error.message });
       result.errors.push(error.message);
+      // 失败的运行同样需要入史，否则运行记录会只留下成功案例，掩盖故障
+      this.recordRun('full', result, Date.now() - startTime);
       return result;
     }
   }
@@ -271,4 +273,9 @@ function startScheduler() {
   console.log(JSON.stringify(scheduler.getStatus(), null, 2));
 }
 
-module.exports = { TaskScheduler, startScheduler };
+// 同时支持两种导入方式：
+//   const Scheduler = require('./scheduler');      new Scheduler()
+//   const { TaskScheduler } = require('./scheduler');
+module.exports = TaskScheduler;
+module.exports.TaskScheduler = TaskScheduler;
+module.exports.startScheduler = startScheduler;

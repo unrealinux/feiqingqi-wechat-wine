@@ -19,11 +19,29 @@ function hash(str, algorithm = 'md5') {
 function normalizeUrl(url) {
   try {
     const u = new URL(url);
+
     // 移除常见的跟踪参数
     u.searchParams.delete('utm_source');
     u.searchParams.delete('utm_medium');
     u.searchParams.delete('utm_campaign');
     u.searchParams.delete('ref');
+
+    // 统一 host：去掉 www. 前缀（URL 已自动将 hostname 小写化）
+    u.hostname = u.hostname.replace(/^www\./i, '');
+
+    // 显式去掉默认端口（URL 通常已自动省略，这里兜底）
+    if (
+      (u.protocol === 'https:' && u.port === '443') ||
+      (u.protocol === 'http:' && u.port === '80')
+    ) {
+      u.port = '';
+    }
+
+    // URL.toString() 总会在根路径补上 "/"，这里去掉，使 example.com 与 example.com/ 归一
+    if (u.pathname === '/' && !u.search && !u.hash) {
+      return `${u.protocol}//${u.host}`;
+    }
+
     return u.toString();
   } catch {
     return url;
@@ -196,7 +214,9 @@ function formatBytes(bytes) {
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
+  // 去掉无意义的尾随 0：1.00 KB -> 1 KB，1.50 KB -> 1.5 KB
+  const value = Number((bytes / Math.pow(k, i)).toFixed(2));
+  return `${value} ${sizes[i]}`;
 }
 
 /**

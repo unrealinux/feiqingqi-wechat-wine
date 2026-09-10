@@ -31,6 +31,17 @@ const RecoverableErrors = [
 ];
 
 /**
+ * 明确「不可重试」的错误类型：属于永久性失败，重试只会浪费时间。
+ * 采用黑名单而非白名单，是因为未知错误（UNKNOWN）往往是突发性的，重试是有意义的。
+ */
+const NonRetryableErrors = [
+  ErrorTypes.AUTH,
+  ErrorTypes.VALIDATION,
+  ErrorTypes.NOT_FOUND,
+  ErrorTypes.PARSE,
+];
+
+/**
  * 自定义应用错误类
  */
 class AppError extends Error {
@@ -141,12 +152,16 @@ const DefaultRetryConfig = {
  * 计算重试延迟（指数退避 + 抖动）
  */
 function calculateDelay(retryCount, config = DefaultRetryConfig) {
+  // 必须与默认配置合并：调用方传入部分配置时（如只给 initialDelay），
+  // 未提供的 maxDelay 会是 undefined，Math.min 会返回 NaN
+  const cfg = { ...DefaultRetryConfig, ...config };
+
   const baseDelay = Math.min(
-    config.initialDelay * Math.pow(config.backoffFactor, retryCount),
-    config.maxDelay
+    cfg.initialDelay * Math.pow(cfg.backoffFactor, retryCount),
+    cfg.maxDelay
   );
-  
-  if (config.jitter) {
+
+  if (cfg.jitter) {
     // 添加 0-50% 的随机抖动
     return baseDelay * (0.5 + Math.random() * 0.5);
   }
@@ -177,8 +192,8 @@ async function withRetry(fn, options = {}) {
       lastError = createAppError(error);
       lastError.retryCount = attempt;
 
-      // 检查是否可以重试
-      if (!lastError.isRecoverable || attempt >= config.maxRetries) {
+      // 检查是否可以重试：只有明确的永久性失败才放弃
+      if (NonRetryableErrors.includes(lastError.type) || attempt >= config.maxRetries) {
         throw lastError;
       }
 
@@ -336,14 +351,28 @@ class CircuitBreaker {
     this.lastFailureTime = null;
   }
 
+  /**
+   * 惰性推进状态。
+   * OPEN 且已超过冷却时间时，自动进入 HALF_OPEN，
+   * 使 getStatus() 也能反映「下一次调用将被放行」的真实状态。
+   */
+  syncState() {
+    if (
+      this.state === 'OPEN' &&
+      this.lastFailureTime !== null &&
+      Date.now() - this.lastFailureTime >= this.timeout
+    ) {
+      this.state = 'HALF_OPEN';
+      this.successCount = 0;
+    }
+    return this.state;
+  }
+
   async execute(fn) {
+    this.syncState();
+
     if (this.state === 'OPEN') {
-      if (Date.now() - this.lastFailureTime >= this.timeout) {
-        this.state = 'HALF_OPEN';
-        this.successCount = 0;
-      } else {
-        throw new AppError('Circuit breaker is OPEN', ErrorTypes.RATE_LIMIT);
-      }
+      throw new AppError('Circuit breaker is OPEN', ErrorTypes.RATE_LIMIT);
     }
 
     try {
@@ -379,7 +408,7 @@ class CircuitBreaker {
 
   getStatus() {
     return {
-      state: this.state,
+      state: this.syncState(),
       failureCount: this.failureCount,
       successCount: this.successCount,
     };

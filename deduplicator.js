@@ -4,14 +4,19 @@
  */
 
 const crypto = require('crypto');
-const { JaccardSimilarity, LevenshteinDistance } = require('./algorithms');
+// 注：JaccardSimilarity / LevenshteinDistance 在本文件底部定义。
+// 原实现尝试从 './algorithms' 导入，但该模块从未存在（运行时会 MODULE_NOT_FOUND），
+// 且与本地定义同名，导致 SyntaxError: Identifier 'JaccardSimilarity' has already been declared。
 
 /**
  * 文章去重器
  */
 class ArticleDeduplicator {
   constructor(options = {}) {
-    this.strategy = options.strategy || 'exact'; // exact, fuzzy, semantic
+    // exact: 仅精确匹配（链接 + 内容哈希）
+    // fuzzy: 额外做标题相似度（默认，与历史行为一致）
+    // semantic: 预留，当前等同 fuzzy
+    this.strategy = options.strategy || 'fuzzy';
     this.threshold = options.threshold || 0.8; // 相似度阈值
     this.seenLinks = new Set();
     this.seenTitles = new Set();
@@ -21,28 +26,51 @@ class ArticleDeduplicator {
 
   /**
    * 生成内容哈希
+   *
+   * 注意：不能用 `[^\w\s]` 清洗 —— \w 不包含汉字，纯中文内容会被洗成空串，
+   * 于是所有中文文章都得到 md5('') 而互相判为「重复」。
+   * 这里用 Unicode 属性类 \p{L}\p{N} 保留所有语言的字母与数字。
    */
   generateHash(content) {
-    const normalized = content
+    const normalized = String(content)
       .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .replace(/\s+/g, ' ')
+      .replace(/[\s\u3000]+/g, ' ')        // 归并各类空白
+      .replace(/[^\p{L}\p{N}\s]/gu, '')     // 去掉标点与符号，保留字母数字（含 CJK）
       .trim();
     return crypto.createHash('md5').update(normalized).digest('hex');
   }
 
   /**
    * 提取标题特征
+   *
+   * 注意：JS 正则中 \w 不包含汉字，直接 `replace(/[^\w\s]/g,'')` 会把中文标题
+   * 整个清空，导致特征集为空、相似度恒为 0（本项目标题几乎全为中文）。
+   * 因此对 CJK 单独按「相邻两字」切分为 bigram。
    */
   extractTitleFeatures(title) {
     if (!title) return new Set();
-    return new Set(
-      title
-        .toLowerCase()
-        .replace(/[^\w\s]/g, '')
-        .split(/\s+/)
-        .filter(w => w.length > 2)
-    );
+
+    const normalized = String(title).toLowerCase();
+    const features = new Set();
+
+    // 拉丁词（长度 > 2）与数字（数字即使很短也具有区分度，必须保留）
+    for (const word of normalized.replace(/[^\w\s]/g, ' ').split(/\s+/)) {
+      if (!word) continue;
+      if (/\d/.test(word) || word.length > 2) features.add(word);
+    }
+
+    // CJK bigram
+    for (const run of normalized.match(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]+/g) || []) {
+      if (run.length === 1) {
+        features.add(run);
+        continue;
+      }
+      for (let i = 0; i < run.length - 1; i++) {
+        features.add(run.slice(i, i + 2));
+      }
+    }
+
+    return features;
   }
 
   /**
@@ -131,13 +159,17 @@ class ArticleDeduplicator {
       return { kept: false, reason: 'invalid_article' };
     }
 
+    // 链接与内容哈希属于精确匹配，任何策略下都执行；
+    // 标题相似度只在 fuzzy / semantic 策略下启用。
+    const useFuzzy = this.strategy === 'fuzzy' || this.strategy === 'semantic';
+
     // 策略1: 链接去重
     if (article.link && this.isDuplicateLink(article.link)) {
       return { kept: false, reason: 'duplicate_link' };
     }
 
-    // 策略2: 标题去重
-    if (this.isDuplicateTitle(article.title, this.threshold)) {
+    // 策略2: 标题去重（精确 + 相似度）
+    if (useFuzzy && this.isDuplicateTitle(article.title, this.threshold)) {
       return { kept: false, reason: 'duplicate_title' };
     }
 
