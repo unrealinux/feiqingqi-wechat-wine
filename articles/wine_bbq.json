@@ -1,0 +1,225 @@
+{
+  "name": "wine_bbq",
+  "title": "红酒配烧烤指南：最过瘾的搭配",
+  "author": "红樽坊",
+  "digest": "烧烤配红酒，是夏天最过瘾的搭配。从牛肉到羊肉，从猪肉到海鲜，这篇指南帮你选对烧烤酒。",
+  "category": "food-pairing",
+  "tags": [
+    "烧烤",
+    "搭配",
+    "夏天",
+    "烤肉",
+    "配餐"
+  ],
+  "publishDate": "20260614",
+  "theme": {
+    "name": "rich",
+    "primary": "#bf360c",
+    "secondary": "#ff7043"
+  },
+  "cover": {
+    "color": "#bf360c",
+    "titleLines": [
+      "红酒配烧烤指南",
+      "最过瘾的搭配"
+    ],
+    "subtitle": "烤肉配酒，越喝越有",
+    "bottomText": "红樽坊 | 美食搭配"
+  },
+  "source": "build_wine_bbq.py",
+  "content": [
+    {
+      "type": "title",
+      "text": "红酒配烧烤指南：最过瘾的搭配"
+    },
+    {
+      "type": "subtitle",
+      "text": "烤肉配酒，越喝越有"
+    },
+    {
+      "type": "lead",
+      "text": "烧烤配红酒，是夏天最过瘾的搭配。烤肉的香气，配上红酒的果味，简直是人间美味。这篇指南帮你选对烧烤酒，让烧烤体验更上一层楼。"
+    },
+    {
+      "type": "h2",
+      "text": "🔥 烧烤配酒的基本原则"
+    },
+    {
+      "type": "p",
+      "text": "烧烤配酒，遵循这几个原则："
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>肉类决定酒款</strong>——不同肉类配不同酒",
+        "<strong>重配重</strong>——浓郁的烤肉配浓郁的红酒",
+        "<strong>轻配轻</strong>——清淡的海鲜配清爽的白酒",
+        "<strong>辣配甜</strong>——辣味烧烤配甜型葡萄酒",
+        "<strong>温度要适中</strong>——葡萄酒不要太冰，12-16°C最佳"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🥩 牛肉烧烤配酒"
+    },
+    {
+      "type": "p",
+      "text": "牛肉烧烤是最经典的烧烤类型，也是最难配酒的。但只要选对酒，牛肉烧烤也能配出美味："
+    },
+    {
+      "type": "ri",
+      "heading": "推荐酒款：赤霞珠（Cabernet Sauvignon）",
+      "text": "<strong>推荐产区：</strong>纳帕谷、智利\n<strong>理由：</strong>赤霞珠的浓郁果味和高单宁可以与牛肉烧烤的浓郁口味相得益彰。\n<strong>饮用温度：</strong>16-18°C\n<strong>推荐搭配：</strong>牛排、牛肋条、牛腩\n\n<strong>其他选择：</strong>马尔贝克、丹魄"
+    },
+    {
+      "type": "p",
+      "text": "<strong>避雷：</strong>不要配轻盈型葡萄酒，会掩盖牛肉的原味。"
+    },
+    {
+      "type": "h2",
+      "text": "🐑 羊肉烧烤配酒"
+    },
+    {
+      "type": "p",
+      "text": "羊肉烧烤有独特的膻味，需要搭配能中和膻味的葡萄酒："
+    },
+    {
+      "type": "ri",
+      "heading": "推荐酒款：西拉（Syrah）",
+      "text": "<strong>推荐产区：</strong>澳大利亚巴罗萨谷、法国罗讷河谷\n<strong>理由：</strong>西拉的浓郁果味和辛辣感可以与羊肉的膻味相互补充。\n<strong>饮用温度：</strong>16-18°C\n<strong>推荐搭配：</strong>羊肉串、羊排、羊腿\n\n<strong>其他选择：</strong>歌海娜、慕合怀特"
+    },
+    {
+      "type": "p",
+      "text": "<strong>避雷：</strong>不要配高酸度的葡萄酒，会加重膻味。"
+    },
+    {
+      "type": "h2",
+      "text": "🍖 猪肉烧烤配酒"
+    },
+    {
+      "type": "p",
+      "text": "猪肉烧烤口味适中，适合搭配中等酒体的葡萄酒："
+    },
+    {
+      "type": "ri",
+      "heading": "推荐酒款：黑皮诺（Pinot Noir）",
+      "text": "<strong>推荐产区：</strong>勃艮第、俄勒冈\n<strong>理由：</strong>黑皮诺的轻盈口感可以与猪肉的细腻口味相得益彰。\n<strong>饮用温度：</strong>14-16°C\n<strong>推荐搭配：</strong>猪排、猪肋条、猪颈肉\n\n<strong>其他选择：</strong>佳美、歌海娜"
+    },
+    {
+      "type": "p",
+      "text": "<strong>避雷：</strong>不要配浓郁型葡萄酒，会掩盖猪肉的原味。"
+    },
+    {
+      "type": "h2",
+      "text": "🦞 海鲜烧烤配酒"
+    },
+    {
+      "type": "p",
+      "text": "海鲜烧烤鲜美无比，适合搭配清爽型白葡萄酒："
+    },
+    {
+      "type": "ri",
+      "heading": "推荐酒款：长相思（Sauvignon Blanc）",
+      "text": "<strong>推荐产区：</strong>马尔堡、卢瓦尔河谷\n<strong>理由：</strong>长相思的清爽酸度可以提升海鲜烧烤的鲜味。\n<strong>饮用温度：</strong>8-10°C\n<strong>推荐搭配：</strong>虾、鱼、贝类\n\n<strong>其他选择：</strong>雷司令、灰皮诺"
+    },
+    {
+      "type": "p",
+      "text": "<strong>避雷：</strong>不要配浓郁型红葡萄酒，会掩盖海鲜的鲜味。"
+    },
+    {
+      "type": "h2",
+      "text": "🎯 烧烤配酒速查表"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "烧烤类型",
+        "推荐酒款",
+        "避雷"
+      ],
+      "rows": [
+        [
+          "牛肉烧烤",
+          "赤霞珠、马尔贝克",
+          "轻盈型葡萄酒"
+        ],
+        [
+          "羊肉烧烤",
+          "西拉、歌海娜",
+          "高酸度葡萄酒"
+        ],
+        [
+          "猪肉烧烤",
+          "黑皮诺、佳美",
+          "浓郁型葡萄酒"
+        ],
+        [
+          "海鲜烧烤",
+          "长相思、雷司令",
+          "浓郁型红葡萄酒"
+        ],
+        [
+          "鸡肉烧烤",
+          "桃红、灰皮诺",
+          "高单宁红葡萄酒"
+        ],
+        [
+          "混合烧烤",
+          "西拉、桃红",
+          "单一酒款"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "💡 烧烤配酒小贴士"
+    },
+    {
+      "type": "p",
+      "text": "记住这几个小贴士，让你的烧烤配酒更完美："
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>先吃肉再喝酒</strong>——先吃一口肉，再喝一口酒，可以提升口感",
+        "<strong>多喝水</strong>——吃烧烤时多喝水，可以帮助解腻",
+        "<strong>不要空腹吃烧烤</strong>——空腹吃烧烤容易伤胃",
+        "<strong>适量饮酒</strong>——吃烧烤时容易喝多，要注意控制",
+        "<strong>享受过程</strong>——烧烤配酒最重要的是享受过程"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🚫 烧烤配酒禁忌"
+    },
+    {
+      "type": "p",
+      "text": "烧烤配酒，这些禁忌要注意："
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>不要喝太多</strong>——微醺最好，喝醉伤身",
+        "<strong>不要空腹喝酒</strong>——空腹喝酒伤身",
+        "<strong>不要忽略安全</strong>——烧烤时注意防火",
+        "<strong>不要忽略环保</strong>——烧烤后清理垃圾",
+        "<strong>不要忽略健康</strong>——烧烤要适量，不要天天吃"
+      ]
+    },
+    {
+      "type": "sep"
+    },
+    {
+      "type": "quote",
+      "text": "'烧烤配酒，越喝越有。'"
+    },
+    {
+      "type": "p",
+      "text": "烧烤配酒是一种享受，也是一种生活态度。选对酒，配对肉，让你的烧烤体验更上一层楼。"
+    },
+    {
+      "type": "end",
+      "text": "你喜欢什么烧烤？<br/>你平时配什么酒？<br/>欢迎在评论区分享你的烧烤配酒经验！"
+    }
+  ]
+}

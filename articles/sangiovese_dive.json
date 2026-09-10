@@ -1,0 +1,154 @@
+{
+  "name": "sangiovese_dive",
+  "title": "🍇 桑娇维塞 Sangiovese：意大利的骄傲之光",
+  "author": "红酒顾问",
+  "digest": "从基安蒂到布鲁奈罗，桑娇维塞是意大利种植最广的红葡萄。酸樱桃和大地气息是它的标志，托斯卡纳的阳光是它的灵魂。",
+  "category": "wine-grape",
+  "tags": [
+    "桑娇维塞",
+    "Sangiovese",
+    "基安蒂",
+    "布鲁奈罗",
+    "意大利",
+    "托斯卡纳",
+    "红葡萄"
+  ],
+  "publishDate": "20260607",
+  "theme": {
+    "name": "classic"
+  },
+  "cover": null,
+  "source": "build_new_topics.py",
+  "content": [
+    {
+      "type": "title",
+      "text": "🍇 桑娇维塞 Sangiovese"
+    },
+    {
+      "type": "subtitle",
+      "text": "意大利的骄傲之光 | 从基安蒂到布鲁奈罗的托斯卡纳灵魂"
+    },
+    {
+      "type": "p",
+      "text": "桑娇维塞（Sangiovese）是意大利种植面积最广的红葡萄品种，也是托斯卡纳产区无可争议的主角。它的名字源自拉丁语\"sanguis Jovis\"——\"朱庇特之血\"。"
+    },
+    {
+      "type": "p",
+      "text": "桑娇维塞是一个基因不稳定的品种，存在数十个克隆变种。最著名的是Sangiovese Grosso（用于布鲁奈罗）和Sangiovese Piccolo（用于基安蒂）。这个特点使得它可以在不同的风土中展现出截然不同的风貌。"
+    },
+    {
+      "type": "h2",
+      "text": "📍 主要产区与等级"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "产区",
+        "等级",
+        "风格特点"
+      ],
+      "rows": [
+        [
+          "基安蒂 Chianti DOCG",
+          "Chianti / Chianti Classico",
+          "酸樱桃、紫罗兰，Classico更浓郁"
+        ],
+        [
+          "基安蒂经典 Chianti Classico DOCG",
+          "Gran Selezione/Riserva",
+          "最高品质基安蒂，陈年潜力强"
+        ],
+        [
+          "布鲁奈罗 Brunello di Montalcino DOCG",
+          "Brunello / Riserva",
+          "浓郁饱满，需陈年5年以上"
+        ],
+        [
+          "蒙塔奇诺 Rosso di Montalcino DOC",
+          "Rosso di Montalcino",
+          "布鲁奈罗的年轻版，适合早饮"
+        ],
+        [
+          "蒙特普尔恰诺贵族酒 Vino Nobile di Montepulciano DOCG",
+          "Nobile / Riserva",
+          "介于基安蒂和布鲁奈罗之间"
+        ],
+        [
+          "超级托斯卡纳 Super Tuscan IGT",
+          "Tignanello/Sassicaia等",
+          "国际品种混酿，风格现代"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "👃 香气特征"
+    },
+    {
+      "type": "list",
+      "items": [
+        "🍒 标志性：酸樱桃——这是桑娇维塞最容易被辨认的特征",
+        "🌸 花香：紫罗兰、鸢尾花",
+        "🌿 草本：番茄叶、干草药、牛至",
+        "🪵 陈年：烟草、皮革、雪松、焦油",
+        "🌍 泥土：托斯卡纳土壤特有的碎石和矿物感"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🍷 品鉴要点"
+    },
+    {
+      "type": "p",
+      "text": "桑娇维塞的核心特征是酸度高、单宁中等到高、酒体中到饱满。年轻的基安蒂通常充满活力，果味新鲜；而陈年的布鲁奈罗则展现出层次丰富的第三类香气。"
+    },
+    {
+      "type": "p",
+      "text": "品质最好的桑娇维塞往往带有一丝\"咸鲜感\"（savory），这种独特的口感让它与食物搭配时格外出色。这也是为什么意大利人几乎餐餐离不开基安蒂。"
+    },
+    {
+      "type": "h2",
+      "text": "🍽️ 美食搭配"
+    },
+    {
+      "type": "list",
+      "items": [
+        "🍝 番茄酱意面——经典的番茄酱+桑娇维塞是天生一对",
+        "🍕 披萨——尤其是玛格丽特披萨",
+        "🥩 佛罗伦萨T骨牛排（Bistecca alla Fiorentina）",
+        "🧀 托斯卡纳 Pecorino奶酪",
+        "🥟 中餐搭配：番茄牛腩、意式肉酱面、烤羊排"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🏆 推荐入门酒款"
+    },
+    {
+      "type": "list",
+      "items": [
+        "🇮🇹 Felsina Chianti Classico Rancia Riserva — 经典标杆",
+        "🇮🇹 Castello di Monsanto Chianti Classico Riserva — 传统风格",
+        "🇮🇹 Altesino Brunello di Montalcino — 布鲁奈罗入门",
+        "🇮🇹 Argiano Rosso di Montalcino — 性价比之选",
+        "🇮🇹 Avignonesi Vino Nobile di Montepulciano — 贵族酒的典范"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "💡 入门建议：从Chianti Classico开始（¥150-300），感受桑娇维塞的酸樱桃特色；进阶尝试Rosso di Montalcino（¥200-400）；终极挑战是陈年Brunello（¥400-上不封顶）。记住：桑娇维塞永远需要配餐，单独喝会感觉酸涩。"
+    },
+    {
+      "type": "sep",
+      "text": ""
+    },
+    {
+      "type": "p",
+      "text": "如果说勃艮第是黑皮诺的天下，那托斯卡纳就是桑娇维塞的王国。没有桑娇维塞，就没有基安蒂、布鲁奈罗、蒙特普尔恰诺贵族酒——意大利葡萄酒的半壁江山将黯然失色。"
+    },
+    {
+      "type": "end",
+      "text": "— 感谢阅读 —"
+    }
+  ]
+}

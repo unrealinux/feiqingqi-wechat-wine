@@ -1,0 +1,178 @@
+{
+  "name": "tempranillo_dive",
+  "title": "🍇 丹魄 Tempranillo：西班牙的红颜知己",
+  "author": "红酒顾问",
+  "digest": "里奥哈的灵魂品种，西班牙最伟大的红葡萄。丹魄的皮革和樱桃香气令人着迷，陈年潜力不输波尔多。从里奥哈到杜埃罗河岸。",
+  "category": "wine-grape",
+  "tags": [
+    "丹魄",
+    "Tempranillo",
+    "里奥哈",
+    "西班牙",
+    "杜埃罗河岸",
+    "红葡萄"
+  ],
+  "publishDate": "20260607",
+  "theme": {
+    "name": "classic"
+  },
+  "cover": null,
+  "source": "build_new_topics.py",
+  "content": [
+    {
+      "type": "title",
+      "text": "🍇 丹魄 Tempranillo"
+    },
+    {
+      "type": "subtitle",
+      "text": "西班牙的红颜知己 | 里奥哈与杜埃罗河岸的灵魂"
+    },
+    {
+      "type": "p",
+      "text": "丹魄（Tempranillo）是西班牙最伟大的红葡萄品种，名字来源于西班牙语\"temprano\"（早），因为它比大多数西班牙红葡萄品种早熟。"
+    },
+    {
+      "type": "p",
+      "text": "丹魄在西班牙不同地区有不同的名字：在里奥哈叫Tempranillo，在杜埃罗河岸叫Tinto Fino，在托罗叫Tinta de Toro，在拉曼查叫Cencibel。它们其实是同一品种的不同克隆适应了不同风土。"
+    },
+    {
+      "type": "h2",
+      "text": "📍 主要产区"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "产区",
+        "风格特点"
+      ],
+      "rows": [
+        [
+          "里奥哈 Rioja DOCa",
+          "最经典产区，橡木桶陈年风格闻名，传统派用美国桶（香草、椰子香）"
+        ],
+        [
+          "杜埃罗河岸 Ribera del Duero DO",
+          "更浓郁饱满，海拔高导致昼夜温差大，颜色更深单宁更强"
+        ],
+        [
+          "托罗 Toro DO",
+          "酒体最饱满，酒精度高，风格粗犷有力"
+        ],
+        [
+          "纳瓦拉 Navarra DO",
+          "风格比里奥哈更现代，果味更突出"
+        ],
+        [
+          "拉曼查 La Mancha DO",
+          "西班牙最大产区，性价比极高，入门级丹魄"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "👃 香气特征"
+    },
+    {
+      "type": "list",
+      "items": [
+        "🍒 果香：樱桃、黑莓、李子——新鲜年轻时有活力",
+        "🧀 陈年香：皮革、雪松、烟草、雪茄盒——里奥哈陈年标志",
+        "🌿 桶香：香草、椰子、丁香——传统美国桶特征（里奥哈）",
+        "🍫 发展香：可可粉、咖啡、焦糖——长时间桶陈的结果",
+        "🌍 泥土：干树叶、泥土、矿物感"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🥃 里奥哈的陈年等级"
+    },
+    {
+      "type": "p",
+      "text": "里奥哈有严格的陈年等级制度，这是选择丹魄的重要参考："
+    },
+    {
+      "type": "table",
+      "headers": [
+        "等级",
+        "总陈年",
+        "桶陈",
+        "瓶陈",
+        "风格"
+      ],
+      "rows": [
+        [
+          "Joven 年轻",
+          "<1年",
+          "无/极少",
+          "—",
+          "果味新鲜，适合即饮"
+        ],
+        [
+          "Crianza 陈酿",
+          "≥2年",
+          "≥1年",
+          "≥1年",
+          "果味+桶味平衡"
+        ],
+        [
+          "Reserva 珍藏",
+          "≥3年",
+          "≥1年",
+          "≥2年",
+          "桶味主导，单宁柔化"
+        ],
+        [
+          "Gran Reserva 特级珍藏",
+          "≥5年",
+          "≥2年",
+          "≥3年",
+          "三类香气主导，极为复杂"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🍽️ 美食搭配"
+    },
+    {
+      "type": "list",
+      "items": [
+        "🥩 烤羊排、烤牛排——西班牙烧烤的经典搭配",
+        "🐖 伊比利亚火腿（Jamón Ibérico）——绝配",
+        "🥘 西班牙海鲜饭（Paella）——尤其是含肉类版本",
+        "🧀 陈年Manchego奶酪",
+        "🥟 中餐搭配：酱牛肉、烤鸭、红烧排骨、腊味"
+      ]
+    },
+    {
+      "type": "tip",
+      "text": "💡 入门建议：从里奥哈Crianza开始（¥100-200），体验美国桶带来的香草椰子味；然后尝试杜埃罗河岸的Reserva（¥200-400），感受更浓郁饱满的风格；最后挑战Gran Reserva（¥400+），领略顶级丹魄的复杂魅力。"
+    },
+    {
+      "type": "h2",
+      "text": "🏆 推荐入门酒款"
+    },
+    {
+      "type": "list",
+      "items": [
+        "🇪🇸 La Rioja Alta Viña Alberdi Reserva — 里奥哈经典名庄",
+        "🇪🇸 Muga Crianza — 风格传统价格亲民",
+        "🇪🇸 Marqués de Riscal Reserva — 老牌名庄",
+        "🇪🇸 Vega Sicilia Valbuena 5° — 西班牙酒王入门款",
+        "🇪🇸 Protos Crianza Ribera del Duero — 杜埃罗入门标杆"
+      ]
+    },
+    {
+      "type": "sep",
+      "text": ""
+    },
+    {
+      "type": "p",
+      "text": "丹魄是那种\"越喝越有滋味\"的酒。年轻时活泼果味，陈年后优雅复杂——一瓶优质里奥哈Gran Reserva的细腻与层次感，足以让任何葡萄酒爱好者为之倾倒。Tomás: no te olvides de España. Tempranillo es el alma de nuestra tierra."
+    },
+    {
+      "type": "end",
+      "text": "— 感谢阅读 —"
+    }
+  ]
+}

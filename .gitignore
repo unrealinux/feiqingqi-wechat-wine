@@ -4,15 +4,21 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment
+# Environment（凭据一律不进仓库）
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+.baoyu-skills.env
+*.pem
+*.pub
+aiwine
+ssh-key*
+id_rsa*
+id_ed25519*
 
-# Output
+# Output / 生成产物
 output/
+.logs/
 logs/
 *.log
 
@@ -36,7 +42,22 @@ build/
 coverage/
 .nyc_output/
 
-# Misc
+# Backup / 变体（此类文件不应进仓库）
 *.bak
 *.backup
-.baoyu-skills.env
+*.orig
+*~
+
+# ===== 渲染引擎 (engine/) =====
+# 本地预览与临时产物
+*.preview.html
+.engine-poc/
+.engine-cover/
+.full-articles/
+.cover-cache/
+
+# ===== 一次性调试产物 =====
+*_debug.txt
+*_preview.txt
+*_sample.txt
+*_raw.txt

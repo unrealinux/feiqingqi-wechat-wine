@@ -1,0 +1,208 @@
+{
+  "name": "wine_glass_guide",
+  "title": "葡萄酒酒杯选择指南：不同酒款配不同杯子",
+  "author": "红樽坊",
+  "digest": "选对酒杯，能让葡萄酒的风味提升30%。从波尔多杯到勃艮第杯，从白葡萄酒杯到香槟杯，这篇指南帮你选对杯子。",
+  "category": "practical-guide",
+  "tags": [
+    "酒杯",
+    "器具",
+    "选购",
+    "品酒",
+    "入门"
+  ],
+  "publishDate": "20260614",
+  "theme": {
+    "name": "rich",
+    "primary": "#311b92",
+    "secondary": "#7c4dff"
+  },
+  "cover": {
+    "color": "#311b92",
+    "titleLines": [
+      "葡萄酒酒杯选择指南",
+      "不同酒款配不同杯子"
+    ],
+    "subtitle": "选对杯子，喝酒更享受",
+    "bottomText": "红樽坊 | 器具指南"
+  },
+  "source": "build_wine_glass_guide.py",
+  "content": [
+    {
+      "type": "title",
+      "text": "葡萄酒酒杯选择指南"
+    },
+    {
+      "type": "subtitle",
+      "text": "不同酒款配不同杯子 | 选对杯子，喝酒更享受"
+    },
+    {
+      "type": "lead",
+      "text": "很多人以为，喝酒用什么杯子都一样。但其实，酒杯的形状会直接影响葡萄酒的香气和口感。选对酒杯，能让葡萄酒的风味提升30%。这篇指南，帮你选对杯子。"
+    },
+    {
+      "type": "h2",
+      "text": "🍷 为什么酒杯很重要？"
+    },
+    {
+      "type": "p",
+      "text": "酒杯的形状会影响葡萄酒的三个关键因素："
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>香气集中</strong>——杯口的形状决定了香气是否能集中到鼻尖",
+        "<strong>酒液流动</strong>——杯壁的角度决定了酒液流入口腔的位置",
+        "<strong>视觉体验</strong>——透明度好的酒杯能让你更好地观察酒的颜色"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🏆 基础酒杯类型"
+    },
+    {
+      "type": "p",
+      "text": "每个葡萄酒爱好者，至少应该拥有这四种基础酒杯："
+    },
+    {
+      "type": "ri",
+      "heading": "1. 波尔多杯（Bordeaux Glass）",
+      "text": "<strong>特点：</strong>杯身较长，杯口较窄\n<strong>适合酒款：</strong>赤霞珠、梅洛、西拉等饱满型红酒\n<strong>作用：</strong>让酒液流向口腔中部，突出单宁和酒体\n<strong>推荐品牌：</strong>Riedel、Zalto、LSA"
+    },
+    {
+      "type": "ri",
+      "heading": "2. 勃艮第杯（Burgundy Glass）",
+      "text": "<strong>特点：</strong>杯身较矮，杯口较宽\n<strong>适合酒款：</strong>黑皮诺、佳美等轻盈型红酒\n<strong>作用：</strong>让酒液流向口腔前部，突出果香和酸度\n<strong>推荐品牌：</strong>Riedel、Zalto、LSA"
+    },
+    {
+      "type": "ri",
+      "heading": "3. 白葡萄酒杯（White Wine Glass）",
+      "text": "<strong>特点：</strong>杯身较小，杯口较窄\n<strong>适合酒款：</strong>所有白葡萄酒\n<strong>作用：</strong>保持酒温，集中香气\n<strong>推荐品牌：</strong>Riedel、Zalto、LSA"
+    },
+    {
+      "type": "ri",
+      "heading": "4. 香槟杯（Champagne Flute）",
+      "text": "<strong>特点：</strong>杯身细长，杯口较小\n<strong>适合酒款：</strong>香槟、起泡酒\n<strong>作用：</strong>保持气泡，集中香气\n<strong>推荐品牌：</strong>Riedel、Zalto、LSA"
+    },
+    {
+      "type": "h2",
+      "text": "📊 酒杯选择速查表"
+    },
+    {
+      "type": "table",
+      "headers": [
+        "酒款类型",
+        "推荐酒杯",
+        "杯身特点",
+        "作用"
+      ],
+      "rows": [
+        [
+          "赤霞珠/西拉",
+          "波尔多杯",
+          "长身窄口",
+          "突出单宁"
+        ],
+        [
+          "黑皮诺/佳美",
+          "勃艮第杯",
+          "矮身宽口",
+          "突出果香"
+        ],
+        [
+          "霞多丽/长相思",
+          "白葡萄酒杯",
+          "小身窄口",
+          "保持酒温"
+        ],
+        [
+          "香槟/起泡酒",
+          "香槟杯",
+          "细长窄口",
+          "保持气泡"
+        ],
+        [
+          "波特酒/雪莉",
+          "波特酒杯",
+          "小身短脚",
+          "控制酒量"
+        ],
+        [
+          "日常饮用",
+          "万能杯",
+          "中等大小",
+          "通用性强"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "💡 酒杯选购建议"
+    },
+    {
+      "type": "p",
+      "text": "如果你是入门者，这里有几个选购建议："
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>从万能杯开始</strong>——一款好的万能杯，可以应付大多数场合",
+        "<strong>选透明玻璃</strong>——能更好地观察酒的颜色",
+        "<strong>选薄壁酒杯</strong>——薄壁酒杯口感更好",
+        "<strong>选无铅水晶</strong>——比普通玻璃更透明、更耐用",
+        "<strong>不要买太贵</strong>——入门者先买100-300元的酒杯即可"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🚫 酒杯使用禁忌"
+    },
+    {
+      "type": "p",
+      "text": "使用酒杯时，这些禁忌要注意："
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>不要握杯身</strong>——手的温度会影响酒温，应该握杯脚",
+        "<strong>不要倒太满</strong>——酒液应该倒到杯身最宽处，约1/3",
+        "<strong>不要用洗碗机</strong>——手洗更安全，避免划痕",
+        "<strong>不要共用酒杯</strong>——卫生问题，也影响品鉴体验",
+        "<strong>不要用纸杯</strong>——纸杯会影响酒的香气和口感"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "🔧 酒杯保养技巧"
+    },
+    {
+      "type": "p",
+      "text": "好的酒杯需要正确保养："
+    },
+    {
+      "type": "list",
+      "items": [
+        "<strong>手洗</strong>——用温水和中性洗涤剂手洗",
+        "<strong>自然晾干</strong>——不要用毛巾擦，让其自然晾干",
+        "<strong>存放得当</strong>——倒挂或平放，避免杯口朝上",
+        "<strong>避免碰撞</strong>——水晶酒杯很脆弱，小心轻放",
+        "<strong>定期检查</strong>——有划痕的酒杯应该更换"
+      ]
+    },
+    {
+      "type": "sep"
+    },
+    {
+      "type": "quote",
+      "text": "'好马配好鞍，好酒配好杯。'"
+    },
+    {
+      "type": "p",
+      "text": "酒杯是葡萄酒的舞台，选对酒杯，能让葡萄酒展现出最佳状态。不要忽视酒杯的选择，它会让你的饮酒体验更上一层楼。"
+    },
+    {
+      "type": "end",
+      "text": "你平时用什么酒杯喝酒？<br/>你最喜欢哪个品牌的酒杯？<br/>欢迎在评论区分享你的酒杯选择！"
+    }
+  ]
+}

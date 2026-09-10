@@ -12,6 +12,11 @@
     "validate": "node validate-config.js",
     "test": "jest",
 
+    "engine:check": "node engine/cli.js --all --check",
+    "engine:render": "node engine/cli.js --all --cover --html",
+    "engine:verify": "node tools/verify_parity.js",
+    "engine:extract": "python tools/extract_articles.py --all",
+
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",
