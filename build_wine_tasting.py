@@ -1,0 +1,160 @@
+import os, json
+from rich_article import rich_article, js_str, cover_svg
+
+CONFIG_CODE = "require('./config')"
+DATE = '20260610'
+
+def build_article(name, title, digest, category, tags, content_blocks):
+    svg_b64 = cover_svg('#1a237e',
+        ['🍷 葡萄酒品鉴入门', '从零开始的品酒之旅'],
+        '观色 · 闻香 · 品味 · 评鉴 · 新手必读',
+        '品鉴入门 · 红酒顾问')
+
+    html = rich_article(content_blocks, primary='#1a237e', secondary='#5c6bc0')
+    html_lines = html.split('\n')
+    hlines = []
+    for line in html_lines:
+        escaped = js_str(line)
+        if escaped:
+            hlines.append(f"  '{escaped}' +")
+    if hlines:
+        hlines[-1] = hlines[-1].rstrip('+').rstrip()
+    html_js = '\n'.join(hlines)
+
+    gen_func = f'''function gen(){{
+  return {html_js};
+}}'''
+
+    js = f'''const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=require('form-data');
+
+const config = {CONFIG_CODE};
+
+const date={{full:'{DATE}'}};
+
+function gCov(){{
+  const svg="{js_str(svg_b64)}";
+  return svg;
+}}
+
+{gen_func}
+
+async function main(){{
+  try{{
+    const cb = await gCov();
+    const art = {{
+      title: '{js_str(title)}',
+      author: '红酒顾问',
+      digest: '{js_str(digest)}',
+      content: gen(),
+      coverImage: '{name}_cover_ai.png',
+      category: '{category}',
+      tags: {json.dumps(tags, ensure_ascii=False)},
+      publishDate: date.full
+    }};
+    fs.writeFileSync(
+      path.join(__dirname, 'output', '{name}_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const f = new FormData();
+    f.append('media', png, {{filename: 'cover.png', contentType: 'image/png'}});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {{headers: f.getHeaders()}});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {{
+      articles: [{{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }}]
+    }});
+    console.log('✅ {name}, media_id:', d.data.media_id);
+  }}catch(e){{
+    console.error('❌ {name}:', e.message);
+    process.exit(1);
+  }}
+}}
+
+main();
+'''
+    os.makedirs('output', exist_ok=True)
+    with open(f'generate-{name}.js', 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f'  Created generate-{name}.js')
+
+if __name__ == '__main__':
+    build_article('wine_tasting_101',
+        title='🍷 葡萄酒品鉴入门：从零开始的品酒之旅',
+        digest='观色、闻香、品味、评鉴——四个步骤，带你从葡萄酒小白变成品酒达人。',
+        category='wine-knowledge',
+        tags=['品鉴','入门','品酒','葡萄酒知识','新手','观色','闻香','品味'],
+        content_blocks=[
+            {'type':'title','text':'🍷 葡萄酒品鉴入门'},
+            {'type':'subtitle','text':'从零开始的品酒之旅 | 观色 · 闻香 · 品味 · 评鉴'},
+
+            {'type':'lead','text':'很多人觉得品酒是专业人士的事，普通人只需要"好喝就行"。但其实，学会基本的品鉴方法，能让你喝酒时多出10倍的乐趣。就像喝咖啡一样——一旦你开始注意风味层次，就再也回不去了。'},
+
+            {'type':'h2','text':'👁️ 第一步：观色'},
+
+            {'type':'ri','heading':'看什么？','text':'将酒杯倾斜45度，在白色背景前观察：\n\n<strong>颜色深度：</strong>深紫红色（年轻、浓郁）→ 砖红色（陈年、优雅）\n<strong>颜色色调：</strong>紫色（年轻）→ 棕色（陈年）\n<strong>边缘色调：</strong>中心颜色深，边缘渐浅，说明酒体饱满\n\n白葡萄酒：柠檬色（年轻）→ 金色（陈年）→ 棕色（过度氧化）'},
+
+            {'type':'tip','heading':'💡 新手技巧','text':'观色不是越深越好。颜色深浅主要反映葡萄品种和酿造工艺，和品质没有直接关系。黑皮诺颜色浅但可以是世界上最贵的葡萄酒。'},
+
+            {'type':'h2','text':'👃 第二步：闻香'},
+
+            {'type':'ri','heading':'三层香气理论','text':'<strong>第一层（果香）：</strong>新鲜水果香气——红色水果（草莓、樱桃）→ 黑色水果（黑莓、黑醋栗）→ 热带水果（荔枝、芒果）\n\n<strong>第二层（发酵香）：</strong>发酵过程中产生的香气——黄油、奶油、面包、酵母\n\n<strong>第三层（陈年香）：</strong>橡木桶和陈年带来的香气——香草、烟草、皮革、蘑菇、湿树叶'},
+
+            {'type':'table','headers':['香气类型','闻到什么','说明什么'],
+            'rows':[
+                ['红色水果','草莓、樱桃、覆盆子','黑皮诺、佳美、歌海娜'],
+                ['黑色水果','黑莓、黑醋栗、蓝莓','赤霞珠、西拉、梅洛'],
+                ['花香','紫罗兰、玫瑰、茉莉','歌海娜、维欧尼、雷司令'],
+                ['香草/奶油','香草、黄油、奶油','橡木桶陈年，霞多丽'],
+                ['香料','胡椒、肉桂、丁香','西拉、歌海娜、桑娇维塞'],
+                ['矿物/泥土','湿石头、蘑菇、皮革','老藤、陈年酒、板岩土壤'],
+            ]},
+
+            {'type':'tip','heading':'💡 闻香技巧','text':'先静止闻一次，再摇杯后闻一次。摇杯会释放更多香气。如果闻不到香气，可能是酒太冷（白葡萄酒）或太热（红葡萄酒）。最佳温度：红16-18°C，白8-10°C。'},
+
+            {'type':'h2','text':'👅 第三步：品味'},
+
+            {'type':'ri','heading':'四个维度','text':'<strong>甜度：</strong>干型（不甜）→ 半干 → 半甜 → 甜型\n\n<strong>酸度：</strong>让口水分泌的程度。低酸 → 中酸 → 高酸。酸度高的酒更清爽，配餐更灵活。\n\n<strong>单宁：</strong>涩感，主要在红葡萄酒中。低单宁（丝滑）→ 中单宁 → 高单宁（干涩）。单宁来自葡萄皮和橡木桶。\n\n<strong>酒体：</strong>酒在口中的"重量感"。轻酒体（像脱脂牛奶）→ 中酒体（像全脂牛奶）→ 重酒体（像奶油）'},
+
+            {'type':'table','headers':['维度','低','中','高'],
+            'rows':[
+                ['甜度','干型（Trocken/Dry）','半干（Halbtrocken）','甜型（Süß/Sweet）'],
+                ['酸度','圆润柔和','清爽适中','尖锐刺激'],
+                ['单宁','丝滑如天鹅绒','中等涩感','干涩收敛'],
+                ['酒体','轻盈如水','中等饱满','浓郁厚重'],
+            ]},
+
+            {'type':'tip','heading':'💡 品味技巧','text':'喝一小口，让酒在口中停留5-10秒，用舌头不同部位感受：舌尖感受甜度，两侧感受酸度，舌根感受苦味。然后咽下，感受余味长度。好酒的余味应该持续10秒以上。'},
+
+            {'type':'h2','text':'📝 第四步：评鉴'},
+
+            {'type':'ri','heading':'评分标准（WSET四级评分法）','text':'<strong>缺陷酒（Fault）：</strong>软木塞味（霉味）、氧化、醋酸等\n\n<strong>不合格（Poor）：</strong>缺乏果味、失衡、粗糙\n\n<strong>合格（Acceptable）：</strong>正确但平淡，无缺陷也无亮点\n\n<strong>优良（Good）：</strong>平衡、有品种/产区特色\n\n<strong>优秀（Very Good）：</strong>复杂度高、余味长、有层次\n\n<strong>杰出（Outstanding）：</strong>卓越品质、独特风土、陈年潜力'},
+
+            {'type':'h2','text':'🍷 实战练习：5款入门酒推荐'},
+
+            {'type':'ri','heading':'从这5款酒开始你的品鉴之旅','text':'<strong>1. 黄尾袋鼠 西拉（澳大利亚，¥85）</strong>——学习识别"黑色水果"香气\n<strong>2. 云雾之园 长相思（新西兰，¥128）</strong>——学习识别"青草+柑橘"香气\n<strong>3. 蒙特布查诺 基安蒂（意大利，¥98）</strong>——学习识别"红色水果+香料"香气\n<strong>4. 作品一号（美国纳帕谷，¥2,800）</strong>——学习识别"复杂度+陈年潜力"\n<strong>5. 张裕解百纳（中国烟台，¥128）</strong>——学习识别"中国风土"特色'},
+
+            {'type':'h2','text':'📊 品鉴记录模板'},
+
+            {'type':'ri','heading':'每次品酒后记录这些信息','text':'<strong>酒名：</strong>_______________\n<strong>产区：</strong>_______________\n<strong>品种：</strong>_______________\n<strong>年份：</strong>_______________\n<strong>价格：</strong>_______________\n\n<strong>外观：</strong>颜色深度（深/中/浅）+ 色调\n<strong>香气：</strong>主要香气 + 复杂度\n<strong>口感：</strong>甜度 + 酸度 + 单宁 + 酒体\n<strong>余味：</strong>长度（短/中/长）+ 质量\n<strong>综合：</strong>平衡度 + 复杂度 + 陈年潜力\n<strong>评分：</strong>___/100'},
+
+            {'type':'quote','text':'品酒不是考试，没有标准答案。每个人的舌头不同，喜好也不同。学会品鉴是为了更好地享受葡萄酒，而不是为了显得专业。'},
+
+            {'type':'sep','text':''},
+            {'type':'end','text':'— 干杯，享受每一口 —'},
+        ]
+    )
+    print('\nWine Tasting 101 created!')

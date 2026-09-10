@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+"""Build why can't pick good wine article generator."""
+import os, json
+from rich_article import rich_article, js_str, cover_svg
+
+CONFIG_CODE = "require('./config')"
+DATE = '20260615'
+
+def build_article(name, title, digest, category, tags, content_blocks):
+    svg_b64 = cover_svg('#1565c0',
+        ['为什么你总选不到好酒？', '选酒的真相'],
+        '这些错误你犯了吗',
+        '红樽坊 | 深度观点')
+
+    html = rich_article(content_blocks, primary='#1565c0', secondary='#42a5f5')
+    html_lines = html.split('\n')
+    hlines = []
+    for line in html_lines:
+        escaped = js_str(line)
+        if escaped:
+            hlines.append(f"  '{escaped}' +")
+    if hlines:
+        hlines[-1] = hlines[-1].rstrip('+').rstrip()
+    html_js = '\n'.join(hlines)
+
+    gen_func = f'''function gen(){{
+  return {html_js};
+}}'''
+
+    js = f'''const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=require('form-data');
+
+const config = {CONFIG_CODE};
+
+const date={{full:'{DATE}'}};
+
+function gCov(){{
+  const svg="{js_str(svg_b64)}";
+  return svg;
+}}
+
+{gen_func}
+
+async function main(){{
+  try{{
+    const cb = await gCov();
+    const art = {{
+      title: '{js_str(title)}',
+      author: '红樽坊',
+      digest: '{js_str(digest)}',
+      content: gen(),
+      coverImage: '{name}_cover_ai.png',
+      category: '{category}',
+      tags: {json.dumps(tags, ensure_ascii=False)},
+      publishDate: date.full
+    }};
+    fs.writeFileSync(
+      path.join(__dirname, 'output', '{name}_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const f = new FormData();
+    f.append('media', png, {{filename: 'cover.png', contentType: 'image/png'}});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {{headers: f.getHeaders()}});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {{
+      articles: [{{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }}]
+    }});
+    console.log('Pick, media_id:', d.data.media_id);
+  }}catch(e){{
+    console.error('Pick:', e.message);
+    process.exit(1);
+  }}
+}}
+
+main();
+'''
+    os.makedirs('output', exist_ok=True)
+    with open(f'generate-{name}.js', 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f'Created generate-{name}.js')
+
+if __name__ == '__main__':
+    build_article('wine_pick',
+        title='为什么你总选不到好酒？选酒的真相',
+        digest='每次买酒都踩坑？不是你运气差，而是你犯了这些选酒错误。这篇指南帮你避开选酒陷阱。',
+        category='opinion',
+        tags=['选酒','避坑','错误','真相','实用'],
+        content_blocks=[
+            {"type": "title", "text": "为什么你总选不到好酒？"},
+            {"type": "subtitle", "text": "选酒的真相"},
+            {"type": "lead", "text": "每次买酒都踩坑？不是你运气差，而是你犯了这些选酒错误。这篇指南帮你避开选酒陷阱，找到真正适合自己的好酒。"},
+
+            {"type": "h2", "text": "🤔 你犯了这些错误吗？"},
+            {"type": "p", "text": "选酒时，很多人会犯这些错误："},
+            {"type": "list", "items": [
+                "<strong>只看品牌</strong>——只买名牌酒，不看酒质",
+                "<strong>只看价格</strong>——认为贵的就是好的",
+                "<strong>只看评分</strong>——迷信专家评分",
+                "<strong>只看年份</strong>——认为老年份的酒一定好",
+                "<strong>只看产区</strong>——认为法国酒一定好"
+            ]},
+
+            {"type": "h2", "text": "📊 选酒的真相"},
+            {"type": "p", "text": "选酒的真相是什么？"},
+            {"type": "ri", "heading":"真相一：品牌不代表品质", "text":"<strong>例子：</strong>名牌酒的品质不一定比小众酒好\n<strong>原因：</strong>品牌溢价、营销成本\n<strong>结论：</strong>不要只看品牌，关注酒质"},
+            {"type": "ri", "heading":"真相二：价格不代表品质", "text":"<strong>例子：</strong>100块的酒可能比1000块的酒更适合你\n<strong>原因：</strong>价格包括品牌、渠道、税费等\n<strong>结论：</strong>不要只看价格，关注性价比"},
+            {"type": "ri", "heading":"真相三：评分不代表适合", "text":"<strong>例子：</strong>专家说好的酒，你可能不喜欢\n<strong>原因：</strong>每个人的口味不同\n<strong>结论：</strong>不要迷信评分，相信自己的舌头"},
+
+            {"type": "h2", "text": "💡 正确的选酒方法"},
+            {"type": "p", "text": "正确的选酒方法是什么？"},
+            {"type": "list", "items": [
+                "<strong>多尝试</strong>——不要只喝一种酒，多尝试不同的酒",
+                "<strong>做记录</strong>——记录自己喝过的酒，找到自己喜欢的风格",
+                "<strong>问朋友</strong>——问问朋友喜欢什么酒，参考他们的意见",
+                "<strong>参加品酒会</strong>——参加品酒会可以快速了解不同的酒",
+                "<strong>相信自己的舌头</strong>——自己的感受最重要"
+            ]},
+
+            {"type": "h2", "text": "🎯 选酒的实用技巧"},
+            {"type": "p", "text": "选酒的实用技巧："},
+            {"type": "list", "items": [
+                "<strong>看酒标</strong>——酒标上有产区、品种、年份等信息",
+                "<strong>看价格</strong>——不要只看价格，关注性价比",
+                "<strong>看评价</strong>——看看其他人的评价，但不要迷信",
+                "<strong>问店员</strong>——问问店员的推荐，但不要完全相信",
+                "<strong>买小瓶装</strong>——先买小瓶装试试，好喝再买大瓶"
+            ]},
+
+            {"type": "h2", "text": "🚫 选酒的禁忌"},
+            {"type": "p", "text": "选酒时，这些禁忌要避免："},
+            {"type": "list", "items": [
+                "<strong>不要跟风</strong>——不要因为别人买你也买",
+                "<strong>不要冲动</strong>——不要因为促销就冲动购买",
+                "<strong>不要迷信</strong>——不要迷信品牌、评分、年份",
+                "<strong>不要忽视</strong>——不要忽视自己的口味",
+                "<strong>不要放弃</strong>——选酒需要时间和经验，不要放弃"
+            ]},
+
+            {"type": "h2", "text": "📊 选酒速查表"},
+            {"type": "table", "headers": ["场景", "推荐酒款", "价格范围"],
+             "rows": [
+                 ["日常饮用", "智利赤霞珠、澳洲西拉", "50-150元"],
+                 ["朋友聚会", "波尔多中级庄、意大利基安蒂", "100-300元"],
+                 ["重要场合", "勃艮第黑皮诺、纳帕谷赤霞珠", "300-800元"],
+                 ["特殊场合", "波尔多列级庄、勃艮第特级园", "800元以上"],
+                 ["送礼", "奔富、拉菲传说", "200-500元"]
+             ]},
+
+            {"type": "sep"},
+            {"type": "quote", "text": "'选酒没有标准答案，适合你的才是最好的。'"},
+            {"type": "p", "text": "选酒的关键是找到适合自己的酒。不要被品牌、价格、评分迷惑，相信自己的舌头，多尝试，你一定能找到自己喜欢的酒。"},
+
+            {"type": "end", "text": "你选酒时犯过什么错误？<br/>你有什么选酒技巧？<br/>欢迎在评论区分享你的经验！"}
+        ])

@@ -2,59 +2,54 @@ const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=requ
 
 const config = require('./config');
 
-const date={full:'20260607'};
+const date={full:'20260610'};
 
-function gCov(){const sharp=require("sharp");const svg=Buffer.from("PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFhMWEyZSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2I4ODYwYiIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjZykiLz4KPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzE1IiByPSIyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZDU0ZiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjMiLz4KPHRleHQgeD0iNjAwIiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmQ1NGYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiPvCfjbcg6JGh6JCE6YWS5ZOB6Ym05YWl6Zeo77ya55yL44CB6Ze744CB5bCd4oCU4oCU5LuO6Zu25byAPC90ZXh0Pgo8dGV4dCB4PSI2MDAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2RkZCIgZm9udC1zaXplPSIyMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiPuWni+WtpuWTgemFkjwvdGV4dD4KPHRleHQgeD0iNjAwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5OTkiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIj5mZWlxaW5ncWkgV2VDaGF0IE1QPC90ZXh0Pgo8L3N2Zz4=","base64").toString();return sharp(Buffer.from(svg)).png().toBuffer().then(b=>b);}
+function gCov(){
+  const svg="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFhMWEyZSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFhMjM3ZSIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjZykiLz4KPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzE1IiByPSIyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZDcwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuMTUiLz4KPHRleHQgeD0iNjAwIiB5PSIyNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMzYiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiPvCfjbcg6JGh6JCE6YWS5ZOB6Ym05YWl6ZeoPC90ZXh0Pgo8dGV4dCB4PSI2MDAiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2RkZCIgZm9udC1zaXplPSIyOCIgZm9udC1mYW1pbHk9InNlcmlmIj7ku47pm7blvIDlp4vnmoTlk4HphZLkuYvml4U8L3RleHQ+Cjx0ZXh0IHg9IjYwMCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmJiIiBmb250LXNpemU9IjE4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+6KeC6ImyIMK3IOmXu+mmmSDCtyDlk4HlkbMgwrcg6K+E6Ym0IMK3IOaWsOaJi+W/heivuzwvdGV4dD4KPGxpbmUgeDE9IjIwMCIgeTE9IjQwMCIgeDI9IjEwMDAiIHkyPSI0MDAiIHN0cm9rZT0iI2ZmZDcwMCIgc3Ryb2tlLXdpZHRoPSIwLjUiIG9wYWNpdHk9IjAuMyIvPgo8dGV4dCB4PSI2MDAiIHk9IjQ0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxMyIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiPuWTgemJtOWFpemXqCDCtyDnuqLphZLpob7pl648L3RleHQ+Cjwvc3ZnPg==";
+  return svg;
+}
 
 function gen(){
-  return   '<section style="padding:10px 0;">' +
-  '<h2 style="text-align:center;color:#b8860b;">🍷 葡萄酒品鉴入门</h2>' +
-  '<p style="text-align:center;color:#888;font-size:14px;margin-bottom:20px;">看、闻、尝——从零开始学品酒 | 三步法全解析</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">品酒听起来好像很深奥，其实它就像学做饭一样，掌握了基本方法，人人都能成为品酒达人。葡萄酒品鉴的核心就是三个步骤：看（Look）、闻（Smell）、尝（Taste）。</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">最重要的是：品酒没有"正确答案"。只要你认真感受、诚实记录，你的品鉴就是有效的。不要被那些"品酒大师"的术语吓到——每个人对气味的感知都是独特的。</p>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">👀 第一步：看（Look）</h2>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">将酒杯举到白色背景前（白纸或白色桌布就可以），观察酒液的外观。你不需要品酒师的专业光圈，肉眼观察就能获取很多信息。</p>' +
-  '<div style="overflow-x:auto;margin:15px 0;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#b8860b;color:#fff;"><th style="padding:10px;text-align:left;">观察点</th><th style="padding:10px;text-align:left;">白葡萄酒</th><th style="padding:10px;text-align:left;">红葡萄酒</th><th style="padding:10px;text-align:left;">含义</th></tr></thead><tbody><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">颜色深度</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">浅稻草→深金黄→琥珀</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">浅宝石红→深紫红→砖红</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">颜色越深，酒体越饱满/越成熟</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">边缘色调</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">年轻=青绿色</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">年轻=紫色边缘</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">边缘泛砖红=陈年迹象</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">清澈度</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">清澈/浑浊</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">清澈/浑浊</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">浑浊可能表示无过滤或已变质</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">挂杯/酒泪</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">多/少</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">多/少</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">挂杯越多=酒精度或糖分越高</td></tr></tbody></table></div>' +
-  '<h3 style="color:#b8860b;margin-top:20px;">颜色透露的秘密：</h3>' +
-  '<ul style="padding-left:20px;"><li style="margin:6px 0;color:#333;line-height:1.7;">年轻白葡萄酒：浅稻草色、淡黄绿色 → 清爽型，如长相思、灰皮诺</li><li style="margin:6px 0;color:#333;line-height:1.7;">陈年白葡萄酒：深金黄色、琥珀色 → 受过橡木桶或陈年，如霞多丽</li><li style="margin:6px 0;color:#333;line-height:1.7;">年轻红葡萄酒：深紫色、宝石红色 → 果味充沛，如赤霞珠、西拉</li><li style="margin:6px 0;color:#333;line-height:1.7;">陈年红葡萄酒：砖红色、石榴红色 → 已经陈年，单宁柔化</li><li style="margin:6px 0;color:#333;line-height:1.7;">桃红葡萄酒：浅粉色、三文鱼色 → 短期浸皮酿造</li></ul>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">👃 第二步：闻（Smell）</h2>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">闻香是品酒中最关键也最享受的步骤。人的嗅觉可以识别数千种气味，远远超过味觉能够分辨的味道种类。</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">首先静止闻一次——感受酒的"第一印象"。然后轻轻摇杯（让酒与空气接触释放香气），再深吸一口。你可能会闻到三类香气：</p>' +
-  '<div style="overflow-x:auto;margin:15px 0;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#b8860b;color:#fff;"><th style="padding:10px;text-align:left;">香气类别</th><th style="padding:10px;text-align:left;">来源</th><th style="padding:10px;text-align:left;">例子</th></tr></thead><tbody><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">一类香气（果香/花香）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">葡萄本身</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">黑莓、樱桃、玫瑰、荔枝</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">二类香气（发酵/桶香）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">酿酒工艺</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">香草、烤面包、黄油、酵母</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">三类香气（陈年香）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">瓶中陈年</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">皮革、松露、蜂蜜、干果</td></tr></tbody></table></div>' +
-  '<div style="background:#fff8e1;border-left:4px solid #ffd54f;padding:12px 15px;margin:15px 0;border-radius:0 6px 6px 0;"><p style="color:#795548;margin:0;font-size:14px;line-height:1.7;">💡 闻香小技巧：不要害怕用你的生活经验——"这闻起来像我家花园的玫瑰"比"这有玫瑰多酚的芳香"要真实得多。越个人化的描述，越能帮助你记住这款酒。</p></div>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">👅 第三步：尝（Taste）</h2>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">终于到了最期待的一步！喝一小口（不要太多），让酒液覆盖整个舌面，像漱口一样让酒在口中停留3-5秒。注意感受以下维度：</p>' +
-  '<div style="overflow-x:auto;margin:15px 0;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#b8860b;color:#fff;"><th style="padding:10px;text-align:left;">维度</th><th style="padding:10px;text-align:left;">描述</th><th style="padding:10px;text-align:left;">如何判断</th></tr></thead><tbody><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">甜度</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">干→半干→半甜→甜</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">舌尖前端的甜味感知</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">酸度</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">低→中→高</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">口水分泌量（越多=酸度越高）</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">单宁</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">低→中→高</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">口腔的干燥/收敛感（像喝浓茶）</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">酒体</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">轻盈→中等→饱满</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">酒液在口中的"重量感"</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">酒精度</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">低→中→高</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">喉咙的温热感</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">余味</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">短→中→长</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">咽下后风味持续的时间</td></tr></tbody></table></div>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">📝 品酒笔记模板（初学者版）</h2>' +
-  '<div style="background:#f5f5f5;border-radius:8px;padding:15px;margin:15px 0;"><h4 style="color:#b8860b;margin:0 0 8px 0;">简易品酒笔记</h4><p style="color:#333;margin:0;line-height:1.7;font-size:14px;">酒名：________________' +
-  '年份：____  产区：________________' +
-  '颜色：□浅 □中 □深  色调：__________' +
-  '香气（写3个词）：________、________、________' +
-  '口感（打勾）：□干 □半干 □甜' +
-  '喜欢吗？：□很喜欢 □还行 □一般' +
-  '一句话评价：_______________________' +
-  '评分（满分10分）：____/10</p></div>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">🌡️ 侍酒温度速查表</h2>' +
-  '<div style="overflow-x:auto;margin:15px 0;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#b8860b;color:#fff;"><th style="padding:10px;text-align:left;">酒的类型</th><th style="padding:10px;text-align:left;">侍酒温度</th><th style="padding:10px;text-align:left;">简单判断</th></tr></thead><tbody><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">起泡酒/香槟</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">6-8°C</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">冰镇2小时</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">清爽白葡萄酒</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">8-10°C</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">冰镇1.5小时</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">饱满白葡萄酒</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">10-12°C</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">冰镇1小时</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">桃红葡萄酒</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">8-10°C</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">冰镇1.5小时</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">轻盈红葡萄酒</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">12-14°C</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">冰箱20分钟</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">饱满红葡萄酒</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">16-18°C</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">室温（夏季可稍凉）</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">甜酒</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">6-8°C</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">充分冰镇</td></tr></tbody></table></div>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">🎯 品酒入门避坑指南</h2>' +
-  '<ul style="padding-left:20px;"><li style="margin:6px 0;color:#333;line-height:1.7;">❌ 不要在品酒前吃辛辣、酸涩的食物或喝咖啡——会破坏味觉</li><li style="margin:6px 0;color:#333;line-height:1.7;">❌ 不要在喷香水或气味浓烈的环境品酒——香气干扰</li><li style="margin:6px 0;color:#333;line-height:1.7;">❌ 不要迷信昂贵的酒杯——普通的ISO酒杯就足够好</li><li style="margin:6px 0;color:#333;line-height:1.7;">✅ 品酒前喝点水，保持口腔干净</li><li style="margin:6px 0;color:#333;line-height:1.7;">✅ 同一款酒在不同温度下品尝，味道可能完全不同——试试冷藏20分钟后的红酒</li><li style="margin:6px 0;color:#333;line-height:1.7;">✅ 多喝多比较——品酒能力唯一的提升方法就是大量品鉴</li></ul>' +
-  '<p style="text-align:center;color:#ddd;margin:20px 0;">---</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">品酒不是考试，没有标准答案。最顶级的品酒师也可能会把一款酒误认为是另一款。品酒真正的意义不在于"猜对"，而在于"感受"——打开感官、专注当下、享受每一杯酒带来的独特体验。</p>' +
-  '<p style="text-align:center;color:#888;font-size:14px;margin-top:30px;">— 感谢阅读 —</p>' +
-  '</section>' ;
+  return   '<section>' +
+  '<style>' +
+  '  .ri { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin: 10px 0; }' +
+  '  .ri h4 { color: #1a237e; margin: 0 0 8px 0; font-size: 16px; }' +
+  '  h3 { color: #1a237e; border-bottom: 2px solid #5c6bc0; padding-bottom: 8px; margin-top: 25px; }' +
+  '  table { width: 100%; border-collapse: collapse; margin: 10px 0; }' +
+  '  table th { background: #1a237e; color: #fff; padding: 10px; text-align: left; }' +
+  '  table td { padding: 10px; border-bottom: 1px solid #ddd; color: #333; }' +
+  '</style>' +
+  '<h2 style="text-align:center;color:#1a237e;">🍷 葡萄酒品鉴入门</h2>' +
+  '<p style="text-align:center;color:#666;">从零开始的品酒之旅 | 观色 · 闻香 · 品味 · 评鉴</p>' +
+  '<section style="background:linear-gradient(135deg,#1a0005,#3a000a);padding:25px;border-radius:10px;margin-bottom:25px"><p style="color:#ffccbc;font-size:16px;line-height:1.9">很多人觉得品酒是专业人士的事，普通人只需要"好喝就行"。但其实，学会基本的品鉴方法，能让你喝酒时多出10倍的乐趣。就像喝咖啡一样——一旦你开始注意风味层次，就再也回不去了。</p></section>' +
+  '<h3>👁️ 第一步：观色</h3>' +
+  '<section style="background:#e3f2fd;padding:18px;border-radius:8px"><div class="ri"><h4>💡 新手技巧</h4><p style="color:#333;line-height:1.8;margin:0">观色不是越深越好。颜色深浅主要反映葡萄品种和酿造工艺，和品质没有直接关系。黑皮诺颜色浅但可以是世界上最贵的葡萄酒。</p></div></section>' +
+  '<h3>👃 第二步：闻香</h3>' +
+  '<section style="background:#fce4ec;padding:18px;border-radius:8px"><table><tr><th>香气类型</th><th>闻到什么</th><th>说明什么</th></tr><tr><td>红色水果</td><td>草莓、樱桃、覆盆子</td><td>黑皮诺、佳美、歌海娜</td></tr><tr><td>黑色水果</td><td>黑莓、黑醋栗、蓝莓</td><td>赤霞珠、西拉、梅洛</td></tr><tr><td>花香</td><td>紫罗兰、玫瑰、茉莉</td><td>歌海娜、维欧尼、雷司令</td></tr><tr><td>香草/奶油</td><td>香草、黄油、奶油</td><td>橡木桶陈年，霞多丽</td></tr><tr><td>香料</td><td>胡椒、肉桂、丁香</td><td>西拉、歌海娜、桑娇维塞</td></tr><tr><td>矿物/泥土</td><td>湿石头、蘑菇、皮革</td><td>老藤、陈年酒、板岩土壤</td></tr></table></section>' +
+  '<section style="background:#e3f2fd;padding:18px;border-radius:8px"><div class="ri"><h4>💡 闻香技巧</h4><p style="color:#333;line-height:1.8;margin:0">先静止闻一次，再摇杯后闻一次。摇杯会释放更多香气。如果闻不到香气，可能是酒太冷（白葡萄酒）或太热（红葡萄酒）。最佳温度：红16-18°C，白8-10°C。</p></div></section>' +
+  '<h3>👅 第三步：品味</h3>' +
+  '<section style="background:#fce4ec;padding:18px;border-radius:8px"><table><tr><th>维度</th><th>低</th><th>中</th><th>高</th></tr><tr><td>甜度</td><td>干型（Trocken/Dry）</td><td>半干（Halbtrocken）</td><td>甜型（Süß/Sweet）</td></tr><tr><td>酸度</td><td>圆润柔和</td><td>清爽适中</td><td>尖锐刺激</td></tr><tr><td>单宁</td><td>丝滑如天鹅绒</td><td>中等涩感</td><td>干涩收敛</td></tr><tr><td>酒体</td><td>轻盈如水</td><td>中等饱满</td><td>浓郁厚重</td></tr></table></section>' +
+  '<section style="background:#e3f2fd;padding:18px;border-radius:8px"><div class="ri"><h4>💡 品味技巧</h4><p style="color:#333;line-height:1.8;margin:0">喝一小口，让酒在口中停留5-10秒，用舌头不同部位感受：舌尖感受甜度，两侧感受酸度，舌根感受苦味。然后咽下，感受余味长度。好酒的余味应该持续10秒以上。</p></div></section>' +
+  '<h3>📝 第四步：评鉴</h3>' +
+  '<h3>🍷 实战练习：5款入门酒推荐</h3>' +
+  '<h3>📊 品鉴记录模板</h3>' +
+  '<section style="background:linear-gradient(135deg,#1a0005,#3a000a);padding:25px;border-radius:10px;margin-bottom:25px"><p style="color:#ffccbc;font-size:16px;line-height:1.9;font-style:italic;">品酒不是考试，没有标准答案。每个人的舌头不同，喜好也不同。学会品鉴是为了更好地享受葡萄酒，而不是为了显得专业。</p></section>' +
+  '<div style="height:2px;background:linear-gradient(90deg,transparent,#5c6bc0,transparent);margin:25px 0;"></div>' +
+  '<section style="background:linear-gradient(135deg,#1a0005,#3a000a);padding:25px;border-radius:10px;margin-bottom:25px"><p style="color:#ffccbc;font-size:16px;line-height:1.9;text-align:center;">— 干杯，享受每一口 —</p></section>' +
+  '</section>';
 }
 
 async function main(){
   try{
     const cb = await gCov();
     const art = {
-      title: '🍷 葡萄酒品鉴入门：看、闻、尝——从零开始学品酒',
+      title: '🍷 葡萄酒品鉴入门：从零开始的品酒之旅',
       author: '红酒顾问',
-      digest: '如何像专家一样品酒？看颜色、闻香气、尝味道——三步法详细拆解。附赠品酒词大全和品酒笔记模板。',
+      digest: '观色、闻香、品味、评鉴——四个步骤，带你从葡萄酒小白变成品酒达人。',
       content: gen(),
       coverImage: 'wine_tasting_101_cover_ai.png',
-      category: 'wine-practical',
-      tags: ["品酒", "品鉴", "初学者", "看闻尝", "品酒笔记", "入门"],
+      category: 'wine-knowledge',
+      tags: ["品鉴", "入门", "品酒", "葡萄酒知识", "新手", "观色", "闻香", "品味"],
       publishDate: date.full
     };
     fs.writeFileSync(
@@ -65,8 +60,11 @@ async function main(){
     const w = config.publish;
     const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
     const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
     const f = new FormData();
-    f.append('media', cb, {filename: 'cover.png', contentType: 'image/png'});
+    f.append('media', png, {filename: 'cover.png', contentType: 'image/png'});
     const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {headers: f.getHeaders()});
     const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {
       articles: [{

@@ -2,53 +2,54 @@ const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=requ
 
 const config = require('./config');
 
-const date={full:'20260607'};
+const date={full:'20260610'};
 
-function gCov(){const sharp=require("sharp");const svg=Buffer.from("PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFhMWEyZSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6I2I4ODYwYiIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjZykiLz4KPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzE1IiByPSIyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZDU0ZiIgc3Ryb2tlLXdpZHRoPSIyIiBvcGFjaXR5PSIwLjMiLz4KPHRleHQgeD0iNjAwIiB5PSIyODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmQ1NGYiIGZvbnQtc2l6ZT0iNDAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiPvCfjb4g5byA55O25ZCO6JGh6JCE6YWS6IO95pS+5aSa5LmF77yf5Y+y5LiK5pyA5YWo5L+d5a2Y5oyHPC90ZXh0Pgo8dGV4dCB4PSI2MDAiIHk9IjM0MCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2RkZCIgZm9udC1zaXplPSIyMCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiPuWNlzwvdGV4dD4KPHRleHQgeD0iNjAwIiB5PSIzODAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM5OTkiIGZvbnQtc2l6ZT0iMTQiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIj5mZWlxaW5ncWkgV2VDaGF0IE1QPC90ZXh0Pgo8L3N2Zz4=","base64").toString();return sharp(Buffer.from(svg)).png().toBuffer().then(b=>b);}
+function gCov(){
+  const svg="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMjAwIiBoZWlnaHQ9IjYzMCI+CjxkZWZzPjxsaW5lYXJHcmFkaWVudCBpZD0iZyIgeDE9IjAlIiB5MT0iMCUiIHgyPSIxMDAlIiB5Mj0iMTAwJSI+PHN0b3Agb2Zmc2V0PSIwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFhMWEyZSIvPjxzdG9wIG9mZnNldD0iMTAwJSIgc3R5bGU9InN0b3AtY29sb3I6IzFiNWUyMCIvPjwvbGluZWFyR3JhZGllbnQ+PC9kZWZzPgo8cmVjdCB3aWR0aD0iMTIwMCIgaGVpZ2h0PSI2MzAiIGZpbGw9InVybCgjZykiLz4KPGNpcmNsZSBjeD0iNjAwIiBjeT0iMzE1IiByPSIyMDAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2ZmZDcwMCIgc3Ryb2tlLXdpZHRoPSIxLjUiIG9wYWNpdHk9IjAuMTUiLz4KPHRleHQgeD0iNjAwIiB5PSIyNjAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiNmZmYiIGZvbnQtc2l6ZT0iMzYiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiPvCfj6Ag6JGh6JCE6YWS5YKo5a2Y5oyH5Y2XPC90ZXh0Pgo8dGV4dCB4PSI2MDAiIHk9IjMxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iI2RkZCIgZm9udC1zaXplPSIyOCIgZm9udC1mYW1pbHk9InNlcmlmIj7liKvorqnkvaDnmoTlpb3phZLlj5jphos8L3RleHQ+Cjx0ZXh0IHg9IjYwMCIgeT0iMzcwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjYmJiIiBmb250LXNpemU9IjE4IiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiI+5rip5bqmIMK3IOa5v+W6piDCtyDlhYnnur8gwrcg6ZyH5YqoIMK3IOaRhuaUviDCtyDplb/mnJ/lgqjlrZg8L3RleHQ+CjxsaW5lIHgxPSIyMDAiIHkxPSI0MDAiIHgyPSIxMDAwIiB5Mj0iNDAwIiBzdHJva2U9IiNmZmQ3MDAiIHN0cm9rZS13aWR0aD0iMC41IiBvcGFjaXR5PSIwLjMiLz4KPHRleHQgeD0iNjAwIiB5PSI0NDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IiM4ODgiIGZvbnQtc2l6ZT0iMTMiIGZvbnQtZmFtaWx5PSJzYW5zLXNlcmlmIj7lgqjlrZjmjIfljZcgwrcg57qi6YWS6aG+6ZeuPC90ZXh0Pgo8L3N2Zz4=";
+  return svg;
+}
 
 function gen(){
-  return   '<section style="padding:10px 0;">' +
-  '<h2 style="text-align:center;color:#b8860b;">🍾 开瓶后葡萄酒能放多久？</h2>' +
-  '<p style="text-align:center;color:#888;font-size:14px;margin-bottom:20px;">史上最全葡萄酒保存指南 | 喝不完怎么办？</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">开了一瓶好酒但没喝完——这是每个葡萄酒爱好者都会遇到的窘境。直接倒掉太可惜，硬喝又怕变质。那么，不同葡萄酒开瓶后到底能放多久？如何延长它们的寿命？</p>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">⏰ 各种葡萄酒的"保质期"（冷藏条件下）</h2>' +
-  '<div style="overflow-x:auto;margin:15px 0;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#b8860b;color:#fff;"><th style="padding:10px;text-align:left;">酒的类型</th><th style="padding:10px;text-align:left;">开瓶后寿命</th><th style="padding:10px;text-align:left;">关键变化</th></tr></thead><tbody><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">起泡酒（香槟/Cava）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">1-3天</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">气泡流失后变得平淡</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">轻酒体白葡萄酒（长相思/灰皮诺）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">3-5天</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">果味逐渐消退</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">重酒体白葡萄酒（霞多丽/维欧尼）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">3-5天</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">氧化后变坚果味</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">桃红葡萄酒</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">3-5天</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">果味变淡</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">轻酒体红葡萄酒（黑皮诺/博若莱）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">3-5天</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">果味消退</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">重酒体红葡萄酒（赤霞珠/西拉）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">5-7天</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">单宁柔化，仍可饮用</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">加强酒（波特/雪莉/马德拉）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">2-4周</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">最耐放的酒</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">甜酒（苏玳/托卡伊/冰酒）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">2-4周</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">糖分作为天然防腐剂</td></tr></tbody></table></div>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">🥶 核心原则：空气是头号敌人</h2>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">葡萄酒变质的主要原因是氧化——空气中的氧气与酒液接触后，使酒中的酚类物质发生化学反应。氧化的酒会失去新鲜果味，变成酱油味、醋味或烂水果味。</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">因此，所有保存方法的核心都是：减少酒液与空气的接触。温度也是关键因素——冰箱冷藏室（4-8°C）能显著减缓氧化速度。</p>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">🔧 保存工具评测</h2>' +
-  '<div style="overflow-x:auto;margin:15px 0;"><table style="width:100%;border-collapse:collapse;"><thead><tr style="background:#b8860b;color:#fff;"><th style="padding:10px;text-align:left;">工具</th><th style="padding:10px;text-align:left;">原理</th><th style="padding:10px;text-align:left;">效果</th><th style="padding:10px;text-align:left;">价格</th></tr></thead><tbody><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">原装瓶塞+冰箱</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">最简单的方法</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">一般（2-3天）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">免费</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">真空塞（Vacu Vin）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">抽走瓶中空气</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">良好（3-5天）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">¥30-80</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">换小瓶</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">减少瓶中氧气空间</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">很好（5-7天）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">免费（需有瓶）</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">惰性气体喷雾</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">喷入氩气防止氧化</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">优秀（7-14天）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">¥80-150</td></tr><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">Coravin取酒器</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">用针管取酒不拔塞</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">极佳（数月）</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">¥1500+</td></tr></tbody></table></div>' +
-  '<div style="background:#fff8e1;border-left:4px solid #ffd54f;padding:12px 15px;margin:15px 0;border-radius:0 6px 6px 0;"><p style="color:#795548;margin:0;font-size:14px;line-height:1.7;">💡 最佳性价比方案：买几个100ml和200ml的玻璃小瓶（试剂瓶），将剩余的酒液倒入小瓶几乎装满（不留空气空间），拧紧瓶盖放入冰箱。这比任何昂贵的工具都有效！</p></div>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">🍷 各种场景的应对策略</h2>' +
-  '<h3 style="color:#b8860b;margin-top:20px;">场景一：只喝了一杯，还剩大半瓶</h3>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">最佳方案：用真空塞抽走空气，放冰箱。红葡萄酒也要放冰箱（喝前提前15-20分钟取出回温即可）。这样可以保质3-5天。</p>' +
-  '<h3 style="color:#b8860b;margin-top:20px;">场景二：只剩瓶底一点点（100ml左右）</h3>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">最佳方案：倒入小瓶中。100ml的酒倒进100ml的小瓶几乎没空气，可以再放一周。第二天直接当餐酒一杯喝掉很完美。</p>' +
-  '<h3 style="color:#b8860b;margin-top:20px;">场景三：名庄好酒，想分几天慢慢品</h3>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">最佳方案：用Coravin取酒器。不拔塞、不氧化，可以分几周甚至几个月慢慢品尝。如果是没有Coravin的情况，用惰性气体喷雾+冰箱冷藏，也能撑5-7天。</p>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">⚠️ 判断变质的标准</h2>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">酒还能不能喝？用"望闻问切"来判断：</p>' +
-  '<ul style="padding-left:20px;"><li style="margin:6px 0;color:#333;line-height:1.7;">👃 闻：有没有类似醋、酱油、雪莉酒或烂苹果的刺鼻气味？有→变坏了</li><li style="margin:6px 0;color:#333;line-height:1.7;">👀 看：颜色有没有变成棕色或砖红色（白葡萄酒变成深琥珀色）？有→氧化了</li><li style="margin:6px 0;color:#333;line-height:1.7;">👅 尝：口感是否变得平淡、缺乏果味？有没有令人不快的刺激感？有→不建议喝</li><li style="margin:6px 0;color:#333;line-height:1.7;">✅ 如果只是果味变淡了一些、单宁柔化了一些——这其实是自然演变，可以放心喝</li></ul>' +
-  '<h2 style="color:#b8860b;border-bottom:2px solid #ffd54f;padding-bottom:8px;margin-top:25px;">🍶 红酒到底要不要放冰箱？</h2>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">很多人认为红葡萄酒不能放冰箱。这是误区！冷藏只是暂时的保存手段（不是长期陈年）。在冰箱里放3-5天对红酒的品质影响不大，喝前提前取出回温至16-18°C即可。</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">但要注意：冰箱温度不能太低（不要低于4°C），而且最好用保鲜膜包好瓶口防止串味——冰箱里的剩菜味道会通过软木塞渗透到酒中！</p>' +
-  '<p style="text-align:center;color:#ddd;margin:20px 0;">---</p>' +
-  '<p style="color:#333;line-height:1.8;font-size:15px;margin:10px 0;">记住这条黄金法则：再好的保存方法也比不上找个人一起喝完。所以开好酒的时候，别忘了叫上朋友。独饮虽好，但分享才是葡萄酒最正确的打开方式。</p>' +
-  '<p style="text-align:center;color:#888;font-size:14px;margin-top:30px;">— 感谢阅读 —</p>' +
-  '</section>' ;
+  return   '<section>' +
+  '<style>' +
+  '  .ri { background: #fff; border: 1px solid #ddd; border-radius: 6px; padding: 12px; margin: 10px 0; }' +
+  '  .ri h4 { color: #1b5e20; margin: 0 0 8px 0; font-size: 16px; }' +
+  '  h3 { color: #1b5e20; border-bottom: 2px solid #4caf50; padding-bottom: 8px; margin-top: 25px; }' +
+  '  table { width: 100%; border-collapse: collapse; margin: 10px 0; }' +
+  '  table th { background: #1b5e20; color: #fff; padding: 10px; text-align: left; }' +
+  '  table td { padding: 10px; border-bottom: 1px solid #ddd; color: #333; }' +
+  '</style>' +
+  '<h2 style="text-align:center;color:#1b5e20;">🏠 葡萄酒储存指南</h2>' +
+  '<p style="text-align:center;color:#666;">别让你的好酒变醋 | 温度 · 湿度 · 光线 · 震动 · 摆放</p>' +
+  '<section style="background:linear-gradient(135deg,#1a0005,#3a000a);padding:25px;border-radius:10px;margin-bottom:25px"><p style="color:#ffccbc;font-size:16px;line-height:1.9">很多人买了好酒却不知道怎么储存，结果开瓶时发现酒已经变质。葡萄酒储存其实不难，掌握5个关键要素，就能让你的好酒保持最佳状态。</p></section>' +
+  '<h3>🌡️ 要素一：温度</h3>' +
+  '<section style="background:#e3f2fd;padding:18px;border-radius:8px"><div class="ri"><h4>💡 没有酒柜怎么办？</h4><p style="color:#333;line-height:1.8;margin:0">冰箱只能短期存放（1-2周），长期存放会太冷太干燥。空调房的温度波动太大。最佳方案是买一个恒温酒柜（¥1,000-5,000），或者找一个阴凉、恒温的角落（比如衣柜深处）。</p></div></section>' +
+  '<h3>💧 要素二：湿度</h3>' +
+  '<h3>🌑 要素三：光线</h3>' +
+  '<h3>📳 要素四：震动</h3>' +
+  '<h3>🍷 要素五：摆放</h3>' +
+  '<h3>⏰ 不同酒款的储存时间</h3>' +
+  '<section style="background:#fce4ec;padding:18px;border-radius:8px"><table><tr><th>酒款类型</th><th>最佳储存时间</th><th>说明</th></tr><tr><td>日常白葡萄酒</td><td>1-2年</td><td>越新鲜越好喝</td></tr><tr><td>日常红葡萄酒</td><td>2-3年</td><td>果味型为主</td></tr><tr><td>优质白葡萄酒</td><td>5-10年</td><td>勃艮第白、雷司令</td></tr><tr><td>优质红葡萄酒</td><td>10-20年</td><td>波尔多、巴罗洛</td></tr><tr><td>顶级陈年酒</td><td>20-50年</td><td>拉菲、罗曼尼康帝</td></tr><tr><td>甜酒/贵腐</td><td>20-30年</td><td>苏玳、托卡伊</td></tr><tr><td>起泡酒/香槟</td><td>3-5年</td><td>年份香槟可更长</td></tr></table></section>' +
+  '<h3>❌ 常见储存误区</h3>' +
+  '<section style="background:#e8f5e9;padding:18px;border-radius:8px"><ul style="padding-left:20px;margin:0;"><li style="margin:8px 0;color:#333;line-height:1.8;font-size:14px;">❌ 放在厨房——温度波动大，有异味</li><li style="margin:8px 0;color:#333;line-height:1.8;font-size:14px;">❌ 放在客厅展示柜——光线太强，温度太高</li><li style="margin:8px 0;color:#333;line-height:1.8;font-size:14px;">❌ 放在车里——温度波动致命</li><li style="margin:8px 0;color:#333;line-height:1.8;font-size:14px;">❌ 竖放软木塞酒——软木塞会干裂</li><li style="margin:8px 0;color:#333;line-height:1.8;font-size:14px;">❌ 和食物混放——异味会渗透酒瓶</li><li style="margin:8px 0;color:#333;line-height:1.8;font-size:14px;">❌ 放在地下室但不控温——温度波动仍然危险</li></ul></section>' +
+  '<section style="background:#e3f2fd;padding:18px;border-radius:8px"><div class="ri"><h4>💡 简易储存方案</h4><p style="color:#333;line-height:1.8;margin:0">如果没有专业酒柜，找一个阴凉、恒温、避光、无震动的角落（比如衣柜深处、书房角落），用纸箱或木箱装好酒瓶，横放存放。这样可以保存1-2年。</p></div></section>' +
+  '<section style="background:linear-gradient(135deg,#1a0005,#3a000a);padding:25px;border-radius:10px;margin-bottom:25px"><p style="color:#ffccbc;font-size:16px;line-height:1.9;font-style:italic;">好酒需要好储存。一瓶¥1,000的名庄酒，如果储存不当，开瓶时可能只值¥100。</p></section>' +
+  '<div style="height:2px;background:linear-gradient(90deg,transparent,#4caf50,transparent);margin:25px 0;"></div>' +
+  '<section style="background:linear-gradient(135deg,#1a0005,#3a000a);padding:25px;border-radius:10px;margin-bottom:25px"><p style="color:#ffccbc;font-size:16px;line-height:1.9;text-align:center;">— 好酒配好储存 —</p></section>' +
+  '</section>';
 }
 
 async function main(){
   try{
     const cb = await gCov();
     const art = {
-      title: '🍾 开瓶后葡萄酒能放多久？史上最全保存指南',
+      title: '🏠 葡萄酒储存指南：别让你的好酒变醋',
       author: '红酒顾问',
-      digest: '一瓶酒开了喝不完怎么办？塞回瓶塞能放几天？起泡酒、红酒、白酒、甜酒保存时间各不相同。附赠真空塞、换瓶器、惰性气体等实用工具评测。',
+      digest: '温度、湿度、光线、震动、摆放——5个维度教你正确储存葡萄酒，避免好酒变质。',
       content: gen(),
       coverImage: 'wine_storage_guide_cover_ai.png',
-      category: 'wine-practical',
-      tags: ["葡萄酒保存", "开瓶", "醒酒", "真空塞", "保鲜", "实用技巧"],
+      category: 'wine-knowledge',
+      tags: ["储存", "保存", "酒柜", "温度", "湿度", "长期储存"],
       publishDate: date.full
     };
     fs.writeFileSync(
@@ -59,8 +60,11 @@ async function main(){
     const w = config.publish;
     const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
     const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
     const f = new FormData();
-    f.append('media', cb, {filename: 'cover.png', contentType: 'image/png'});
+    f.append('media', png, {filename: 'cover.png', contentType: 'image/png'});
     const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {headers: f.getHeaders()});
     const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {
       articles: [{

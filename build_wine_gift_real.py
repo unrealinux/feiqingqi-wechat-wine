@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""Build wine gift guide article generator."""
+import os, json
+from rich_article import rich_article, js_str, cover_svg
+
+CONFIG_CODE = "require('./config')"
+DATE = '20260616'
+
+def build_article(name, title, digest, category, tags, content_blocks):
+    svg_b64 = cover_svg('#e65100',
+        ['葡萄酒送礼指南', '如何选对酒'],
+        '送礼送到心坎上',
+        '红樽坊 | 送礼指南')
+
+    html = rich_article(content_blocks, primary='#e65100', secondary='#ff9800')
+    html_lines = html.split('\n')
+    hlines = []
+    for line in html_lines:
+        escaped = js_str(line)
+        if escaped:
+            hlines.append(f"  '{escaped}' +")
+    if hlines:
+        hlines[-1] = hlines[-1].rstrip('+').rstrip()
+    html_js = '\n'.join(hlines)
+
+    gen_func = f'''function gen(){{
+  return {html_js};
+}}'''
+
+    js = f'''const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=require('form-data');
+
+const config = {CONFIG_CODE};
+
+const date={{full:'{DATE}'}};
+
+function gCov(){{
+  const svg="{js_str(svg_b64)}";
+  return svg;
+}}
+
+{gen_func}
+
+async function main(){{
+  try{{
+    const cb = await gCov();
+    const art = {{
+      title: '{js_str(title)}',
+      author: '红樽坊',
+      digest: '{js_str(digest)}',
+      content: gen(),
+      coverImage: '{name}_cover_ai.png',
+      category: '{category}',
+      tags: {json.dumps(tags, ensure_ascii=False)},
+      publishDate: date.full
+    }};
+    fs.writeFileSync(
+      path.join(__dirname, 'output', '{name}_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const f = new FormData();
+    f.append('media', png, {{filename: 'cover.png', contentType: 'image/png'}});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {{headers: f.getHeaders()}});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {{
+      articles: [{{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }}]
+    }});
+    console.log('Gift, media_id:', d.data.media_id);
+  }}catch(e){{
+    console.error('Gift:', e.message);
+    process.exit(1);
+  }}
+}}
+
+main();
+'''
+    os.makedirs('output', exist_ok=True)
+    with open(f'generate-{name}.js', 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f'Created generate-{name}.js')
+
+if __name__ == '__main__':
+    build_article('wine_gift_real',
+        title='葡萄酒送礼指南：如何选对酒',
+        digest='送长辈、送领导、送朋友、送客户，不同对象送不同的酒。这篇指南帮你选对酒，送礼送到心坎上。',
+        category='practical-guide',
+        tags=['送礼','礼物','选择','场合','技巧'],
+        content_blocks=[
+            {"type": "title", "text": "葡萄酒送礼指南：如何选对酒"},
+            {"type": "subtitle", "text": "送礼送到心坎上"},
+            {"type": "lead", "text": "送长辈、送领导、送朋友、送客户，不同对象送不同的酒。这篇指南帮你选对酒，送礼送到心坎上。"},
+
+            {"type": "h2", "text": "🎁 送礼的基本原则"},
+            {"type": "p", "text": "送酒时，遵循这些原则："},
+            {"type": "list", "items": [
+                "<strong>了解对方喜好</strong>——投其所好最重要",
+                "<strong>预算适中</strong>——不要太便宜显得敷衍，也不要太贵让人有压力",
+                "<strong>包装精美</strong>——送礼要有仪式感",
+                "<strong>品牌有保障</strong>——选择知名品牌，品质有保障"
+            ]},
+
+            {"type": "h2", "text": "👨‍👩‍👧‍👦 不同对象的送酒建议"},
+            {"type": "p", "text": "根据不同的送礼对象，推荐不同的酒款："},
+
+            {"type": "ri", "heading":"送长辈", "text":"<strong>预算：</strong>200-500元\n<strong>推荐：</strong>张裕解百纳、长城五星、宁夏赤霞珠\n<strong>理由：</strong>国产名牌，口感醇厚\n<strong>包装：</strong>选择红色或金色包装"},
+            {"type": "ri", "heading":"送领导/客户", "text":"<strong>预算：</strong>500-2000元\n<strong>推荐：</strong>拉菲传说、奔富Bin、波尔多中级庄\n<strong>理由：</strong>品牌知名度高，有面子\n<strong>包装：</strong>选择原木箱或礼盒装"},
+            {"type": "ri", "heading":"送朋友/同事", "text":"<strong>预算：</strong>100-300元\n<strong>推荐：</strong>黄尾袋鼠、桃乐丝、智利赤霞珠\n<strong>理由：</strong>性价比高，易饮顺口\n<strong>包装：</strong>可以选择双瓶装"},
+            {"type": "ri", "heading":"送年轻朋友", "text":"<strong>预算：</strong>100-300元\n<strong>推荐：</strong>桃红、莫斯卡托、起泡酒\n<strong>理由：</strong>颜值高，易饮\n<strong>包装：</strong>选择时尚设计"},
+
+            {"type": "h2", "text": "💰 不同预算的推荐"},
+            {"type": "table", "headers": ["预算", "推荐酒款", "适合对象"],
+             "rows": [
+                 ["100-200元", "黄尾袋鼠、桃乐丝", "朋友/同事"],
+                 ["200-500元", "张裕解百纳、长城五星", "长辈"],
+                 ["500-1000元", "拉菲传说、奔富Bin", "领导/客户"],
+                 ["1000-2000元", "波尔多中级庄", "重要客户"],
+                 ["2000元以上", "波尔多列级庄", "特殊场合"]
+             ]},
+
+            {"type": "h2", "text": "🚫 送酒禁忌"},
+            {"type": "p", "text": "送酒时，这些禁忌要避免："},
+            {"type": "list", "items": [
+                "<strong>不要送4瓶</strong>——不吉利",
+                "<strong>不要送白色包装</strong>——与丧事相关",
+                "<strong>不要送过期酒</strong>——检查保质期",
+                "<strong>不要送假酒</strong>——从正规渠道购买",
+                "<strong>不要送对方忌酒</strong>——如果对方不喝酒"
+            ]},
+
+            {"type": "sep"},
+            {"type": "quote", "text": "'送礼不在贵，而在对。'"},
+            {"type": "p", "text": "送酒最重要的是心意。选对酒，送到心坎上，让对方感受到你的用心。"},
+
+            {"type": "end", "text": "你送过什么酒？<br/>你有什么送酒经验？<br/>欢迎在评论区分享！"}
+        ])

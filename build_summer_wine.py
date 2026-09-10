@@ -1,0 +1,154 @@
+import os, json
+from rich_article import rich_article, js_str, cover_svg
+
+CONFIG_CODE = "require('./config')"
+DATE = '20260610'
+
+def build_article(name, title, digest, category, tags, content_blocks):
+    svg_b64 = cover_svg('#e91e63',
+        ['☀️ 夏日清爽白葡萄酒/桃红推荐', '让这个夏天更清凉'],
+        '白葡萄酒 · 桃红 · 清爽 · 冰镇 · 夏日特辑',
+        '夏日清爽 · 红酒顾问')
+
+    html = rich_article(content_blocks, primary='#e91e63', secondary='#f48fb1')
+    html_lines = html.split('\n')
+    hlines = []
+    for line in html_lines:
+        escaped = js_str(line)
+        if escaped:
+            hlines.append(f"  '{escaped}' +")
+    if hlines:
+        hlines[-1] = hlines[-1].rstrip('+').rstrip()
+    html_js = '\n'.join(hlines)
+
+    gen_func = f'''function gen(){{
+  return {html_js};
+}}'''
+
+    js = f'''const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=require('form-data');
+
+const config = {CONFIG_CODE};
+
+const date={{full:'{DATE}'}};
+
+function gCov(){{
+  const svg="{js_str(svg_b64)}";
+  return svg;
+}}
+
+{gen_func}
+
+async function main(){{
+  try{{
+    const cb = await gCov();
+    const art = {{
+      title: '{js_str(title)}',
+      author: '红酒顾问',
+      digest: '{js_str(digest)}',
+      content: gen(),
+      coverImage: '{name}_cover_ai.png',
+      category: '{category}',
+      tags: {json.dumps(tags, ensure_ascii=False)},
+      publishDate: date.full
+    }};
+    fs.writeFileSync(
+      path.join(__dirname, 'output', '{name}_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const f = new FormData();
+    f.append('media', png, {{filename: 'cover.png', contentType: 'image/png'}});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {{headers: f.getHeaders()}});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {{
+      articles: [{{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }}]
+    }});
+    console.log('✅ {name}, media_id:', d.data.media_id);
+  }}catch(e){{
+    console.error('❌ {name}:', e.message);
+    process.exit(1);
+  }}
+}}
+
+main();
+'''
+    os.makedirs('output', exist_ok=True)
+    with open(f'generate-{name}.js', 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f'  Created generate-{name}.js')
+
+if __name__ == '__main__':
+    build_article('summer_wine_guide',
+        title='☀️ 夏日清爽白葡萄酒/桃红推荐：让这个夏天更清凉',
+        digest='35°C的夏天，红葡萄酒太重了。10款清爽白葡萄酒+5款桃红，冰镇后开瓶，解暑又解馋。',
+        category='wine-knowledge',
+        tags=['夏天','白葡萄酒','桃红','清爽','冰镇','解暑','推荐'],
+        content_blocks=[
+            {'type':'title','text':'☀️ 夏日清爽白葡萄酒/桃红推荐'},
+            {'type':'subtitle','text':'让这个夏天更清凉 | 白葡萄酒 · 桃红 · 清爽 · 冰镇'},
+
+            {'type':'lead','text':'35°C的夏天，红葡萄酒太重了。你需要的是冰镇后清爽解暑的白葡萄酒或桃红。这篇文章推荐10款白葡萄酒+5款桃红，全部适合冰镇饮用，解暑又解馋。'},
+
+            {'type':'h2','text':'🌡️ 夏天喝酒的三个原则'},
+
+            {'type':'list','items':[
+                '温度要低——白葡萄酒/桃红冰镇到8-10°C，起泡酒冰镇到6-8°C，喝起来才清爽',
+                '酸度要高——高酸度的酒喝起来更爽口，解腻解暑',
+                '酒精度要低——12%以下的酒，喝起来没负担，适合夏天轻松饮用',
+            ]},
+
+            {'type':'h2','text':'🥂 10款夏日清爽白葡萄酒推荐'},
+
+            {'type':'h3','text':'🏆 入门级（¥80-150）——随便买不踩雷'},
+
+            {'type':'box','heading':'1. 长相思 Sauvignon Blanc · 新西兰马尔堡','text':'清爽的青草和百香果香气，酸度高，入口像喝了一口冰镇青柠水。配海鲜、沙拉、寿司绝配。\n参考价：¥88-128'},
+            {'type':'box','heading':'2. 灰皮诺 Pinot Grigio · 意大利','text':'几乎没有香气，但口感极其清爽干净，像喝冰镇矿泉水。最适合不想动脑选酒的时候。\n参考价：¥78-118'},
+            {'type':'box','heading':'3. 阿尔巴利诺 Albariño · 西班牙下海湾','text':'自带海盐气息的白葡萄酒，配海鲜天作之合。酸度脆爽，果味清新，夏天喝太舒服了。\n参考价：¥98-138'},
+            {'type':'box','heading':'4. 绿维特利纳 Grüner Veltliner · 奥地利','text':'白胡椒+青豆的独特香气，口感清爽带点微辣，配沙拉、清淡中餐都很棒。小众但好喝。\n参考价：¥98-148'},
+
+            {'type':'h3','text':'💎 进阶级（¥150-300）——有点追求'},
+
+            {'type':'box','heading':'5. 夏布利 Chablis · 法国勃艮第','text':'纯净的矿物感+柑橘香气，像喝了一口冰镇矿泉水+柠檬汁。配生蚝、白灼虾绝配。\n参考价：¥168-258'},
+            {'type':'box','heading':'6. 雷司令 Riesling · 德国摩泽尔','text':'半干型雷司令，微甜+高酸度，白桃+柠檬+蜂蜜香气。配川菜、泰国菜完美。\n参考价：¥128-228'},
+            {'type':'box','heading':'7. 长相思 Sancerre · 法国卢瓦尔河谷','text':'顶级长相思标杆，矿物感+柑橘+青草，优雅又清爽。配海鲜、 goat cheese 绝配。\n参考价：¥198-298'},
+            {'type':'box','heading':'8. 琼瑶浆 Gewürztraminer · 阿尔萨斯','text':'荔枝+玫瑰香气炸弹，口感圆润，微甜。配泰国菜、越南菜、重口味中餐。\n参考价：¥158-258'},
+
+            {'type':'h3','text':'👑 收藏级（¥300+）——夏天也要有格调'},
+
+            {'type':'box','heading':'9. 普里尼-蒙哈榭 Puligny-Montrachet · 勃艮第','text':'勃艮第白葡萄酒的巅峰，矿物感+柑橘+坚果，复杂度极高。夏天配龙虾、扇贝。\n参考价：¥388-588'},
+            {'type':'box','heading':'10. 长相思+赛美蓉混酿 · 澳洲猎人谷','text':'猎人谷的赛美龄陈年后有独特的蜂蜜焦糖味，配烤鱼、烤虾很搭。\n参考价：¥288-488'},
+
+            {'type':'h2','text':'🌸 5款夏日桃红推荐'},
+
+            {'type':'p','text':'桃红（Rosé）是夏天的完美选择——颜值高、口感清爽、配餐灵活。'},
+
+            {'type':'box','heading':'1. 普罗旺斯桃红 · 法国','text':'全世界桃红的标杆，三文鱼色，干型，草莓+柑橘香气，清爽优雅。配沙拉、海鲜、烧烤。\n参考价：¥128-228'},
+            {'type':'box','heading':'2. 桃红起泡酒 · 意大利','text':'微气泡，低酒精度，甜型，荔枝+草莓香气。女生最爱，派对必备。\n参考价：¥88-138'},
+            {'type':'box','heading':'3. 白仙粉黛 White Zinfandel · 美国','text':'甜型桃红，草莓+西瓜香气，清爽好喝。入门桃红首选。\n参考价：¥68-108'},
+            {'type':'box','heading':'4. 歌海娜桃红 · 西班牙','text':'干型桃红，红色浆果香气，口感圆润。配西班牙小吃、烤肉。\n参考价：¥98-168'},
+            {'type':'box','heading':'5. 黑皮诺桃红 · 新西兰','text':'精致的桃红，草莓+樱桃香气，酸度清爽。配海鲜、轻食。\n参考价：¥128-218'},
+
+            {'type':'h2','text':'🧊 夏天喝酒小贴士'},
+
+            {'type':'tip','heading':'🧊 冰镇方法','text':'白葡萄酒/桃红：冰镇到8-10°C（冰箱冷藏2-3小时）\n起泡酒：冰镇到6-8°C（冰箱冷藏3-4小时）\n没有冰桶？用湿毛巾包裹酒瓶放冰箱，30分钟速冷'},
+            {'type':'tip','heading':'🍽️ 配餐建议','text':'海鲜/寿司 → 长相思、灰皮诺、夏布利\n川菜/泰国菜 → 半干雷司令、琼瑶浆\n烧烤/烤肉 → 桃红、歌海娜桃红\n沙拉/轻食 → 灰皮诺、阿尔巴利诺'},
+
+            {'type':'sep','text':''},
+            {'type':'end','text':'— 夏天快乐，冰镇万岁 —'},
+        ]
+    )
+    print('\nSummer Wine Guide created!')

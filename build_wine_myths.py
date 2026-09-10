@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""Build wine myths debunked article generator."""
+import os, json
+from rich_article import rich_article, js_str, cover_svg
+
+CONFIG_CODE = "require('./config')"
+DATE = '20260614'
+
+def build_article(name, title, digest, category, tags, content_blocks):
+    svg_b64 = cover_svg('#f57f17',
+        ['葡萄酒常见误区', '99%的人都理解错了'],
+        '打破认知，重新认识葡萄酒',
+        '红樽坊 | 纠错指南')
+
+    html = rich_article(content_blocks, primary='#f57f17', secondary='#ffca28')
+    html_lines = html.split('\n')
+    hlines = []
+    for line in html_lines:
+        escaped = js_str(line)
+        if escaped:
+            hlines.append(f"  '{escaped}' +")
+    if hlines:
+        hlines[-1] = hlines[-1].rstrip('+').rstrip()
+    html_js = '\n'.join(hlines)
+
+    gen_func = f'''function gen(){{
+  return {html_js};
+}}'''
+
+    js = f'''const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=require('form-data');
+
+const config = {CONFIG_CODE};
+
+const date={{full:'{DATE}'}};
+
+function gCov(){{
+  const svg="{js_str(svg_b64)}";
+  return svg;
+}}
+
+{gen_func}
+
+async function main(){{
+  try{{
+    const cb = await gCov();
+    const art = {{
+      title: '{js_str(title)}',
+      author: '红樽坊',
+      digest: '{js_str(digest)}',
+      content: gen(),
+      coverImage: '{name}_cover_ai.png',
+      category: '{category}',
+      tags: {json.dumps(tags, ensure_ascii=False)},
+      publishDate: date.full
+    }};
+    fs.writeFileSync(
+      path.join(__dirname, 'output', '{name}_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const f = new FormData();
+    f.append('media', png, {{filename: 'cover.png', contentType: 'image/png'}});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {{headers: f.getHeaders()}});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {{
+      articles: [{{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }}]
+    }});
+    console.log('Wine Myths, media_id:', d.data.media_id);
+  }}catch(e){{
+    console.error('Wine Myths:', e.message);
+    process.exit(1);
+  }}
+}}
+
+main();
+'''
+    os.makedirs('output', exist_ok=True)
+    with open(f'generate-{name}.js', 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f'Created generate-{name}.js')
+
+if __name__ == '__main__':
+    build_article('wine_myths',
+        title='葡萄酒常见误区：99%的人都理解错了',
+        digest='越老越好？挂杯就是好酒？红酒配牛排？这些你深信不疑的葡萄酒知识，可能全是错的。',
+        category='wine-knowledge',
+        tags=['误区','误解','科普','品酒','知识'],
+        content_blocks=[
+            {"type": "title", "text": "葡萄酒常见误区：99%的人都理解错了"},
+            {"type": "subtitle", "text": "打破认知，重新认识葡萄酒"},
+            {"type": "lead", "text": "关于葡萄酒，流传着很多'常识'。但你有没有想过，这些常识可能是错的？今天我们就来打破这些误区，让你重新认识葡萄酒。"},
+
+            {"type": "h2", "text": "❌ 误区一：葡萄酒越老越好"},
+            {"type": "p", "text": "很多人认为，葡萄酒像白酒一样，越陈越好。这是最大的误区。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>90%的葡萄酒都应该在购买后1-5年内饮用。</strong>\n\n只有极少数顶级酒款（如波尔多一级庄、勃艮第特级园）才有陈年潜力。大多数超市酒和百元酒，放久了只会变质，不会变好。\n\n判断方法：看酒精度和单宁。酒精度高（14%+）、单宁重的红葡萄酒才适合陈年。"},
+
+            {"type": "h2", "text": "❌ 误区二：挂杯就是好酒"},
+            {"type": "p", "text": "很多人摇杯后看到酒液沿着杯壁缓慢流下，就认为这是好酒的标志。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>挂杯只说明酒精度和糖分高，与品质无关。</strong>\n\n挂杯是因为酒精蒸发速度比水快，产生的表面张力差异。酒精度越高，挂杯越明显。一款100元的高酒精度酒，可能比500元的酒挂杯更明显。\n\n挂杯能告诉你的是：这款酒的酒精度大概在多少。仅此而已。"},
+
+            {"type": "h2", "text": "❌ 误区三：红酒一定要配牛排"},
+            {"type": "p", "text": "红酒配牛排是经典搭配，但不是唯一选择。很多人被这个观念限制了想象力。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>葡萄酒的搭配原则是'风味互补'，不是'固定搭配'。</strong>\n\n• 清淡的黑皮诺可以配三文鱼\n• 清爽的雷司令可以配火锅\n• 甜型的莫斯卡托可以配辣菜\n• 起泡酒可以配薯片、炸鸡\n\n关键是风味平衡，不是死记硬背。"},
+
+            {"type": "h2", "text": "❌ 误区四：开瓶后必须醒酒"},
+            {"type": "p", "text": "很多人买了一瓶酒，第一件事就是醒酒。但醒酒不是万能的。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>大多数年轻酒款不需要醒酒。</strong>\n\n• 年轻的酒（3年以内）：直接喝就好，醒酒反而会让香气流失\n• 老酒（10年以上）：需要醒酒去除沉淀\n• 日常百元酒：醒酒不会让它变好喝\n\n只有那些单宁很重、酒体很饱满的年轻酒（如赤霞珠、巴罗洛），才需要醒酒30-60分钟。"},
+
+            {"type": "h2", "text": "❌ 误区五：红酒要室温饮用"},
+            {"type": "p", "text": "很多人认为红酒要在'室温'下饮用，于是把酒放在20多度的房间里。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>'室温'是指16-18°C，不是25°C的夏天室温。</strong>\n\n• 轻盈红酒（黑皮诺）：14-16°C\n• 饱满红酒（赤霞珠）：16-18°C\n• 白葡萄酒：8-12°C\n• 起泡酒：6-8°C\n\n夏天太热？把红酒放入冰箱15-20分钟，或者放入冰桶10分钟。"},
+
+            {"type": "h2", "text": "❌ 误区六：便宜没好酒"},
+            {"type": "p", "text": "很多人认为，几百元以下的酒都不值得喝。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>性价比最高的酒款集中在100-300元区间。</strong>\n\n• 智利、南非、西班牙的百元酒，品质远超你的想象\n• 国产酒（宁夏、新疆）的性价比极高\n• 超市酒虽然普通，但满足日常饮用绰绰有余\n\n价格≠品质。很多高价酒，你付的是品牌溢价和营销成本。"},
+
+            {"type": "h2", "text": "❌ 误区七：白葡萄酒比红葡萄酒差"},
+            {"type": "p", "text": "很多人认为，白葡萄酒是'入门级'，红葡萄酒才是'高级'。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>白葡萄酒的平均价格比红葡萄酒更高。</strong>\n\n勃艮第的白葡萄酒（如蒙哈榭）价格远超同产区的红葡萄酒。世界最贵的白葡萄酒——伊贡米勒逐粒枯萄精选（TBA），价格可达数万元。\n\n白葡萄酒和红葡萄酒只是风格不同，没有高下之分。"},
+
+            {"type": "h2", "text": "❌ 误区八：葡萄酒都要用高脚杯"},
+            {"type": "p", "text": "很多人觉得，喝葡萄酒必须用高脚杯，否则就是不讲究。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>高脚杯的目的是观察酒的颜色和挂杯，不是装逼。</strong>\n\n在家中独饮，用什么杯子都可以。马克杯、玻璃杯、甚至纸杯，都不会影响酒的味道。\n\n当然，如果你请客吃饭，用高脚杯是基本礼仪。但在家中，舒服最重要。"},
+
+            {"type": "h2", "text": "❌ 误区九：葡萄酒要趁热喝"},
+            {"type": "p", "text": "很多人认为，葡萄酒要趁热喝才好。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>葡萄酒的最佳饮用温度是16-18°C（红酒）和8-12°C（白酒）。</strong>\n\n太热会让酒精味过于突出，掩盖了果香和风味。太冷会让香气封闭，口感酸涩。\n\n夏天喝红酒？先冰一下再喝。冬天喝白酒？室温就好。"},
+
+            {"type": "h2", "text": "❌ 误区十：年份越老越值钱"},
+            {"type": "p", "text": "很多人认为，年份越老的酒越值钱。"},
+            {"type": "ri", "heading":"真相", "text":"<strong>只有好年份的酒才值钱，差年份的老酒一文不值。</strong>\n\n波尔多的好年份：2005、2009、2010、2015、2016、2018、2019\n差年份的酒，即使放50年，也不会变成好酒。\n\n判断年份好不好，需要看产区的天气记录。这不是普通消费者能掌握的技能。"},
+
+            {"type": "sep"},
+            {"type": "h2", "text": "💡 正确的葡萄酒观念"},
+            {"type": "p", "text": "打破误区后，这里有几个正确的葡萄酒观念："},
+            {"type": "list", "items": [
+                "<strong>好喝就是好酒</strong>——不要被分数、评分、价格绑架",
+                "<strong>适合自己的才是最好的</strong>——不要盲目追求名庄",
+                "<strong>葡萄酒是用来享受的</strong>——不是用来炫耀的",
+                "<strong>不要害怕尝试新酒款</strong>——多喝多试才能找到自己的口味",
+                "<strong>喝酒最重要的是开心</strong>——不是比谁更懂"
+            ]},
+
+            {"type": "end", "text": "你还知道哪些葡萄酒误区？<br/>欢迎在评论区分享你的看法！"}
+        ])

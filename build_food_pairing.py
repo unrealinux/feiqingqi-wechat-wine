@@ -1,0 +1,174 @@
+import os, json
+from rich_article import rich_article, js_str, cover_svg
+
+CONFIG_CODE = "require('./config')"
+DATE = '20260610'
+
+def build_article(name, title, digest, category, tags, content_blocks):
+    svg_b64 = cover_svg('#e65100',
+        ['🍽️ 葡萄酒与美食搭配全攻略', '一文搞定所有配餐难题'],
+        '中餐 · 西餐 · 日料 · 火锅 · 甜品 · 万能公式',
+        '美食配酒 · 红酒顾问')
+
+    html = rich_article(content_blocks, primary='#e65100', secondary='#ff9800')
+    html_lines = html.split('\n')
+    hlines = []
+    for line in html_lines:
+        escaped = js_str(line)
+        if escaped:
+            hlines.append(f"  '{escaped}' +")
+    if hlines:
+        hlines[-1] = hlines[-1].rstrip('+').rstrip()
+    html_js = '\n'.join(hlines)
+
+    gen_func = f'''function gen(){{
+  return {html_js};
+}}'''
+
+    js = f'''const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=require('form-data');
+
+const config = {CONFIG_CODE};
+
+const date={{full:'{DATE}'}};
+
+function gCov(){{
+  const svg="{js_str(svg_b64)}";
+  return svg;
+}}
+
+{gen_func}
+
+async function main(){{
+  try{{
+    const cb = await gCov();
+    const art = {{
+      title: '{js_str(title)}',
+      author: '红酒顾问',
+      digest: '{js_str(digest)}',
+      content: gen(),
+      coverImage: '{name}_cover_ai.png',
+      category: '{category}',
+      tags: {json.dumps(tags, ensure_ascii=False)},
+      publishDate: date.full
+    }};
+    fs.writeFileSync(
+      path.join(__dirname, 'output', '{name}_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const f = new FormData();
+    f.append('media', png, {{filename: 'cover.png', contentType: 'image/png'}});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {{headers: f.getHeaders()}});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {{
+      articles: [{{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }}]
+    }});
+    console.log('✅ {name}, media_id:', d.data.media_id);
+  }}catch(e){{
+    console.error('❌ {name}:', e.message);
+    process.exit(1);
+  }}
+}}
+
+main();
+'''
+    os.makedirs('output', exist_ok=True)
+    with open(f'generate-{name}.js', 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f'  Created generate-{name}.js')
+
+if __name__ == '__main__':
+    build_article('food_pairing_guide',
+        title='🍽️ 葡萄酒与美食搭配全攻略：一文搞定所有配餐难题',
+        digest='中餐、西餐、日料、火锅、甜品——50种常见食物的葡萄酒搭配方案，收藏这篇就够了。',
+        category='wine-knowledge',
+        tags=['配餐','美食','中餐','西餐','日料','火锅','搭配'],
+        content_blocks=[
+            {'type':'title','text':'🍽️ 葡萄酒与美食搭配全攻略'},
+            {'type':'subtitle','text':'一文搞定所有配餐难题 | 中餐 · 西餐 · 日料 · 火锅 · 甜品'},
+
+            {'type':'lead','text':'很多人觉得葡萄酒配餐很难，其实只要掌握一个万能公式：清淡配清淡，浓郁配浓郁。本文整理了50种常见食物的葡萄酒搭配方案，收藏这篇就够了。'},
+
+            {'type':'h2','text':'📏 万能搭配公式'},
+
+            {'type':'ri','heading':'四个核心原则','text':'<strong>1. 酒体匹配：</strong>酒的"重量"要和菜的"重量"匹配。清蒸鱼配轻酒体白酒，红烧肉配重酒体红酒。\n\n<strong>2. 风味呼应：</strong>酒和菜有相似的风味元素。黑皮诺的樱桃味配鸭肉的果酱味。\n\n<strong>3. 互补对比：</strong>酸度解腻，甜度中辣。甜型雷司令配川菜就是经典互补。\n\n<strong>4. 产区搭配：</strong>本地酒配本地菜。意大利酒配意大利菜，中国酒配中餐。'},
+
+            {'type':'h2','text':'🥩 中餐搭配方案'},
+
+            {'type':'table','headers':['菜品','推荐酒款','搭配逻辑'],
+            'rows':[
+                ['红烧肉/东坡肉','巴罗洛/基安蒂','高单宁解腻，酒体压得住浓油赤酱'],
+                ['清蒸鱼/白灼虾','夏布利/长相思','高酸度去腥，清爽不压味'],
+                ['麻婆豆腐/水煮鱼','半干雷司令/琼瑶浆','微甜中和辣感，花果香呼应'],
+                ['北京烤鸭','黑皮诺/博若莱','果香呼应鸭肉，单宁适中'],
+                ['粤式烧鹅/叉烧','里奥哈/GSM混酿','中等酒体，香料味呼应烤肉'],
+                ['火锅（麻辣）','半甜雷司令/莫斯卡托','甜+辣=完美，气泡解腻'],
+                ['饺子/包子','起泡酒/灰皮诺','清爽干净，配面食百搭'],
+                ['炒饭/炒面','博若莱/佳美','轻盈不压味，果香提鲜'],
+            ]},
+
+            {'type':'h2','text':'🍝 西餐搭配方案'},
+
+            {'type':'table','headers':['菜品','推荐酒款','搭配逻辑'],
+            'rows':[
+                ['牛排','赤霞珠/马尔贝克','高单宁+高蛋白=完美平衡'],
+                ['烤羊排','西拉/歌海娜','香料味呼应羊肉风味'],
+                ['意面（番茄酱）','基安蒂/桑娇维塞','高酸度对应番茄酸度'],
+                ['意面（奶油酱）','霞多丽/灰皮诺','饱满酒体配奶油'],
+                ['烤鸡','黑皮诺/白诗南','中等酒体，果香提鲜'],
+                ['海鲜拼盘','香槟/长相思','气泡+高酸度=清爽解腻'],
+                ['奶酪拼盘','苏玳贵腐/波特酒','甜+咸=经典搭配'],
+            ]},
+
+            {'type':'h2','text':'🍣 日料搭配方案'},
+
+            {'type':'table','headers':['菜品','推荐酒款','搭配逻辑'],
+            'rows':[
+                ['刺身/生鱼片','干型雷司令/清酒','清爽不抢味，矿物感提鲜'],
+                ['寿司（鱼类）','夏布利/长相思','高酸度对应酱油咸鲜'],
+                ['寿司（甜虾）','莫斯卡托/半干雷司令','微甜呼应甜虾鲜味'],
+                ['天妇罗','灰皮诺/普罗塞克','气泡解腻，清爽干净'],
+                ['烤鳗鱼','雷司令/琼瑶浆','甜味呼应鳗鱼酱汁'],
+                ['味噌汤/拉面','清酒/雷司令','风味呼应，清爽解腻'],
+            ]},
+
+            {'type':'h2','text':'🍲 其他场景搭配'},
+
+            {'type':'ri','heading':'甜品搭配','text':'巧克力甜品 → 马德拉/波特酒（甜+苦=完美）\n水果挞/慕斯 → 莫斯卡托/冰酒（甜配甜）\n焦糖布丁 → 苏玳贵腐（焦糖+蜂蜜=绝配）\n提拉米苏 → 马萨拉/莫斯卡托（咖啡+甜酒）'},
+
+            {'type':'ri','heading':'烧烤/户外搭配','text':'烤肉/BBQ → 赤霞珠/西拉（高单宁+烟熏味）\n烤鸡翅 → 博若莱/佳美（果香+烤肉）\n烤海鲜 → 长相思/灰皮诺（清爽+海鲜）\n烤蔬菜 → 桃红/灰皮诺（清爽+蔬菜）'},
+
+            {'type':'h2','text':'❌ 常见搭配误区'},
+
+            {'type':'list','items':[
+                '❌ 甜酒配咸菜——会变酸变苦',
+                '❌ 高单宁红酒配海鲜——会产生金属味',
+                '❌ 高酸度酒配甜食——酒会变酸',
+                '❌ 浓郁红酒配清淡菜——酒会盖过菜味',
+                '❌ 起泡酒配辣菜——气泡会加剧辣感',
+                '❌ 便宜酒配昂贵菜——酒会显得更便宜',
+            ]},
+
+            {'type':'tip','heading':'💡 速查口诀','text':'白酒配白肉，红酒配红肉\n甜酒配甜食，酸酒配酸菜\n清淡配清淡，浓郁配浓郁\n不知道配什么？选雷司令/黑皮诺/桃红——万能百搭'},
+
+            {'type':'quote','text':'最好的配酒，是你喜欢喝的酒。规则是死的，人是活的。开心就好。'},
+
+            {'type':'sep','text':''},
+            {'type':'end','text':'— 干杯，享受每一餐 —'},
+        ]
+    )
+    print('\nFood Pairing Guide created!')

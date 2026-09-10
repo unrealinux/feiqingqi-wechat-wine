@@ -1,0 +1,159 @@
+#!/usr/bin/env python3
+"""Build wine and health article generator."""
+import os, json
+from rich_article import rich_article, js_str, cover_svg
+
+CONFIG_CODE = "require('./config')"
+DATE = '20260614'
+
+def build_article(name, title, digest, category, tags, content_blocks):
+    svg_b64 = cover_svg('#006064',
+        ['葡萄酒与健康', '喝多少才合适？'],
+        '科学饮酒，享受生活',
+        '红樽坊 | 健康指南')
+
+    html = rich_article(content_blocks, primary='#006064', secondary='#26c6da')
+    html_lines = html.split('\n')
+    hlines = []
+    for line in html_lines:
+        escaped = js_str(line)
+        if escaped:
+            hlines.append(f"  '{escaped}' +")
+    if hlines:
+        hlines[-1] = hlines[-1].rstrip('+').rstrip()
+    html_js = '\n'.join(hlines)
+
+    gen_func = f'''function gen(){{
+  return {html_js};
+}}'''
+
+    js = f'''const fs=require('fs'),path=require('path'),axios=require('axios'),FormData=require('form-data');
+
+const config = {CONFIG_CODE};
+
+const date={{full:'{DATE}'}};
+
+function gCov(){{
+  const svg="{js_str(svg_b64)}";
+  return svg;
+}}
+
+{gen_func}
+
+async function main(){{
+  try{{
+    const cb = await gCov();
+    const art = {{
+      title: '{js_str(title)}',
+      author: '红樽坊',
+      digest: '{js_str(digest)}',
+      content: gen(),
+      coverImage: '{name}_cover_ai.png',
+      category: '{category}',
+      tags: {json.dumps(tags, ensure_ascii=False)},
+      publishDate: date.full
+    }};
+    fs.writeFileSync(
+      path.join(__dirname, 'output', '{name}_'+date.full.replace(/-/g,'')+'.json'),
+      JSON.stringify(art, null, 2)
+    );
+
+    const w = config.publish;
+    const t = await axios.get('https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid='+w.appId+'&secret='+w.appSecret);
+    const a = t.data.access_token;
+    const sharp=require('sharp');
+    const svgContent=Buffer.from(cb.split(',')[1],'base64').toString();
+    const png=await sharp(Buffer.from(svgContent)).png().toBuffer();
+    const f = new FormData();
+    f.append('media', png, {{filename: 'cover.png', contentType: 'image/png'}});
+    const m = await axios.post('https://api.weixin.qq.com/cgi-bin/material/add_material?access_token='+a+'&type=image', f, {{headers: f.getHeaders()}});
+    const d = await axios.post('https://api.weixin.qq.com/cgi-bin/draft/add?access_token='+a, {{
+      articles: [{{
+        title: art.title,
+        thumb_media_id: m.data.media_id,
+        author: art.author,
+        digest: art.digest,
+        content: art.content,
+        show_cover_pic: 1,
+        need_open_comment: 0,
+        only_fans_can_comment: 0
+      }}]
+    }});
+    console.log('Wine Health, media_id:', d.data.media_id);
+  }}catch(e){{
+    console.error('Wine Health:', e.message);
+    process.exit(1);
+  }}
+}}
+
+main();
+'''
+    os.makedirs('output', exist_ok=True)
+    with open(f'generate-{name}.js', 'w', encoding='utf-8') as f:
+        f.write(js)
+    print(f'Created generate-{name}.js')
+
+if __name__ == '__main__':
+    build_article('wine_and_health',
+        title='葡萄酒与健康：喝多少才合适？',
+        digest='适量饮酒有益健康？这个说法靠谱吗？从科学角度解读葡萄酒与健康的关系，告诉你每天喝多少最合适。',
+        category='health',
+        tags=['健康','养生','适量饮酒','科学','白藜芦醇'],
+        content_blocks=[
+            {"type": "title", "text": "葡萄酒与健康：喝多少才合适？"},
+            {"type": "subtitle", "text": "科学饮酒，享受生活"},
+            {"type": "lead", "text": "'适量饮酒有益健康'——这个说法你一定听过。但事实真的如此吗？从科学角度解读葡萄酒与健康的关系，告诉你每天喝多少最合适。"},
+
+            {"type": "h2", "text": "🔬 葡萄酒中的健康成分"},
+            {"type": "p", "text": "葡萄酒中确实含有一些有益健康的成分："},
+            {"type": "ri", "heading":"白藜芦醇（Resveratrol）", "text":"<strong>作用：</strong>抗氧化、抗炎、保护心血管\n<strong>来源：</strong>葡萄皮中的多酚类物质\n<strong>含量：</strong>红葡萄酒中含量较高（1-3mg/L）\n\n白藜芦醇是葡萄酒中最受关注的健康成分。动物实验显示，它可能有助于预防心血管疾病、延缓衰老。但人体实验的结果并不一致。"},
+            {"type": "ri", "heading":"多酚类物质", "text":"<strong>作用：</strong>抗氧化、抗炎、保护血管\n<strong>来源：</strong>葡萄皮、籽、梗\n<strong>含量：</strong>红葡萄酒中含量最高\n\n多酚类物质是葡萄酒中最重要的抗氧化成分，包括儿茶素、槲皮素、花青素等。它们可以保护血管内皮细胞，减少炎症反应。"},
+
+            {"type": "h2", "text": "⚠️ 世界卫生组织的最新立场"},
+            {"type": "p", "text": "2023年，世界卫生组织（WHO）发布了最新的酒精与健康报告，明确指出："},
+            {"type": "ri", "heading":"WHO的立场", "text":"<strong>没有安全的饮酒量。</strong>\n\nWHO指出，即使少量饮酒也会增加健康风险。酒精是1类致癌物，与烟草、石棉同级别。适量饮酒有益健康的说法，缺乏充分的科学证据。"},
+            {"type": "p", "text": "这意味着，从健康角度出发，最好的选择是不喝酒。但如果你选择喝酒，应该了解风险并控制饮酒量。"},
+
+            {"type": "h2", "text": "📊 不同饮酒量的健康风险"},
+            {"type": "p", "text": "不同饮酒量对健康的影响："},
+            {"type": "table", "headers": ["饮酒量", "健康风险", "建议"],
+             "rows": [
+                 ["不饮酒", "最低风险", "最健康的选择"],
+                 ["少量（女性1杯/天，男性1-2杯/天）", "风险略增", "可以接受，但需注意"],
+                 ["中等（女性2-3杯，男性3-4杯）", "风险明显增加", "建议减少饮酒"],
+                 ["大量（女性4+杯，男性5+杯）", "风险大幅增加", "强烈建议戒酒"]
+             ]},
+            {"type": "tip", "heading":"💡 一杯酒的标准量", "text":"<strong>一杯标准量 =</strong>\n• 150ml 12度葡萄酒\n• 35ml 40度烈酒\n• 330ml 5度啤酒\n\n很多人不知不觉就喝超了。"},
+
+            {"type": "h2", "text": "🍷 葡萄酒 vs 其他酒精饮品"},
+            {"type": "p", "text": "如果选择喝酒，葡萄酒是否比其他酒精饮品更健康？"},
+            {"type": "ri", "heading":"葡萄酒的优势", "text":"<strong>1. 含有白藜芦醇等多酚物质</strong>\n<strong>2. 酒精度通常低于烈酒</strong>\n<strong>3. 适量饮用更容易控制</strong>\n<strong>4. 配餐饮用，吸收更慢</strong>"},
+            {"type": "ri", "heading":"葡萄酒的劣势", "text":"<strong>1. 含有酒精，是1类致癌物</strong>\n<strong>2. 糖分含量可能较高（甜酒）</strong>\n<strong>3. 容易过量饮用</strong>\n<strong>4. 价格可能较高</strong>"},
+
+            {"type": "h2", "text": "🏥 特殊人群注意事项"},
+            {"type": "p", "text": "以下人群应该完全避免饮酒："},
+            {"type": "list", "items": [
+                "<strong>孕妇和哺乳期女性</strong>——酒精会影响胎儿和婴儿发育",
+                "<strong>正在服用药物的人</strong>——酒精可能与药物产生相互作用",
+                "<strong>有肝脏疾病的人</strong>——酒精会加重肝脏负担",
+                "<strong>有酒精依赖史的人</strong>——避免触发复饮",
+                "<strong>未成年人</strong>——大脑发育尚未完成"
+            ]},
+
+            {"type": "h2", "text": "💡 科学饮酒的建议"},
+            {"type": "p", "text": "如果你选择喝酒，这里有几个科学饮酒的建议："},
+            {"type": "list", "items": [
+                "<strong>控制饮酒量</strong>——女性每天不超过1杯，男性不超过2杯",
+                "<strong>不要天天喝</strong>——每周至少有2-3天不喝酒",
+                "<strong>配餐饮用</strong>——食物可以减缓酒精吸收",
+                "<strong>慢慢喝</strong>——不要干杯，慢慢品味",
+                "<strong>多喝水</strong>——每喝一杯酒，喝一杯水",
+                "<strong>选择好酒</strong>——质量比数量更重要"
+            ]},
+
+            {"type": "sep"},
+            {"type": "quote", "text": "'喝酒的最高境界，是享受那一杯的愉悦，而不是追求醉酒的快感。'"},
+            {"type": "p", "text": "葡萄酒是生活的一部分，但不是生活的全部。科学饮酒，享受生活，才是正确的态度。如果你不喝酒，没有必要为了'健康'而开始喝酒。如果你喝酒，记得控制量，享受每一杯。"},
+
+            {"type": "end", "text": "你对葡萄酒与健康有什么看法？<br/>欢迎在评论区分享你的观点！"}
+        ])
