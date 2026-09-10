@@ -1,5 +1,9 @@
 # 每日自动发布配置指南
 
+> **状态提示**：本文描述的是第一代流水线（`daily-scheduler.js` + `publish-*.js`）。
+> 相关脚本停留在 2026-03~04，当前实际在用的是 [engine/README.md](engine/README.md)
+> 的渲染引擎。如需恢复每日自动发布，建议改为调度 `node engine/cli.js --all --publish`。
+
 ## 📋 概述
 
 系统支持每天自动生成并发布3篇葡萄酒文章到微信公众号草稿箱：
@@ -74,18 +78,21 @@ console.log('定时任务已启动，每天早上9点执行');
 
 ```env
 # 微信公众号配置
-WECHAT_APPID=REDACTED_WECHAT_APPID
-WECHAT_SECRET=REDACTED_WECHAT_SECRET
+WECHAT_APPID=your_wechat_appid
+WECHAT_SECRET=your_wechat_secret
 WECHAT_TEST_MODE=true
 WECHAT_AUTO_PUBLISH=true
 
-# AI图片生成配置
-ZIMAGE_API_KEY=REDACTED_ZIMAGE_API_KEY
+# AI 图片生成配置（值请放在 .env，不要写进文档）
+ZIMAGE_API_KEY=
 
 # 禁用代理（微信API需要直连）
 HTTP_PROXY=
 HTTPS_PROXY=
 ```
+
+> ⚠️ 本文件曾明文写入过真实的 Z-Image API Key，该密钥已视为泄露并须重置；
+> 历史中亦已用 `git filter-repo` 清除。切勿在文档中签署任何真实凭据。
 
 ### 修改文章类型
 
