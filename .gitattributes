@@ -17,3 +17,9 @@
 *.py   text eol=lf
 *.md   text eol=lf
 *.yml  text eol=lf
+
+# Windows 批处理与 VBS 脚本必须用 CRLF：
+# 批处理文件在 LF 行尾下 goto/标签 与行尾拼接易出问题
+*.cmd  text eol=crlf
+*.bat  text eol=crlf
+*.vbs  text eol=crlf

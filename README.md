@@ -51,6 +51,7 @@ tools/
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
   ip-watch.js          出口 IP 变化监控 + 告警
   notifier.js          统一通知（Webhook / 邮件）
+  win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
 ```
@@ -62,6 +63,7 @@ logs/                  日志与监控状态（gitignore）
 | `npm run wechat:check` | **发布前自检**：出口 IP / IP 白名单 / 凭据 |
 | `npm run wechat:watch` | **常驻监控**出口 IP 变化，变了就通知你 |
 | `npm run wechat:watch:once` | 检查一次（必要时通知） |
+| `tools\win\setup-task.cmd` | 注册 Windows 计划任务（开机自启，见下文） |
 | `npm run engine:check` | 校验 `articles/` 下全部数据 |
 | `npm run engine:render` | 渲染全部文章并生成封面与预览 |
 | `npm run engine:verify` | 与历史产物做回归比对 |
@@ -134,6 +136,45 @@ SMTP_PASS=
 MAIL_FROM=
 MAIL_TO=
 ```
+
+### 挂到 Windows 任务计划程序
+
+不需要常驻终端，也不需要管理员权限（以当前用户身份、登录时运行）：
+
+```cmd
+:: 安装（默认每天 08:00）
+tools\win\setup-task.cmd
+
+:: 每 4 小时
+tools\win\setup-task.cmd install HOURLY 08:00 4
+
+:: 查看任务状态 + 日志尾部
+tools\win\setup-task.cmd status
+
+:: 立即跑一次验证
+tools\win\setup-task.cmd run
+
+:: 删除任务
+tools\win\setup-task.cmd uninstall
+```
+
+实现要点（均在 `tools/win/`）：
+
+| 文件 | 职责 |
+|---|---|
+| `setup-task.cmd` | 注册 / 注销 / 查看 / 立即运行，可重复执行（幂等） |
+| `run-ip-watch.cmd` | 定位 node（绝对路径）、`cd` 到项目根（否则读不到 `.env`）、写日志与 1MB 轮转 |
+| `run-hidden.vbs` | 消除控制台窗口闪现；并等待结束，使任务结果真实反映退出码 |
+
+> **任务计划程序的「上次结果」会显示 `1`**，这是刻意的 —— 它不是任务执行失败，
+> 而是自检发现需要你处理的问题：`0` 可发布 ｜ `1` IP 被阻断 ｜ `2` 凭据缺失 ｜ `127` 找不到 node。
+
+> **这些脚本刻意保持纯 ASCII（英文提示）**：实测表明，含多字节字符的 `.cmd`
+> 会因代码页不同而被 cmd 按字节偏移错误解析，把 `rem` 注释行当命令执行，
+> 造成随机的、难以排查的失败。中文说明统一放在本文档。
+
+> 日志在 `logs/ip-watch.log`（合法 UTF-8，含时间戳、退出码与状态判定），
+> 超过 1MB 自动归档为 `.log.1`。
 
 ## 测试与质量
 
