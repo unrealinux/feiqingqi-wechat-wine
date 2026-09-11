@@ -43,15 +43,33 @@ const TIMEOUT = Number(process.env.WECHAT_CHECK_TIMEOUT || 15000);
 /**
  * 出口 IP 探测服务，按顺序回退。
  *
- * 全部使用 IPv4 专用端点：微信 IP 白名单面向 IPv4，而本机可能同时具备 v4/v6，
- * 通用端点会优先返回 IPv6，导致给出的 IP 根本不是微信看到的那个。
+ * 列表基于实测筛选（在大陆网络下 ipify / icanhazip / ident.me 均不可达，
+ * 会返回 ECONNRESET 或超时）：
+ *   ip.3322.net ~360ms ✅ 纯 IPv4          myip.ipip.net   返回 IPv6（舍）
+ *   ipinfo.io    ~970ms ✅ 纯 IPv4          api.ip.sb       返回 IPv6（舍）
+ *   seeip.org   ~1540ms ✅ 纯 IPv4
+ *
+ * 必须使用 IPv4 专用端点：本机同时具备 v4/v6，通用端点常返回 IPv6，
+ * 而微信 IP 白名单面向 IPv4 —— 报错会误导用户去加一个没用的 IP。
  */
 const IP_PROVIDERS = [
+  { name: 'ip.3322.net', url: 'https://ip.3322.net', pick: (d) => String(d).trim() },
+  { name: 'ipinfo.io', url: 'https://ipinfo.io/ip', pick: (d) => String(d).trim() },
+  { name: 'seeip.org', url: 'https://api.seeip.org', pick: (d) => String(d).trim() },
+  // ip-api.com 免费版只有 HTTP；放在 HTTPS 源之后，且仅在其余源都失败时启用
+  { name: 'ip-api.com', url: 'http://ip-api.com/json', pick: (d) => d && d.query },
+  // 境外网络的回退（大陆通常被重置或超时）
   { name: 'ipify', url: 'https://api.ipify.org?format=json', pick: (d) => d && d.ip },
-  { name: 'icanhazip', url: 'https://ipv4.icanhazip.com', pick: (d) => String(d).trim() },
-  { name: 'ifconfig.me', url: 'https://ipv4.ifconfig.me/ip', pick: (d) => String(d).trim() },
-  { name: 'ident.me', url: 'https://ipv4.ident.me', pick: (d) => String(d).trim() }
+  { name: 'icanhazip', url: 'https://ipv4.icanhazip.com', pick: (d) => String(d).trim() }
 ];
+
+/**
+ * IP 探测的单个服务超时。
+ *
+ * 刻意远短于微信接口的超时：IP 探测只是锦上添花，而「白名单是否放行」
+ * 才是硬结论 —— 不能让 6 个探测服务各自超时 15 秒把整个自检拖到一分多钟。
+ */
+const IP_PROBE_TIMEOUT = Number(process.env.IP_PROBE_TIMEOUT || 5000);
 
 const IPV4_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
 
@@ -125,7 +143,10 @@ async function detectEgressIp(axiosConfig) {
 
   for (const provider of IP_PROVIDERS) {
     try {
-      const res = await axios.get(provider.url, { ...axiosConfig, responseType: 'json' });
+      const res = await axios.get(provider.url, {
+        ...axiosConfig,
+        timeout: IP_PROBE_TIMEOUT
+      });
       const ip = provider.pick(res.data);
       if (ip && IPV4_RE.test(ip)) {
         return { ip, provider: provider.name };
@@ -193,7 +214,8 @@ function renderReport(result) {
     out.push('   出口 IP         已跳过 (--no-ip)');
   } else {
     out.push(`   出口 IP         探测失败 —— ${result.ipError}`);
-    out.push('   提示            全部探测服务均不可达，可能是网络/代理阻断');
+    out.push('   提示            全部探测服务均不可达。这不影响「能否发布」的判定'
+      + '（以下结论来自微信接口），但「IP 变化检测」会暂时失效');
   }
 
   out.push(`   代理            ${result.proxy.enabled ? `已启用 (${result.proxy.https || result.proxy.http})` : '未配置（直连）'}`);
@@ -352,5 +374,6 @@ module.exports = {
   runPreflight,
   IPV4_RE,
   IP_PROVIDERS,
+  IP_PROBE_TIMEOUT,
   HINTS
 };

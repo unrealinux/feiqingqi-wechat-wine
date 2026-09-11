@@ -4,10 +4,15 @@
  * 只测纯函数（IP 解析、渲染、错误码翻译），不发任何网络请求。
  */
 
+jest.mock('axios');
+
+const axios = require('axios');
 const {
   mask,
   extractReportedIp,
   renderReport,
+  detectEgressIp,
+  IP_PROVIDERS,
   IPV4_RE,
   HINTS
 } = require('../tools/check-wechat-ip');
@@ -173,5 +178,62 @@ describe('describeApiError', () => {
 describe('HINTS consistency', () => {
   test('the standalone checker should hint 40164 as a whitelist problem', () => {
     expect(HINTS[40164]).toContain('IP 白名单');
+  });
+});
+
+describe('探测服务的配置契约', () => {
+  test('每个探测服务都应带 name / url / pick', () => {
+    expect(IP_PROVIDERS.length).toBeGreaterThan(0);
+    IP_PROVIDERS.forEach((p) => {
+      expect(typeof p.name).toBe('string');
+      expect(typeof p.url).toBe('string');
+      expect(typeof p.pick).toBe('function');
+    });
+  });
+
+  test('除一个免费版仅支持 HTTP 的源外，其余都应用 HTTPS', () => {
+    const insecure = IP_PROVIDERS.filter((p) => p.url.startsWith('http://'));
+    expect(insecure.map((p) => p.name)).toEqual(['ip-api.com']);
+  });
+});
+
+describe('detectEgressIp', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  test('应返回第一个给出 IPv4 的服务结果', async () => {
+    axios.get.mockResolvedValue({ data: '120.208.99.249' });
+    const result = await detectEgressIp({});
+    expect(result.ip).toBe('120.208.99.249');
+    expect(result.provider).toBe('ip.3322.net');
+    expect(axios.get).toHaveBeenCalledTimes(1);
+  });
+
+  test('返回 IPv6 的服务应被跳过，继续尝试下一个（回归：曾把 IPv6 当成白名单依据）', async () => {
+    // 本机同时具备 v4/v6 时，通用端点常返回 IPv6 ——
+    // 而微信白名单面向 IPv4，报错会让用户去加一个没用的 IP
+    axios.get
+      .mockResolvedValueOnce({ data: '2409:8a0c:76:b794:b862:a35c:d558:717' }) // 第一个返回 v6
+      .mockResolvedValueOnce({ data: '120.208.99.249' });                      // 第二个是 v4
+
+    const result = await detectEgressIp({});
+    expect(result.ip).toBe('120.208.99.249');
+    expect(result.provider).toBe(IP_PROVIDERS[1].name);
+    expect(axios.get).toHaveBeenCalledTimes(2);
+  });
+
+  test('全部失败时应返回错误汇总而不是抛异常', async () => {
+    axios.get.mockRejectedValue(new Error('ECONNRESET'));
+    const result = await detectEgressIp({});
+    expect(result.ip).toBeNull();
+    expect(result.error).toContain('ECONNRESET');
+  });
+
+  test('应使用较短的探测超时，避免拖慢整个自检', async () => {
+    axios.get.mockResolvedValue({ data: '1.2.3.4' });
+    await detectEgressIp({ timeout: 15000 });
+    const passedTimeout = axios.get.mock.calls[0][1].timeout;
+    expect(passedTimeout).toBeLessThan(15000);
   });
 });
