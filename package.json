@@ -18,6 +18,7 @@
     "wechat:check": "node tools/check-wechat-ip.js",
     "wechat:watch": "node tools/ip-watch.js --daemon",
     "wechat:watch:once": "node tools/ip-watch.js",
+    "notify:verify": "node tools/verify-notify.js",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "lint": "eslint .",

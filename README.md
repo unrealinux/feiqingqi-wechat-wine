@@ -51,6 +51,7 @@ tools/
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
   ip-watch.js          出口 IP 变化监控 + 告警
   notifier.js          统一通知（Webhook / 邮件）
+  verify-notify.js     通知链路验证（本地模拟，无需凭据）
   win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -64,6 +65,7 @@ logs/                  日志与监控状态（gitignore）
 | `npm run wechat:watch` | **常驻监控**出口 IP 变化，变了就通知你 |
 | `npm run wechat:watch:once` | 检查一次（必要时通知） |
 | `tools\win\setup-task.cmd` | 注册 Windows 计划任务（开机自启，见下文） |
+| `npm run notify:verify` | **验证通知链路**（本地模拟，不需真实凭据） |
 | `npm run engine:check` | 校验 `articles/` 下全部数据 |
 | `npm run engine:render` | 渲染全部文章并生成封面与预览 |
 | `npm run engine:verify` | 与历史产物做回归比对 |
@@ -137,6 +139,8 @@ MAIL_FROM=
 MAIL_TO=
 ```
 
+配好后先验证：`npm run notify:verify`
+
 ### 挂到 Windows 任务计划程序
 
 不需要常驻终端，也不需要管理员权限（以当前用户身份、登录时运行）：
@@ -176,10 +180,33 @@ tools\win\setup-task.cmd uninstall
 > 日志在 `logs/ip-watch.log`（合法 UTF-8，含时间戳、退出码与状态判定），
 > 超过 1MB 自动归档为 `.log.1`。
 
+### 验证通知链路
+
+填完渠道配置后，**先本地验证一遍再挂定时任务** —— 不需要任何真实凭据：
+
+```bash
+npm run notify:verify                  # 本地模拟验证（起本地接收器与 SMTP 服务器）
+node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测试通知
+```
+
+本地验证覆盖 6 种平台（钉钉/企业微信/飞书/Slack/Discord/自定义）× 有无加签，
+并逐个校验各平台的报文要求，共 14 项。
+
+**为什么不能只测「请求发出去了」：**
+
+| 陷阱 | 后果 |
+|---|---|
+| 钉钉/企业微信 **失败时也返回 HTTP 200**，错误码只在 body 里 | 只查状态码会把「签名不匹配」当成功 —— **静默丢告警** |
+| 钉钉加签必须放在 **URL 查询参数** | 放 HTTP 头会返回 `310000 sign not match` |
+| 飞书加签算法与钉钉 **恰好相反**（key 与 data 对调） | 复用同一个签名函数则永远校验不过 |
+| 中文正文会被 MIME 编码（quoted-printable/base64） | 用文本工具看邮件源码会误以为正文是空的 |
+
+这些都在实现里踩过一遍，现在有测试守着（`tests/webhook.test.js`）。
+
 ## 测试与质量
 
 ```bash
-npm test        # 254 个用例，12 个套件
+npm test        # 278 个用例，13 个套件
 npm run lint    # 0 error
 ```
 

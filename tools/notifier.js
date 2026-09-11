@@ -152,8 +152,18 @@ class Notifier {
         details
       });
 
-      const ok = result && result.failed === 0;
-      return { channel: `webhook:${this.webhook.type}`, success: ok, result };
+      // 把底层失败原因透出来。webhook.js 的失败明细在 result.results[] 里，
+      // 不取出来就会只得到一个 success:false，出问题时无从排查。
+      const perWebhook = (result && result.results) || [];
+      const failure = perWebhook.find((r) => !r.success);
+      const ok = Boolean(result) && result.failed === 0;
+
+      return {
+        channel: `webhook:${this.webhook.type}`,
+        success: ok,
+        error: ok ? undefined : (failure && failure.error) || '发送失败（无明细）',
+        result
+      };
     } catch (err) {
       return { channel: `webhook:${this.webhook.type}`, success: false, error: err.message };
     }

@@ -47,7 +47,9 @@ tools/
 ├── verify_parity.js     与新引擎输出做逐字节回归比对
 ├── check-wechat-ip.js   发布前自检（出口 IP / IP 白名单 / 凭据）
 ├── ip-watch.js          出口 IP 变化监控 + 告警
-└── notifier.js          统一通知（Webhook / 邮件）
+├── notifier.js          统一通知（Webhook / 邮件）
+├── verify-notify.js     通知链路验证（本地模拟，无需凭据）
+└── win/                 Windows 计划任务注册脚本
 ```
 
 ## 快速开始
@@ -268,9 +270,10 @@ node tools/verify_parity.js --verbose
 ```bash
 npm run wechat:check     # 发布前自检（出口 IP / 白名单 / 凭据）
 npm run wechat:watch     # 常驻监控出口 IP 变化
+npm run notify:verify    # 验证通知链路（本地模拟）
 npm run engine:check     # 校验全部数据文件
 npm run engine:render    # 渲染全部文章
 npm run engine:verify    # 回归比对
 npm run engine:extract   # 从旧 build_*.py 提取数据
-npm test                 # 254 个用例（engine 相关 80 个）
+npm test                 # 278 个用例
 ```
