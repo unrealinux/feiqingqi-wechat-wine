@@ -10,75 +10,103 @@ env:
   NODE_VERSION: '20'
 
 jobs:
+  # ==========================================================================
+  # 唯一的门禁任务：lint + 数据校验 + 测试
+  #
+  # 为什么把它做成唯一门禁：
+  #   本项目的实际运行形态是「本机桌面工具」（内容生成 + 发布到公众号），
+  #   容器化部署属于未验证的旁支。此前 build/deploy 依赖 5 个未配置的 secrets，
+  #   每次 push 都让 CI 整体变红，反而把 test 的真实信号淹没了。
+  #   因此现在只有 test 决定 CI 红绿，其余任务默认不运行（见下方开关）。
+  # ==========================================================================
   test:
     runs-on: ubuntu-latest
-    
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
+
       - name: Install dependencies
         run: npm ci
-      
+
+      # 注：fix 规则早已在本地修净（0 error），此处作为回归门禁保留
       - name: Run linter
         run: npm run lint
 
+      # 校验 articles/ 下全部文章数据（不依赖被 gitignore 的 output/，CI 可独立运行）
       - name: Validate article data
         run: npm run engine:check
 
+      # 用 --coverage 一次跑完测试并生成 coverage/lcov.info，供下方 codecov 使用
+      # （此前 npm test 不生成覆盖文件，导致 codecov 步骤必然失败）
       - name: Run tests
-        run: npm test
-      
+        run: npm run test:coverage
+
       - name: Upload coverage
-        uses: codecov/codecov-action@v3
+        continue-on-error: true   # 未配置 CODECOV_TOKEN 时为提示性步骤，不阻塞 CI
+        uses: codecov/codecov-action@v4
         with:
           file: ./coverage/lcov.info
+          fail_ci_if_error: false
 
+  # ==========================================================================
+  # 可选任务：构建并推送容器镜像
+  #
+  # 默认不运行。启用方式：仓库 Settings → Variables → 新增
+  #     ENABLE_DOCKER_DEPLOY = true
+  # 并按需配置 secrets：DOCKER_HUB_USERNAME / DOCKER_HUB_TOKEN
+  #
+  # 未启用时本任务被跳过（不是失败），因此 CI 信号保持可信。
+  # ==========================================================================
   build:
     needs: test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
+    if: github.ref == 'refs/heads/main' && vars.ENABLE_DOCKER_DEPLOY == 'true'
+    env:
+      # 注意：`secrets` 上下文在 `if` 条件中不可用，直接写
+      # `if: secrets.DOCKER_HUB_TOKEN` 会被 GitHub 判为无效表达式。
+      # 正确做法是先在 env 里换算成布尔字符串，再在 if 中比较。
+      HAS_DOCKER_CREDS: ${{ secrets.DOCKER_HUB_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci --production
-      
+
       - name: Build Docker image
         run: |
           docker build -t wine-aggregator:${{ github.sha }} .
           docker tag wine-aggregator:${{ github.sha }} wine-aggregator:latest
-      
+
       - name: Login to Docker Hub
-        if: secrets.DOCKER_HUB_TOKEN
-        run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} --password-stdin
-      
+        if: env.HAS_DOCKER_CREDS == 'true'
+        run: echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+
       - name: Push to Docker Hub
-        if: secrets.DOCKER_HUB_TOKEN
+        if: env.HAS_DOCKER_CREDS == 'true'
         run: |
           docker push wine-aggregator:${{ github.sha }}
           docker push wine-aggregator:latest
 
+  # ==========================================================================
+  # 可选任务：部署到远端服务器
+  # 默认不运行，同样受 ENABLE_DOCKER_DEPLOY 开关控制。
+  # 需要配置 secrets：DEPLOY_HOST / DEPLOY_USER / DEPLOY_KEY
+  # ==========================================================================
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+    if: vars.ENABLE_DOCKER_DEPLOY == 'true' && github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Deploy to server
-        uses: appleboy/ssh-action@v0.1.0
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
@@ -89,16 +117,20 @@ jobs:
             docker-compose up -d
             docker system prune -f
 
+  # ==========================================================================
+  # 汇总提示（仅打印结论，不做任何外部副作用）
+  # ==========================================================================
   notify:
     needs: [test, build]
     runs-on: ubuntu-latest
     if: always()
-
     steps:
-      - name: Send notification
+      - name: Report status
         run: |
-          STATUS="✅ Tests passed"
+          echo "test   : ${{ needs.test.result }}"
+          echo "build  : ${{ needs.build.result }}"
           if [ "${{ needs.test.result }}" != "success" ]; then
-            STATUS="❌ Tests failed"
+            echo "::error::测试未通过，请先修复 test 任务"
+            exit 1
           fi
-          echo "$STATUS"
+          echo "✅ 门禁通过"
