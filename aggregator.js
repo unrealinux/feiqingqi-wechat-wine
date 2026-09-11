@@ -3,10 +3,23 @@ const config = require('./config');
 const { v4: uuidv4 } = require('uuid');
 const { createAppError, AppError, ErrorTypes } = require('./errors');
 
+const { ArticleDeduplicator } = require('./deduplicator');
+const { ArticleQualityScorer } = require('./quality-scorer');
+
 class Aggregator {
-  constructor() {
+  constructor(options = {}) {
     this.redis = new Redis();
     this.logger = new Logger();
+
+    this.options = {
+      // 去重策略：exact（仅链接 + 内容哈希）/ fuzzy（额外做标题相似度，默认）/ semantic
+      dedupStrategy: options.dedupStrategy || 'fuzzy',
+      dedupThreshold: options.dedupThreshold || 0.8,
+      // 最低质量分（0-100）。
+      // 默认 0，即**只排序不过滤** —— 静默丢弃内容比排序错误更危险，
+      // 需要过滤时由调用方显式传入阈值。
+      minQualityScore: options.minQualityScore || 0,
+    };
   }
 
   async aggregate(articles) {
@@ -21,42 +34,110 @@ class Aggregator {
       // 1. 内容清洗
       const cleanedArticles = await this.cleanContent(articles);
 
-      // 2. 智能分类
-      const categorizedArticles = await this.categorize(cleanedArticles);
+      // 2. 去重
+      //    这一直是 README 承诺、但从未生效的能力：此前清洗后直接进入分类，
+      //    同一篇文章的多个来源会被当成多篇不同内容，白耗 LLM 额度与版面。
+      const { articles: uniqueArticles, stats: dedupStats } = this.deduplicate(cleanedArticles);
+      console.log(`去重完成：${dedupStats.total} 篇 → 保留 ${dedupStats.kept}（移除 ${dedupStats.removed}）`);
 
-      // 3. 将分类对象转换为扁平数组用于后续处理
+      // 3. 智能分类
+      const categorizedArticles = await this.categorize(uniqueArticles);
+
+      // 4. 将分类对象转换为扁平数组用于后续处理
       const flatArticles = Object.values(categorizedArticles).flat();
 
       if (flatArticles.length === 0) {
         throw new AppError('分类后没有有效文章', ErrorTypes.VALIDATION);
       }
 
-      // 4. 提取关键信息
+      // 5. 提取关键信息
       const extractedArticles = await this.extractKeyInfo(flatArticles);
 
-      // 5. 生成摘要
+      // 6. 生成摘要
       const summarizedArticles = await this.generateSummaries(extractedArticles);
 
-      // 6. 创建知识图谱
-      const knowledgeGraph = await this.buildKnowledgeGraph(summarizedArticles);
+      // 7. 质量评分与排序（同样是一直缺失的一环）
+      //    放在摘要之后：评分需要完整正文与已提取的 tags/source/author。
+      const { articles: scoredArticles, stats: qualityStats } = this.scoreQuality(summarizedArticles);
+      console.log(`质量评分完成：均分 ${qualityStats.avg}（最低 ${qualityStats.min} / 最高 ${qualityStats.max}）`);
 
-      // 7. 生成汇总报告
-      const report = await this.generateReport(summarizedArticles, knowledgeGraph);
+      // 8. 创建知识图谱
+      const knowledgeGraph = await this.buildKnowledgeGraph(scoredArticles);
+
+      // 9. 生成汇总报告
+      const report = await this.generateReport(scoredArticles, knowledgeGraph);
 
       const duration = Date.now() - startTime;
       console.log(`汇总完成，耗时 ${duration}ms`);
 
       return {
-        articles: summarizedArticles,
+        articles: scoredArticles,
         categories: categorizedArticles,
         knowledgeGraph,
         report,
+        dedupStats,
+        qualityStats,
       };
     } catch (error) {
       const appError = createAppError(error, { operation: 'aggregate' });
       console.error('汇总过程出错:', appError.message);
       throw appError;
     }
+  }
+
+  /**
+   * 去除重复文章。
+   *
+   * 每次调用都新建去重器实例 —— 它内部会累积「已见过」的链接/标题/哈希，
+   * 复用实例会把下一批文章当成已见过，造成跨批次误杀。
+   *
+   * @param {Array} articles
+   * @returns {{articles: Array, stats: object}}
+   */
+  deduplicate(articles) {
+    const deduplicator = new ArticleDeduplicator({
+      strategy: this.options.dedupStrategy,
+      threshold: this.options.dedupThreshold,
+    });
+    return deduplicator.process(articles);
+  }
+
+  /**
+   * 质量评分与排序。
+   *
+   * 五个维度（相关性/时效性/完整性/权威性/互动性）加权得到 0-100 综合分，
+   * 按分数降序排列，供生成环节优先选取优质素材。
+   *
+   * 默认只排序、**不过滤**（minQualityScore=0）：静默丢弃内容比排序错误
+   * 更难被发现；需要过滤时请显式传入阈值。
+   *
+   * @param {Array} articles
+   * @returns {{articles: Array, stats: object}}
+   */
+  scoreQuality(articles) {
+    const scorer = new ArticleQualityScorer();
+    const ranked = scorer.scoreBatch(articles);
+
+    const scored = ranked.map(({ article, score }) => ({
+      ...article,
+      qualityScore: score.total,
+      qualityBreakdown: score.breakdown,
+    }));
+
+    const kept = scored.filter((a) => a.qualityScore >= this.options.minQualityScore);
+    const totals = scored.map((a) => a.qualityScore);
+
+    return {
+      articles: kept,
+      stats: {
+        total: scored.length,
+        kept: kept.length,
+        filtered: scored.length - kept.length,
+        min: totals.length ? Math.min(...totals) : 0,
+        max: totals.length ? Math.max(...totals) : 0,
+        avg: totals.length ? Math.round(totals.reduce((s, n) => s + n, 0) / totals.length) : 0,
+      },
+    };
   }
 
   async cleanContent(articles) {
