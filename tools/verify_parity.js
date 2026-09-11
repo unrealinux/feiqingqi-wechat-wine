@@ -83,6 +83,19 @@ function firstDifference(a, b) {
   return -1;
 }
 
+/**
+ * 已知的、**有意为之**的数据变更（非渲染回归）。
+ *
+ * 为什么需要这个：本工具比对的是「引擎输出 vs 历史产物」，
+ * 因此**主动修改文章数据**（改标题、改文案）也会表现为差异。
+ * 若不与「渲染管线退化」区分，每次改内容都会污染回归信号，
+ * 久而久之就没人看这个指标了。
+ */
+const INTENTIONAL_DATA_CHANGES = {
+  wine_and_health: '标题改名以消除与 wine_health 的同名碰撞',
+  wine_health: '标题改名以消除与 wine_and_health 的同名碰撞'
+};
+
 function main() {
   const args = process.argv.slice(2);
   const verbose = args.includes('--verbose');
@@ -116,7 +129,7 @@ function main() {
     process.exit(2);
   }
 
-  const counts = { identical: 0, whitespace: 0, recovered: 0, regression: 0, noBaseline: 0 };
+  const counts = { identical: 0, whitespace: 0, recovered: 0, dataChanged: 0, regression: 0, noBaseline: 0 };
   const lines = [];
 
   for (const name of names) {
@@ -177,7 +190,15 @@ function main() {
       continue;
     }
 
-    // 3) 其余情况视为回归
+    // 3) 有意的数据变更：与渲染退化区分开，不污染回归信号
+    if (INTENTIONAL_DATA_CHANGES[name]) {
+      counts.dataChanged += 1;
+      lines.push(`✎ ${name.padEnd(24)} 有意的数据变更`);
+      lines.push(`   └─ ${INTENTIONAL_DATA_CHANGES[name]}`);
+      continue;
+    }
+
+    // 4) 其余情况视为回归
     counts.regression += 1;
     lines.push(
       `❌ ${name.padEnd(24)} 回归        引擎 ${newText.length} vs 产物 ${oldText.length} 可见字符，首差位置 ${pos}`
@@ -200,7 +221,7 @@ function main() {
   console.log('='.repeat(68));
   console.log(
     `字节一致 ${counts.identical} ｜ 空白修正 ${counts.whitespace} ｜ 内容恢复 ${counts.recovered} ｜ ` +
-      `无基线 ${counts.noBaseline} ｜ 回归 ${counts.regression}`
+      `有意变更 ${counts.dataChanged} ｜ 无基线 ${counts.noBaseline} ｜ 回归 ${counts.regression}`
   );
 
   process.exit(counts.regression ? 1 : 0);
