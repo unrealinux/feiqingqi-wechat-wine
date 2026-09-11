@@ -13,6 +13,23 @@ const { renderBlocks, validateBlocks, blocksToPlainText, countBlockTypes } = req
 
 const DEFAULT_AUTHOR = '红酒顾问';
 const DEFAULT_THEME = 'classic';
+
+/**
+ * 允许的文章分类（收敛后的 8 类）。
+ *
+ * 为什么做成白名单：此前 24 个分类中有 8 个仅含 1 篇文章，等于没有分类体系，
+ * 而 category 会显示在封面标签上。新增类别请先在此登记，避免再次碎片化。
+ */
+const CATEGORIES = [
+  'wine-knowledge',   // 知识科普：品种 / 产区 / 风格 / 品鉴 / 盲测
+  'wine-myth',        // 误区与观点
+  'wine-food',        // 配餐
+  'practical-guide',  // 实用指南：选购 / 储存 / 开瓶 / 器具 / 送礼
+  'wine-health',      // 健康
+  'market-trends',    // 行业趋势与投资
+  'lifestyle',        // 生活方式与场景：节日 / 季节 / 旅行
+  'wine-culture'      // 文化与故事
+];
 /** 输出对象字段顺序，需与历史产物保持一致。 */
 const ARTICLE_FIELDS = [
   'title',
@@ -37,6 +54,11 @@ function validateSpec(spec) {
   if (!spec.digest) {errors.push('缺少 digest');}
   if (!Array.isArray(spec.tags)) {errors.push('缺少 tags 或不是数组');}
   if (!spec.theme) {errors.push('缺少 theme（未声明渲染主题，将默认使用 classic）');}
+  if (!spec.category) {
+    errors.push('缺少 category');
+  } else if (!CATEGORIES.includes(spec.category)) {
+    errors.push(`category 不在允许列表内: "${spec.category}"（可用值: ${CATEGORIES.join(' / ')}）`);
+  }
   errors.push(...validateBlocks(spec.content));
   return errors;
 }
@@ -103,4 +125,5 @@ module.exports = {
   ARTICLE_FIELDS,
   DEFAULT_AUTHOR,
   DEFAULT_THEME,
+  CATEGORIES,
 };

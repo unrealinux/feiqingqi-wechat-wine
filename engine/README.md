@@ -166,6 +166,32 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 
 内置预设（`engine/themes/rich.js` 的 `PRESETS`）：`default` `rhone` `beach` `bordeaux` `burgundy`。
 
+### 分类
+
+`category` 采用**受校验的白名单**，定义在 `engine/article.js` 的 `CATEGORIES`。
+传入白名单之外的值会在校验阶段直接报错并列出可用值。
+
+| 分类 | 含义 |
+|---|---|
+| `wine-knowledge` | 知识科普：品种 / 产区 / 风格 / 品鉴 / 盲测 |
+| `wine-myth` | 误区与观点 |
+| `wine-food` | 配餐 |
+| `practical-guide` | 实用指南：选购 / 储存 / 开瓶 / 器具 / 送礼 |
+| `wine-health` | 健康 |
+| `market-trends` | 行业趋势与投资 |
+| `lifestyle` | 生活方式与场景：节日 / 季节 / 旅行 |
+| `wine-culture` | 文化与故事 |
+
+> **为什么做成白名单：** 迁移前共 24 个分类，其中 8 个仅含 1 篇文章
+> （`trends` / `blind-taste` / `brand-story` / `wine-trend` / `seasonal` /
+> `wine-review` / `investment` …），等于没有分类体系。而 `category` 会显示在
+> 封面标签上。收敛后为 8 类，分布 31 / 21 / 13 / 11 / 7 / 7 / 5 / 4。
+>
+> 新增类别请先往 `CATEGORIES` 里登记，避免再次碎片化。
+>
+> 注：`category` **不参与正文 HTML 渲染**，因此改动它不影响
+> `tools/verify_parity.js` 的字节一致性比对。
+
 ## 新增一篇专题
 
 1. 新建 `articles/my-topic.json`，按上面的格式填写
@@ -275,5 +301,5 @@ npm run engine:check     # 校验全部数据文件
 npm run engine:render    # 渲染全部文章
 npm run engine:verify    # 回归比对
 npm run engine:extract   # 从旧 build_*.py 提取数据
-npm test                 # 278 个用例
+npm test                 # 294 个用例
 ```

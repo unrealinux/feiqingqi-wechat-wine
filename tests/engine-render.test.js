@@ -227,6 +227,23 @@ describe('article: buildArticle', () => {
     expect(validateSpec({ content: [{ type: 'p', text: 'x' }] }).length).toBeGreaterThan(0);
   });
 
+  test('应把 category 收敛为受校验的白名单（防止分类再次碎片化）', () => {
+    // 回归保护：此前 24 个分类中有 8 个仅含 1 篇，等于没有分类体系
+    const { CATEGORIES } = require('../engine/article');
+    expect(CATEGORIES).toHaveLength(8);
+
+    const bad = validateSpec({ ...spec, category: 'my-random-category' });
+    expect(bad.some((e) => e.includes('category 不在允许列表内'))).toBe(true);
+    // 错误信息必须列出可用值，否则使用者无从修正
+    expect(bad.join('\n')).toContain('wine-knowledge');
+  });
+
+  test('缺少 category 应报错', () => {
+    const withoutCategory = { ...spec };
+    delete withoutCategory.category;
+    expect(validateSpec(withoutCategory)).toContain('缺少 category');
+  });
+
   test('should produce exactly the historical field set, in order', () => {
     const article = buildArticle(spec);
     expect(Object.keys(article)).toEqual(ARTICLE_FIELDS);
@@ -285,6 +302,15 @@ describe('real articles under articles/', () => {
     riBlocks.forEach((block) => {
       expect(article.content).toContain(block.heading);
     });
+  });
+
+  test('全部文章的分类应属于收敛后的 8 类白名单', () => {
+    const { CATEGORIES } = require('../engine/article');
+    const bad = names
+      .map((n) => loadSpec(n))
+      .filter((s) => !CATEGORIES.includes(s.category))
+      .map((s) => `${s.name}: ${s.category}`);
+    expect(bad).toEqual([]);
   });
 });
 
