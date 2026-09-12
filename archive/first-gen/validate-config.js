@@ -116,7 +116,7 @@ function validateConfig(config) {
  */
 function runValidation() {
   require('dotenv').config();
-  const config = require('../../config');
+  const config = require('./config');
   
   console.log('='.repeat(50));
   console.log('配置验证');

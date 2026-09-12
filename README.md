@@ -51,7 +51,7 @@ tools/
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
   win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
-tests/                 172 个测试（8 个套件）
+tests/                 178 个测试（9 个套件）
 archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -206,7 +206,7 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 172 个用例，8 个套件
+npm test        # 178 个用例，9 个套件
 npm run lint    # 0 error / 8 warning（均为 require-await）
 ```
 
@@ -261,6 +261,8 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
 归档原因：长期停滞、未验证可用、功能与引擎重复，且活跃代码对其**零依赖**。
 少数仍被主线使用的通用模块保留在根目录：`config.js`（`engine/wechat.js`）、
 `proxy.js`（`tools/check-wechat-ip.js`）、`webhook.js`（`tools/notifier.js`）。
+其中根 `config.js` 已精简为仅供引擎的 `publish` 段，第一代完整配置内聚为
+`archive/first-gen/config.js`。
 详见 [archive/README.md](archive/README.md) 与 [archive/first-gen/README.md](archive/first-gen/README.md)。
 
 ## 历史沿革

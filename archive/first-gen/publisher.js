@@ -1,6 +1,6 @@
 const axios = require('axios');
 const crypto = require('crypto');
-const config = require('../../config');
+const config = require('./config');
 const { Redis, Logger } = require('./utils');
 const { withRetry, createAppError, AppError, ErrorTypes } = require('./errors');
 // CoverGenerator is loaded lazily in uploadThumb to avoid native binding errors

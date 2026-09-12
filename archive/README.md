@@ -16,15 +16,16 @@
 
 ## 与活跃代码的关系
 
-`first-gen/` 已不再被任何活跃代码引用。少数通用模块**留在仓库根目录**，因为它们仍被活跃代码使用：
+`first-gen/` 已不再被任何活跃代码引用。它自带 `config.js`（完整的第一代配置），
+仅以下通用模块留在仓库根目录，因为活跃代码也在用：
 
 | 根目录模块 | 使用方 |
 |---|---|
-| `config.js` | `engine/wechat.js` |
+| `config.js` | `engine/wechat.js`（已精简为仅 publish 段） |
 | `proxy.js` | `tools/check-wechat-ip.js` |
 | `webhook.js` | `tools/notifier.js` |
 
-归档代码通过 `require('../../config')` / `require('../../proxy')` 引用它们。
+归档代码通过 `require('./config')`（自带）与 `require('../../proxy')` 引用。
 
 ## 运行归档测试
 

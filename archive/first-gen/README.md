@@ -29,6 +29,7 @@ crawler/aggregator/generator/publisher  ──►  公众号草稿
 | `publish-daily-news.js` / `publish-buying-guide.js` / `publish-analysis-report.js` | 每日三类稿件脚本 |
 | `deduplicator.js` / `quality-scorer.js` | 去重与质量评分 |
 | `newsApis.js` / `parallel-fetcher.js` / `robots_check.js` | 抓取支撑 |
+| `config.js` | 第一代完整配置（采集 / LLM / 聚合 / Redis / 数据库 / 发布） |
 | `cache-manager.js` / `utils.js` / `errors.js` / `logger.js` / `helpers.js` | 基础设施 |
 | `health.js` / `health-endpoint.js` | 健康指标与 `/health` 端点 |
 | `validate-config.js` | 配置校验 |
@@ -41,8 +42,9 @@ crawler/aggregator/generator/publisher  ──►  公众号草稿
 
 归档代码仍会引用以下模块，它们**留在根目录**，因为活跃代码也在用：
 
-- `../../config.js` —— `engine/wechat.js` 也在用
 - `../../proxy.js` —— `tools/check-wechat-ip.js` 也在用
+
+第一代的配置已内聚为归档区自带的 `./config.js`（根目录 `config.js` 已精简为仅供引擎的 publish 段）。
 
 ## 如何复活
 

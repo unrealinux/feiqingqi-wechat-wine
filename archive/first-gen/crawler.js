@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 const Parser = require('rss-parser');
 const TurndownService = require('turndown');
 const { Redis } = require('./utils');
-const config = require('../../config');
+const config = require('./config');
 const { v4: uuidv4 } = require('uuid');
 const { 
   withRetry, 

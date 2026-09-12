@@ -144,7 +144,7 @@ class Logger {
 class Redis {
   constructor() {
     this.client = null;
-    this.config = require('../../config').redis;
+    this.config = require('./config').redis;
     this.isConnected = false;
     this.usingMemoryFallback = true;
     // 使用LRU缓存替代简单的Map
@@ -329,7 +329,7 @@ class Redis {
 class Database {
   constructor() {
     this.pool = null;
-    this.config = require('../../config').database;
+    this.config = require('./config').database;
     this.isConnected = false;
     this.init();
   }

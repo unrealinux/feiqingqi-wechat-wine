@@ -16,7 +16,7 @@ axios.defaults.proxy = false;
 const fs = require('fs');
 const path = require('path');
 const FormData = require('form-data');
-const config = require('../../config');
+const config = require('./config');
 
 class WeChatPublisherPro {
   constructor() {

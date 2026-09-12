@@ -17,7 +17,7 @@ const sharp = require('sharp');
 const axios = require('axios');
 axios.defaults.proxy = false;
 const FormData = require('form-data');
-const config = require('../../config');
+const config = require('./config');
 
 /**
  * 生成AI封面

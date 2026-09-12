@@ -6,7 +6,7 @@ const ArticleGenerator = require('./generator');
 const WeChatPublisher = require('./publisher');
 const { Logger, Redis } = require('./utils');
 const cron = require('node-cron');
-const config = require('../../config');
+const config = require('./config');
 
 class WineArticleApp {
   constructor() {
