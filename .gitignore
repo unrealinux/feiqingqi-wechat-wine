@@ -56,6 +56,9 @@ coverage/
 .full-articles/
 .cover-cache/
 
+# ===== 抓取草稿（工作产物，不入库）=====
+articles/_incoming/*.json
+
 # ===== 一次性调试产物 =====
 *_debug.txt
 *_preview.txt

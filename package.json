@@ -9,6 +9,7 @@
     "engine:render": "node engine/cli.js --all --cover --html",
     "engine:verify": "node tools/verify_parity.js",
     "engine:extract": "python tools/extract_articles.py --all",
+    "news:fetch": "node tools/fetch-news.js",
     "wechat:check": "node tools/check-wechat-ip.js",
     "wechat:watch": "node tools/ip-watch.js --daemon",
     "wechat:watch:once": "node tools/ip-watch.js",
@@ -26,6 +27,7 @@
     "https-proxy-agent": "^7.0.6",
     "node-cron": "^3.0.3",
     "nodemailer": "^10.0.3",
+    "rss-parser": "^3.13.0",
     "sharp": "^0.35.4"
   },
   "devDependencies": {

@@ -43,6 +43,8 @@ engine/
 
 articles/                文章数据（唯一真相）
 tools/
+├── fetch-news.js        RSS -> 引擎草稿（整合第一代抓取能力）
+├── news-sources.js      抓取信息源清单
 ├── extract_articles.py  从旧 build_*.py 一次性抽取数据（AST 静态解析）
 ├── verify_parity.js     与新引擎输出做逐字节回归比对
 ├── check-wechat-ip.js   发布前自检（出口 IP / IP 白名单 / 凭据）
@@ -201,6 +203,14 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 
 不再需要新建 `build_*.py` 或 `generate-*.js`。
 
+从新闻素材起步时，可以先用抓取工具生成草稿再编辑：
+
+```bash
+npm run news:fetch                                   # 写入 articles/_incoming/
+node engine/cli.js articles/_incoming/news_xxx.json --cover --html
+# 编辑确认后移到 articles/ 顶层，才会被 --all 纳入
+```
+
 ## 从旧结构迁移
 
 ```bash
@@ -301,5 +311,6 @@ npm run engine:check     # 校验全部数据文件
 npm run engine:render    # 渲染全部文章
 npm run engine:verify    # 回归比对
 npm run engine:extract   # 从旧 build_*.py 提取数据
-npm test                 # 294 个用例
+npm run news:fetch       # 抓取 RSS -> articles/_incoming/ 草稿
+npm test                 # 259 个用例
 ```

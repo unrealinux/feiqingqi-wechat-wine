@@ -36,6 +36,7 @@ node engine/cli.js --all --cover --publish
 ```
 articles/              99 篇文章数据（唯一真相）
   _superseded/         同名冲突中被取代的版本（不参与发布）
+  _incoming/           抓取草稿暂存区（不参与 --all，gitignore）
 engine/                渲染引擎
   blocks.js            17 种内容块的校验与渲染分发
   themes/              classic（第一代风格）/ rich（主题色风格）
@@ -44,6 +45,8 @@ engine/                渲染引擎
   article.js           数据 -> 成品文章
   cli.js               命令行入口
 tools/
+  fetch-news.js        RSS -> engine 草稿（整合抓取能力）
+  news-sources.js      抓取信息源清单
   extract_articles.py  从旧 build_*.py 提取数据为 JSON（AST 静态解析）
   verify_parity.js     与历史产物逐字节回归比对
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
@@ -51,7 +54,7 @@ tools/
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
   win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
-tests/                 219 个测试（11 个套件）
+tests/                 259 个测试（12 个套件）
 archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -70,6 +73,7 @@ logs/                  日志与监控状态（gitignore）
 | `npm run engine:render` | 渲染全部文章并生成封面与预览 |
 | `npm run engine:verify` | 与历史产物做回归比对 |
 | `npm run engine:extract` | 从 `build_*.py` 提取数据（迁移工具） |
+| `npm run news:fetch` | **抓取 RSS -> 引擎草稿**（写入 `articles/_incoming/`） |
 | `npm test` | 运行全部测试 |
 | `npm run lint` | ESLint |
 
@@ -206,7 +210,7 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 219 个用例，11 个套件
+npm test        # 259 个用例，12 个套件
 npm run lint    # 0 error / 0 warning
 ```
 
@@ -264,6 +268,26 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
 其中根 `config.js` 已精简为仅供引擎的 `publish` 段，第一代完整配置内聚为
 `archive/first-gen/config.js`。
 详见 [archive/README.md](archive/README.md) 与 [archive/first-gen/README.md](archive/first-gen/README.md)。
+
+### 归档能力的重新接入：`tools/fetch-news.js`
+
+第一代流水线唯一不可替代的能力是「抓取」。归档后它被以**窄接口**重新接回主线：
+
+```
+RSS 信息源 ──tools/fetch-news.js──► articles/_incoming/*.json（引擎草稿）
+                                              │ 人工编辑 / 核对
+                                              ▼
+                                   articles/*.json ──► engine/cli.js
+```
+
+- `npm run news:fetch` 抓取并生成**草稿**（默认最多 5 条），草稿本身就是引擎
+  可校验的对象（生成时会用 `validateSpec` 自检）；
+- 草稿放在 `articles/_incoming/`（子目录），`engine/cli.js --all` **不递归**，
+  因此不会被误渲染/发布；
+- 按标题与原文链接**跨运行去重**；
+- 分类由关键词自动推断，但受引擎 8 类白名单约束；
+- 不重新引入旧的 aggregator / generator / publisher —— 版权、事实核对与文风
+  仍由人工把关。
 
 ## 历史沿革
 
