@@ -286,9 +286,8 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
    届时需重新加入白名单；`npm run wechat:watch` 可在失效时提前告警。
 2. **第一代流水线停滞**：`crawler/aggregator/generator/publisher` 与调度器久未更新，
    且其测试曾与实际实现严重脱节（已修复测试，但流水线本身仍未验证可用）。
+   其备用入口（`enhanced-crawler.js`、`start-daily.js`）当前亦未被主线引用，
    建议人工评估后整合或归档。
-3. **仍有死代码残留**：`enhanced-crawler.js`、`enhanced-cover-generator.js`、
-   `start-daily.js` 等模块已无任何引用，可继续清理。
-4. **100 个 lint warning**：`no-unused-vars` 48 ｜ `require-await` 46 ｜ `no-empty` 4 ｜
+3. **73 个 lint warning**：`no-unused-vars` 39 ｜ `require-await` 28 ｜ `no-empty` 4 ｜
    `consistent-return` 2。其中 `require-await` 不可批量修复 —— 去掉 `async`
    会改变抛错语义（同步抛出 vs 返回 rejected Promise）。

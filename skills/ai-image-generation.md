@@ -116,7 +116,7 @@ async function cropToWeChatCover(imageBuffer) {
 
 ## Integration with Cover Generator
 
-The project's cover generator (`coverGenerator.js` and `wine-element-cover.js`) can be extended to use AI-generated images as backgrounds:
+The project's cover generator (`engine/cover.js`) can be extended to use AI-generated images as backgrounds:
 
 1. Generate AI image with wine prompt
 2. Crop to 900x383
