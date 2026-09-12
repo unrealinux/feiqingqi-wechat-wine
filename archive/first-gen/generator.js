@@ -1,6 +1,6 @@
 const OpenAI = require('openai');
 const axios = require('axios');
-const config = require('./config');
+const config = require('../../config');
 const { Redis, Logger } = require('./utils');
 const { 
   createAppError

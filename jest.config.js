@@ -1,12 +1,19 @@
 module.exports = {
   testEnvironment: 'node',
-  testMatch: ['**/tests/**/*.test.js', '**/*.test.js'],
+  // 只跑活跃测试；第一代流水线的测试已归档到 archive/first-gen/tests/，
+  // 需要时用 `npx jest --config archive/first-gen/jest.config.js` 单独运行。
+  testMatch: ['<rootDir>/tests/**/*.test.js'],
+  testPathIgnorePatterns: ['/node_modules/', '<rootDir>/archive/'],
   collectCoverageFrom: [
     '*.js',
+    'engine/**/*.js',
+    'tools/**/*.js',
     '!node_modules/**',
     '!coverage/**',
     '!output/**',
-    '!logs/**'
+    '!logs/**',
+    '!archive/**',
+    '!jest.config.js'
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

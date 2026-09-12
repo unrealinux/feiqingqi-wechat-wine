@@ -1,0 +1,29 @@
+# 注：文件位于 archive/first-gen/，构建上下文与卷路径均相对仓库根。
+# 用法（在仓库根）：docker compose -f archive/first-gen/docker-compose.yml up -d
+# `version` 字段在 Compose V2 已不再必需，保留以兼容旧客户端
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ../..
+      dockerfile: archive/first-gen/Dockerfile
+    env_file:
+      - ../../.env
+    volumes:
+      - ../../output:/app/output
+      - ../../logs:/app/logs
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:

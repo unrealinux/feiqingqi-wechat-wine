@@ -18,7 +18,7 @@ const sharp = require('sharp');
 const axios = require('axios');
 axios.defaults.proxy = false;
 const FormData = require('form-data');
-const config = require('./config');
+const config = require('../../config');
 
 /**
  * 使用Z-Image生成AI封面

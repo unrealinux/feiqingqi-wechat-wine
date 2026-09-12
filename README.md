@@ -46,13 +46,13 @@ engine/                渲染引擎
 tools/
   extract_articles.py  从旧 build_*.py 提取数据为 JSON（AST 静态解析）
   verify_parity.js     与历史产物逐字节回归比对
-tests/                 366 个测试
-tools/
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
   ip-watch.js          出口 IP 变化监控 + 告警
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
   win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
+tests/                 172 个测试（8 个套件）
+archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
 ```
@@ -206,8 +206,8 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 366 个用例，20 个套件
-npm run lint    # 0 error
+npm test        # 172 个用例，8 个套件
+npm run lint    # 0 error / 8 warning（均为 require-await）
 ```
 
 回归比对工具会用历史产物校验引擎输出：
@@ -243,18 +243,25 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
 > 三者均已通过 `git filter-repo` 从全部历史中清除，但**已暴露的凭据必须吊销/重置**，
 > 历史清理无法收回已公开的密钥。
 
-## 项目里的两条线
+## 主线与归档
 
-| | 当前主线 | 第一代流水线 |
+当前仓库只维护一条主线：**`engine/` 渲染引擎**（结构化数据 → 成品文章 → 公众号草稿）。
+
+第一代「新闻聚合」流水线（`crawler → aggregator → generator → publisher`，含调度器、
+`publish-*.js`、容器配置与相关文档）已**整体归档**到 `archive/first-gen/`：
+
+| | 当前主线 | 第一代（已归档） |
 |---|---|---|
-| 入口 | `engine/cli.js` | `index.js` |
+| 位置 | `engine/`、`tools/` | `archive/first-gen/` |
+| 入口 | `engine/cli.js` | `archive/first-gen/index.js` |
 | 内容来源 | `articles/*.json`（人工维护的结构化数据） | RSS / 网站抓取 |
-| 用途 | **专题文章生产**（当前实际使用） | 新闻聚合（**目前处于停滞状态**） |
-| 组成 | `engine/` | `crawler.js` + `aggregator.js` + `generator.js` + `publisher.js` |
-| 调度 | 手动 / 外部定时 | `scheduler.js`、`daily-scheduler*.js` |
+| 用途 | 专题文章生产 | 新闻聚合 |
+| 参与 CI | 是 | 否 |
 
-第一代流水线服务的是「抓取新闻并生成文章」这一引擎未覆盖的功能，因此保留。
-其调度器与 `publish-*.js` 系列脚本停留在 2026-03~04，活跃度存疑，**建议人工评估后整合**。
+归档原因：长期停滞、未验证可用、功能与引擎重复，且活跃代码对其**零依赖**。
+少数仍被主线使用的通用模块保留在根目录：`config.js`（`engine/wechat.js`）、
+`proxy.js`（`tools/check-wechat-ip.js`）、`webhook.js`（`tools/notifier.js`）。
+详见 [archive/README.md](archive/README.md) 与 [archive/first-gen/README.md](archive/first-gen/README.md)。
 
 ## 历史沿革
 
@@ -275,19 +282,14 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
 ## 其他文档
 
 - [engine/README.md](engine/README.md) —— 渲染引擎、数据格式、迁移指南
-- [INFORMATION_SOURCES.md](INFORMATION_SOURCES.md) —— 第一代流水线的信息源配置
-- [DEPLOYMENT.md](DEPLOYMENT.md) —— 部署说明
-- [DAILY_SCHEDULER.md](DAILY_SCHEDULER.md) —— 每日自动发布（第一代，当前停滞）
+- [archive/README.md](archive/README.md) —— 归档区说明
+- [archive/first-gen/docs/](archive/first-gen/docs/) —— 第一代流水线文档（信息源 / 每日调度 / 部署 / 快速开始）
 
 ## 已知问题
 
 1. **发布依赖动态 IP 白名单** —— 当前出口 IP（`120.208.99.249`）已在白名单内，
    `npm run wechat:check` 实测可获取 `access_token`。但家用宽带换网/重分配后 IP 会变，
    届时需重新加入白名单；`npm run wechat:watch` 可在失效时提前告警。
-2. **第一代流水线停滞**：`crawler/aggregator/generator/publisher` 与调度器久未更新，
-   且其测试曾与实际实现严重脱节（已修复测试，但流水线本身仍未验证可用）。
-   其备用入口（`enhanced-crawler.js`、`start-daily.js`）当前亦未被主线引用，
-   建议人工评估后整合或归档。
-3. **28 个 lint warning（全部为 `require-await`）**：集中在第一代流水线的异步方法上。
-   该类不可批量修复 —— 去掉 `async` 会改变抛错语义（同步抛出 vs 返回 rejected Promise），
-   需逐个确认调用方后再改。
+2. **8 个 lint warning（全部为 `require-await`）**：集中在 `engine/wechat.js`（4）、
+   `webhook.js`（3）、`engine/cover.js`（1）。该类不可批量修复 —— 去掉 `async`
+   会改变抛错语义（同步抛出 vs 返回 rejected Promise），需逐个确认调用方后再改。

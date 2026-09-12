@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 const Parser = require('rss-parser');
 const TurndownService = require('turndown');
 const { Redis } = require('./utils');
-const config = require('./config');
+const config = require('../../config');
 const { v4: uuidv4 } = require('uuid');
 const { 
   withRetry, 
@@ -14,7 +14,7 @@ const {
 const { shouldCrawl } = require('./robots_check');
 const { incCrawled, incCrawlFailure } = require('./health');
 const { NewsApiSource } = require('./newsApis');
-const { getAxiosProxyConfig } = require('./proxy');
+const { getAxiosProxyConfig } = require('../../proxy');
 
 class Crawler {
   constructor() {

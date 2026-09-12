@@ -1,15 +1,9 @@
 {
   "name": "wine-article-aggregator",
   "version": "1.0.0",
-  "description": "红酒文章采集、汇总、生成和发布系统",
-  "main": "index.js",
+  "description": "葡萄酒公众号内容渲染与发布系统（engine 渲染引擎 + 发布工具链）",
+  "main": "engine/cli.js",
   "scripts": {
-    "start": "node index.js",
-    "crawl": "node crawler.js",
-    "generate": "node generator.js",
-    "publish": "node publisher.js",
-    "all": "npm run crawl && npm run generate && npm run publish",
-    "validate": "node validate-config.js",
     "test": "jest",
     "engine:check": "node engine/cli.js --all --check",
     "engine:render": "node engine/cli.js --all --cover --html",
@@ -26,21 +20,13 @@
   },
   "dependencies": {
     "axios": "^1.20.0",
-    "cheerio": "^1.0.0-rc.12",
-    "date-fns": "^2.30.0",
     "dotenv": "^16.3.1",
+    "form-data": "^4.0.0",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6",
-    "ioredis": "^5.9.2",
-    "jsdom": "^22.1.0",
-    "lodash": "^4.18.1",
     "node-cron": "^3.0.3",
     "nodemailer": "^10.0.3",
-    "openai": "^4.20.0",
-    "rss-parser": "^3.13.0",
-    "sharp": "^0.35.4",
-    "turndown": "^7.1.2",
-    "uuid": "^11.1.1"
+    "sharp": "^0.35.4"
   },
   "devDependencies": {
     "eslint": "^8.56.0",

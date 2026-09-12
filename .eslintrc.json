@@ -36,6 +36,8 @@
     "node_modules/",
     "output/",
     "logs/",
+    "coverage/",
+    "archive/",
     "*.config.js"
   ]
 }

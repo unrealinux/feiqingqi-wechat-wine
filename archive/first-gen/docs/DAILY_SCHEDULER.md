@@ -1,7 +1,7 @@
 # 每日自动发布配置指南
 
 > **状态提示**：本文描述的是第一代流水线（`daily-scheduler.js` + `publish-*.js`）。
-> 相关脚本停留在 2026-03~04，当前实际在用的是 [engine/README.md](engine/README.md)
+> 相关脚本停留在 2026-03~04，当前实际在用的是 [engine/README.md](../../../engine/README.md)
 > 的渲染引擎。如需恢复每日自动发布，建议改为调度 `node engine/cli.js --all --publish`。
 
 ## 📋 概述
