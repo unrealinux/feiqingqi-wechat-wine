@@ -51,7 +51,7 @@ tools/
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
   win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
-tests/                 178 个测试（9 个套件）
+tests/                 219 个测试（11 个套件）
 archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -206,8 +206,8 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 178 个用例，9 个套件
-npm run lint    # 0 error / 8 warning（均为 require-await）
+npm test        # 219 个用例，11 个套件
+npm run lint    # 0 error / 0 warning
 ```
 
 回归比对工具会用历史产物校验引擎输出：
@@ -292,6 +292,3 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
 1. **发布依赖动态 IP 白名单** —— 当前出口 IP（`120.208.99.249`）已在白名单内，
    `npm run wechat:check` 实测可获取 `access_token`。但家用宽带换网/重分配后 IP 会变，
    届时需重新加入白名单；`npm run wechat:watch` 可在失效时提前告警。
-2. **8 个 lint warning（全部为 `require-await`）**：集中在 `engine/wechat.js`（4）、
-   `webhook.js`（3）、`engine/cover.js`（1）。该类不可批量修复 —— 去掉 `async`
-   会改变抛错语义（同步抛出 vs 返回 rejected Promise），需逐个确认调用方后再改。

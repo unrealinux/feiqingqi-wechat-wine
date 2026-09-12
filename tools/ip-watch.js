@@ -381,5 +381,7 @@ module.exports = {
   decideNotification,
   isSuppressed,
   parseArgs,
-  formatTime
+  formatTime,
+  runOnce,
+  report
 };
