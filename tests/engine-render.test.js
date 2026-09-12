@@ -416,4 +416,10 @@ describe('cover', () => {
     // PNG magic number
     expect(buffer.slice(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
   });
+
+  test('renderCoverPng 参数非法时应以 rejected Promise 暴露（而非同步抛出）', async () => {
+    // buildCoverSvg 会读 spec.title，传 undefined 会在构造期抛错；
+    // 契约要求它被转换为 rejection，调用方才能统一用 .catch()/await 处理。
+    await expect(renderCoverPng(undefined)).rejects.toThrow();
+  });
 });

@@ -134,15 +134,20 @@ ${categoryEl}
 
 /**
  * 渲染封面为 PNG Buffer。
- * 保持 async：buildCoverSvg 可能因参数异常同步抛错，async 可保证调用方
- * 始终能以 Promise 方式统一处理错误。
+ * buildCoverSvg 可能因参数异常同步抛错，这里显式转为 rejected Promise，
+ * 以保证调用方始终能用统一的方式处理错误。
  * @param {{title: string, subtitle?: string, category?: string}} spec
  * @param {object} [options]
  * @returns {Promise<Buffer>}
  */
-async function renderCoverPng(spec, options = {}) {
+function renderCoverPng(spec, options = {}) {
   const opt = { ...DEFAULTS, ...options };
-  const svg = buildCoverSvg(spec, opt);
+  let svg;
+  try {
+    svg = buildCoverSvg(spec, opt);
+  } catch (err) {
+    return Promise.reject(err);
+  }
   return getSharp()(Buffer.from(svg), { density: 96 })
     .resize(opt.width, opt.height)
     .png({ compressionLevel: 9 })

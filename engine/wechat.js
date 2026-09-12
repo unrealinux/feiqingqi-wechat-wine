@@ -181,15 +181,14 @@ class WeChatClient {
 
   /**
    * 上传永久图片素材，返回 media_id（用于封面 thumb_media_id）。
-   * 保持 async：保证任何失败都以 rejected Promise 形式暴露，
-   * 而不是同步抛出（否则调用方 .catch() 会失效）。
+   * 同步错误（如 filename 非法）在 withToken 的 async 回调内抛出，
+   * 因此仍以 rejected Promise 形式暴露，调用方 .catch() 不会失效。
    * @param {Buffer} buffer PNG/JPG 图片数据
    * @param {string} [filename]
    */
-  async uploadThumb(buffer, filename = 'cover.png') {
-    const contentType = filename.endsWith('.jpg') || filename.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
-
+  uploadThumb(buffer, filename = 'cover.png') {
     return this.withToken(async (token) => {
+      const contentType = filename.endsWith('.jpg') || filename.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
       const form = new FormData();
       form.append('media', buffer, { filename, contentType });
       const res = await axios.post(`${this.endpoints.addMaterial}?access_token=${token}&type=image`, form, {
@@ -209,10 +208,9 @@ class WeChatClient {
    * @param {Buffer} buffer
    * @param {string} [filename]
    */
-  async uploadContentImage(buffer, filename = 'image.png') {
-    const contentType = filename.endsWith('.jpg') || filename.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
-
+  uploadContentImage(buffer, filename = 'image.png') {
     return this.withToken(async (token) => {
+      const contentType = filename.endsWith('.jpg') || filename.endsWith('.jpeg') ? 'image/jpeg' : 'image/png';
       const form = new FormData();
       form.append('media', buffer, { filename, contentType });
       const res = await axios.post(`${this.endpoints.uploadImg}?access_token=${token}`, form, {
@@ -232,10 +230,11 @@ class WeChatClient {
    * @param {{title, content, thumbMediaId, author?, digest?, showCoverPic?, needOpenComment?}} article
    * @returns {Promise<{media_id: string}>}
    */
-  async addDraft(article) {
+  addDraft(article) {
     const errors = validateArticle(article);
     if (errors.length) {
-      throw new WeChatError(`文章字段校验失败:\n  - ${errors.join('\n  - ')}`);
+      // 保持「校验失败也以 rejected Promise 暴露」的契约，同时不触发任何 token 请求
+      return Promise.reject(new WeChatError(`文章字段校验失败:\n  - ${errors.join('\n  - ')}`));
     }
 
     const payload = {
@@ -266,7 +265,7 @@ class WeChatClient {
   }
 
   /** 查询草稿箱总数（可用于连通性自检）。 */
-  async getDraftCount() {
+  getDraftCount() {
     return this.withToken(async (token) => {
       const res = await axios.get(`${this.endpoints.getDraftCount}?access_token=${token}`, {
         timeout: this.timeout,

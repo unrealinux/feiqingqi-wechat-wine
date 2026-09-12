@@ -246,21 +246,21 @@ class WebhookNotifier {
   /**
    * 快捷方法: 发送成功通知
    */
-  async notifySuccess(title, details) {
+  notifySuccess(title, details) {
     return this.send('✅ 任务执行成功', { title, details });
   }
 
   /**
    * 快捷方法: 发送失败通知
    */
-  async notifyFailure(title, details) {
+  notifyFailure(title, details) {
     return this.send('❌ 任务执行失败', { title, details });
   }
 
   /**
    * 快捷方法: 发送文章发布通知
    */
-  async notifyPublish(article) {
+  notifyPublish(article = {}) {
     return this.send(`新文章已发布: ${article.title}`, {
       title: '📝 文章发布通知',
       details: {

@@ -153,6 +153,7 @@ describe('addDraft', () => {
   test('should validate before calling the API', async () => {
     const client = new WeChatClient(CREDENTIALS);
     await expect(client.addDraft({ ...validArticle(), title: '' })).rejects.toThrow('文章字段校验失败');
+    expect(axios.get).not.toHaveBeenCalled();   // 校验先于 token 请求（fail-fast）
     expect(axios.post).not.toHaveBeenCalled();
   });
 
