@@ -4,7 +4,6 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const Parser = require('rss-parser');
-const { JSDOM } = require('jsdom');
 const TurndownService = require('turndown');
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
@@ -17,10 +16,6 @@ const {
   AUCTION_SOURCES,
   CHINESE_WINE_WEBSITES,
   INTERNATIONAL_WINE_WEBSITES,
-  SEARCH_KEYWORDS,
-  NEWS_API_CONFIG,
-  getAllRssSources,
-  getAllWebsiteSources,
   getSourceStats,
 } = require('./enhanced-sources');
 
@@ -458,7 +453,7 @@ if (require.main === module) {
   const crawler = new EnhancedCrawler();
   
   crawler.crawl()
-    .then(articles => {
+    .then(_articles => {
       console.log('\n📊 采集摘要：');
       console.log(JSON.stringify(crawler.getSummary(), null, 2));
     })

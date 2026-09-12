@@ -1,4 +1,4 @@
-const { CacheManager, LockedCache, CacheEntry } = require('../cache-manager');
+const { CacheManager, LockedCache } = require('../cache-manager');
 
 describe('CacheManager', () => {
   let cache;

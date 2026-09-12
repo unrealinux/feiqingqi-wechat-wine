@@ -1,9 +1,7 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 const Parser = require('rss-parser');
-const { JSDOM } = require('jsdom');
 const TurndownService = require('turndown');
-const ParallelFetcher = require('./parallel-fetcher');
 const { Redis } = require('./utils');
 const config = require('./config');
 const { v4: uuidv4 } = require('uuid');
@@ -11,14 +9,12 @@ const {
   withRetry, 
   withBatch, 
   createAppError, 
-  AppError,
-  ErrorTypes,
   CircuitBreaker 
 } = require('./errors');
 const { shouldCrawl } = require('./robots_check');
 const { incCrawled, incCrawlFailure } = require('./health');
 const { NewsApiSource } = require('./newsApis');
-const { getAxiosProxyConfig, testProxyConnection } = require('./proxy');
+const { getAxiosProxyConfig } = require('./proxy');
 
 class Crawler {
   constructor() {
@@ -682,8 +678,7 @@ class Crawler {
       })
     );
 
-    siteResults.forEach((result, idx) => {
-      const site = backupSites[idx];
+    siteResults.forEach((result) => {
       if (result && result.status === 'fulfilled' && result.value) {
         const siteArticles = result.value;
         articles.push(...siteArticles);

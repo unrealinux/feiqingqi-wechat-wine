@@ -48,7 +48,7 @@ class NewsApiSource {
   /**
    * 聚合数据 - 新闻搜索
    */
-  async fetchFromJuhe(keyword = '红酒') {
+  async fetchFromJuhe(_keyword = '红酒') {
     const key = API_CONFIG.juhe.key;
     if (!key) {
       console.log('  聚合数据: 未配置API Key，跳过');
@@ -113,7 +113,7 @@ class NewsApiSource {
   /**
    * 天行数据 - 国内新闻
    */
-  async fetchFromTianapi(keyword = '红酒') {
+  async fetchFromTianapi(_keyword = '红酒') {
     const key = API_CONFIG.tianapi.key;
     if (!key) {
       console.log('  天行数据: 未配置API Key，跳过');

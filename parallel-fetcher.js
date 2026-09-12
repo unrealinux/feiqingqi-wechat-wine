@@ -71,7 +71,7 @@ class ParallelFetcher {
       );
       
       // 收集结果
-      batchResults.forEach((result, index) => {
+      batchResults.forEach((result, _index) => {
         if (result.status === 'fulfilled') {
           results.push(result.value);
         } else {

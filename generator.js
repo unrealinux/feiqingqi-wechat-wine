@@ -3,11 +3,7 @@ const axios = require('axios');
 const config = require('./config');
 const { Redis, Logger } = require('./utils');
 const { 
-  withRetry, 
-  createAppError, 
-  AppError, 
-  ErrorTypes,
-  CircuitBreaker 
+  createAppError
 } = require('./errors');
 
 class ArticleGenerator {
@@ -170,7 +166,7 @@ class ArticleGenerator {
   async createOutline(aggregatedData) {
     console.log('正在规划文章结构...');
 
-    const { articles, categories, knowledgeGraph } = aggregatedData;
+    const { articles } = aggregatedData;
     
     const prompt = `微信公众号红酒编辑。2026年4月。${articles.length}篇素材。
 
@@ -193,13 +189,13 @@ class ArticleGenerator {
         .trim();
       try {
         parsed = JSON.parse(cleaned);
-      } catch (e) {}
+      } catch (e) { /* 忽略，尝试下一种解析方式 */ }
 
       // 方式2: 直接解析
       if (!parsed) {
         try {
           parsed = JSON.parse(response);
-        } catch (e) {}
+        } catch (e) { /* 忽略，尝试下一种解析方式 */ }
       }
 
       // 方式3: 提取第一个 { } 块
@@ -208,7 +204,7 @@ class ArticleGenerator {
         if (match) {
           try {
             parsed = JSON.parse(match[0]);
-          } catch (e) {}
+          } catch (e) { /* 忽略，尝试下一种解析方式 */ }
         }
       }
 
@@ -248,11 +244,10 @@ class ArticleGenerator {
     }
   }
 
-  async generateChapters(outline, aggregatedData) {
+  async generateChapters(outline, _aggregatedData) {
     console.log('正在生成各章节内容...');
 
     const chapters = [];
-    const { articles, knowledgeGraph } = aggregatedData;
 
     for (let i = 0; i < outline.chapters.length; i++) {
       const chapter = outline.chapters[i];

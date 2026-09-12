@@ -31,16 +31,16 @@ function init(options = {}) {
     console: consoleOutput = true
   } = options;
   
-  // 设置级别
-  currentLevel = Levels[level.toUpperCase()] || Levels.INFO;
+  // 设置级别（注意 Levels.DEBUG === 0，不能用 || 判断）
+  currentLevel = Levels[level.toUpperCase()] ?? Levels.INFO;
   
-  // 文件输出
-  if (file) {
-    const logDir = path.dirname(file);
+  // 文件输出（file 为空则显式关闭文件输出，避免沿用上次路径）
+  logFile = file || null;
+  if (logFile) {
+    const logDir = path.dirname(logFile);
     if (!fs.existsSync(logDir)) {
       fs.mkdirSync(logDir, { recursive: true });
     }
-    logFile = file;
   }
   
   // 控制台输出
@@ -161,7 +161,7 @@ const logger = {
   
   // 设置级别
   setLevel(level) {
-    currentLevel = Levels[level.toUpperCase()] || Levels.INFO;
+    currentLevel = Levels[level.toUpperCase()] ?? Levels.INFO;
   },
   
   // 关闭日志系统
@@ -180,3 +180,4 @@ if (process.env.LOG_LEVEL) {
 module.exports = logger;
 module.exports.default = logger;
 module.exports.Levels = Levels;
+module.exports.init = init;

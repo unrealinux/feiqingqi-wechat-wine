@@ -4,10 +4,8 @@ const {
   isValidUrl,
   cleanText,
   formatBytes,
-  formatDuration,
   randomChoice,
-  groupBy,
-  unique
+  groupBy
 } = require('../helpers');
 
 describe('helpers', () => {

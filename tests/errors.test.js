@@ -107,7 +107,7 @@ describe('Error Module', () => {
         return item;
       });
       
-      const { results, success, errors } = await withBatch(items, fn, { 
+      const { success, errors } = await withBatch(items, fn, { 
         concurrency: 1, 
         continueOnError: true 
       });

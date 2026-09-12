@@ -1,5 +1,4 @@
 const { Redis, Logger } = require('./utils');
-const config = require('./config');
 const { v4: uuidv4 } = require('uuid');
 const { createAppError, AppError, ErrorTypes } = require('./errors');
 
@@ -269,7 +268,6 @@ class Aggregator {
     ];
 
     const found = [];
-    const contentLower = content.toLowerCase();
 
     for (const type of wineTypes) {
       if (content.includes(type)) {
@@ -553,7 +551,7 @@ class Aggregator {
     return graph;
   }
 
-  async generateReport(articles, knowledgeGraph) {
+  async generateReport(articles, _knowledgeGraph) {
     const categoryStats = {};
     
     for (const article of articles) {

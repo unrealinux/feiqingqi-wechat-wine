@@ -12,7 +12,6 @@ process.env.HTTP_PROXY = '';
 process.env.HTTPS_PROXY = '';
 
 const fetch = require('node-fetch');
-const { HttpsProxyAgent } = require('https-proxy-agent');
 const fs = require('fs');
 const path = require('path');
 const sharp = require('sharp');
@@ -20,8 +19,6 @@ const axios = require('axios');
 axios.defaults.proxy = false;
 const FormData = require('form-data');
 const config = require('./config');
-
-const proxyAgent = new HttpsProxyAgent('http://127.0.0.1:10809');
 
 /**
  * 使用Z-Image生成AI封面

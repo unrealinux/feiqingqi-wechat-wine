@@ -46,7 +46,7 @@ engine/                渲染引擎
 tools/
   extract_articles.py  从旧 build_*.py 提取数据为 JSON（AST 静态解析）
   verify_parity.js     与历史产物逐字节回归比对
-tests/                 317 个测试
+tests/                 366 个测试
 tools/
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
   ip-watch.js          出口 IP 变化监控 + 告警
@@ -206,7 +206,7 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 317 个用例，15 个套件
+npm test        # 366 个用例，20 个套件
 npm run lint    # 0 error
 ```
 
@@ -288,6 +288,6 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
    且其测试曾与实际实现严重脱节（已修复测试，但流水线本身仍未验证可用）。
    其备用入口（`enhanced-crawler.js`、`start-daily.js`）当前亦未被主线引用，
    建议人工评估后整合或归档。
-3. **73 个 lint warning**：`no-unused-vars` 39 ｜ `require-await` 28 ｜ `no-empty` 4 ｜
-   `consistent-return` 2。其中 `require-await` 不可批量修复 —— 去掉 `async`
-   会改变抛错语义（同步抛出 vs 返回 rejected Promise）。
+3. **28 个 lint warning（全部为 `require-await`）**：集中在第一代流水线的异步方法上。
+   该类不可批量修复 —— 去掉 `async` 会改变抛错语义（同步抛出 vs 返回 rejected Promise），
+   需逐个确认调用方后再改。

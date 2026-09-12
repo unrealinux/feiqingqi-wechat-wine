@@ -357,6 +357,7 @@ class HttpCache {
       };
 
       next();
+      return undefined;
     };
   }
 }

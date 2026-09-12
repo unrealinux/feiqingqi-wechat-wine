@@ -327,7 +327,7 @@ async function verifyWebhookType(type, options) {
 }
 
 /** 关键验证：平台返回 200 但 body 报错时，必须被发现 */
-async function verifyFailureDetection(port) {
+async function verifyFailureDetection(_port) {
   const receiver = await startReceiver({ forcePlatformError: true });
   try {
     const notifier = localNotifier('dingtalk', receiver.port);

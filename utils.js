@@ -319,7 +319,7 @@ class Redis {
     if (this.client && this.isConnected) {
       try {
         await this.client.quit();
-      } catch (error) {}
+      } catch (error) { /* 关闭失败不影响退出 */ }
     }
     this.isConnected = false;
     this.usingMemoryFallback = true;

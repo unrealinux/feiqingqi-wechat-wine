@@ -3,19 +3,6 @@
  * 验证环境变量和配置的合法性
  */
 
-const requiredFields = {
-  generate: ['provider', 'apiKey'],
-  publish: ['appId', 'appSecret']
-};
-
-const optionalFields = {
-  generate: ['model', 'baseUrl', 'endpoints'],
-  publish: ['endpoints', 'testMode', 'autoPublish'],
-  crawl: ['rssSources', 'backupWebsites', 'keywords'],
-  redis: ['host', 'port'],
-  database: ['host', 'user', 'password', 'database']
-};
-
 /**
  * 验证必填字段
  */

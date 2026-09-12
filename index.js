@@ -29,7 +29,7 @@ class WineArticleApp {
       
       if (articles.length === 0) {
         console.log('未采集到任何文章，程序退出');
-        return;
+        return null;
       }
 
       // 2. 汇总和分析
@@ -71,6 +71,7 @@ class WineArticleApp {
     } catch (error) {
       console.error('程序执行出错:', error);
       this.logger.error('程序执行出错', { error: error.message });
+      return null;
     } finally {
       try {
         await this.redis.close();

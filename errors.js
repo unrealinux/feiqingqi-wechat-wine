@@ -281,7 +281,7 @@ class GlobalErrorHandler {
 
   setupGlobalHandlers() {
     // 未捕获的Promise拒绝
-    process.on('unhandledRejection', (reason, promise) => {
+    process.on('unhandledRejection', (reason, _promise) => {
       const error = createAppError(reason);
       console.error('[UNHANDLED REJECTION]', error.toJSON());
       if (this.logger) {

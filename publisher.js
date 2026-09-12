@@ -223,7 +223,7 @@ class WeChatPublisher {
    * 生成精美的红酒主题封面图 (900x383 PNG)
    * 包含渐变背景、酒杯、葡萄串、酒滴等红酒元素
    */
-  generateCoverImage(title = '') {
+  generateCoverImage(_title = '') {
     const zlib = require('zlib');
     const width = 900;
     const height = 383;
@@ -251,11 +251,6 @@ class WeChatPublisher {
     };
     
     // ===== 辅助绘制函数 =====
-    
-    // 检查点是否在椭圆内
-    const inEllipse = (px, py, cx, cy, rx, ry) => {
-      return ((px - cx) ** 2) / (rx ** 2) + ((py - cy) ** 2) / (ry ** 2) <= 1;
-    };
     
     // 检查点是否在圆内
     const inCircle = (px, py, cx, cy, r) => {
