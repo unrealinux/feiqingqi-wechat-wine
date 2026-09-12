@@ -281,11 +281,14 @@ git diff --cached | grep -iE 'secret|api[_-]?key|BEGIN .* PRIVATE KEY'
 
 ## 已知问题
 
-1. **发布当前被 IP 白名单阻断** —— 本机出口 IP（`120.208.99.249`）不在白名单内，
-   `--publish` 会失败。用 `npm run wechat:check` 查看并修复。
+1. **发布依赖动态 IP 白名单** —— 当前出口 IP（`120.208.99.249`）已在白名单内，
+   `npm run wechat:check` 实测可获取 `access_token`。但家用宽带换网/重分配后 IP 会变，
+   届时需重新加入白名单；`npm run wechat:watch` 可在失效时提前告警。
 2. **第一代流水线停滞**：`crawler/aggregator/generator/publisher` 与调度器久未更新，
    且其测试曾与实际实现严重脱节（已修复测试，但流水线本身仍未验证可用）。
-3. **`deduplicator.js` / `quality-scorer.js` 尚未接线**：功能已实现且有测试覆盖，
-   但 `aggregator.js` 未调用它们，README 中承诺的「去重」实际未生效。
-4. **180 个 lint warning**：主要是 `no-unused-vars` 与 `require-await`。
-   后者不可批量修复 —— 去掉 `async` 会改变抛错语义（同步抛出 vs 返回 rejected Promise）。
+   建议人工评估后整合或归档。
+3. **仍有死代码残留**：`enhanced-crawler.js`、`enhanced-cover-generator.js`、
+   `start-daily.js` 等模块已无任何引用，可继续清理。
+4. **100 个 lint warning**：`no-unused-vars` 48 ｜ `require-await` 46 ｜ `no-empty` 4 ｜
+   `consistent-return` 2。其中 `require-await` 不可批量修复 —— 去掉 `async`
+   会改变抛错语义（同步抛出 vs 返回 rejected Promise）。
