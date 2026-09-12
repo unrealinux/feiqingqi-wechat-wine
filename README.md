@@ -46,7 +46,7 @@ engine/                渲染引擎
 tools/
   extract_articles.py  从旧 build_*.py 提取数据为 JSON（AST 静态解析）
   verify_parity.js     与历史产物逐字节回归比对
-tests/                 254 个测试
+tests/                 317 个测试
 tools/
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
   ip-watch.js          出口 IP 变化监控 + 告警
@@ -206,14 +206,14 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 278 个用例，13 个套件
+npm test        # 317 个用例，15 个套件
 npm run lint    # 0 error
 ```
 
 回归比对工具会用历史产物校验引擎输出：
 
 ```
-字节一致 31 ｜ 换行修正 9 ｜ 内容恢复 59 ｜ 回归 0
+字节一致 31 ｜ 空白修正 8 ｜ 内容恢复 58 ｜ 有意变更 2 ｜ 回归 0
 ```
 
 「内容恢复」指旧流水线丢弃了内容而新引擎找回了它（详见下文）。

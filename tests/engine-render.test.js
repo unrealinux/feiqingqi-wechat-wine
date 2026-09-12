@@ -121,6 +121,65 @@ describe('blocks: renderBlocks (classic theme)', () => {
     expect(html).toContain('<tbody><tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">c1</td><td style="padding:8px 12px;border-bottom:1px solid #eee;">c2</td></tr></tbody>');
   });
 
+  test('box 系卡片（box / ri / card / info）应视觉一致', () => {
+    // 这四个类型在经典主题下共用同一张卡片，属有意设计
+    const html = renderBlocks([
+      { type: 'box', heading: 'H', text: 'T' },
+      { type: 'ri', heading: 'H', text: 'T' },
+      { type: 'card', heading: 'H', text: 'T' },
+      { type: 'info', heading: 'H', text: 'T' }
+    ], { theme: 'classic' });
+
+    const card = '<div style="background:#f5f5f5;border-radius:8px;padding:15px;margin:15px 0;"><h4 style="color:#b8860b;margin:0 0 8px 0;">H</h4><p style="color:#333;margin:0;line-height:1.7;font-size:14px;">T</p></div>';
+    expect(html.match(new RegExp(card.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'))).toHaveLength(4);
+  });
+
+  test('box 缺少 heading 时应渲染空标题而不报错', () => {
+    const html = renderBlocks([{ type: 'box', text: 'T' }], { theme: 'classic' });
+    expect(html).toContain('<h4 style="color:#b8860b;margin:0 0 8px 0;"></h4>');
+  });
+
+  test('item 应支持 tag 与 price（二者均为可选）', () => {
+    const full = renderBlocks([
+      { type: 'item', text: '拉菲', info: '波尔多一级庄', price: '¥5999', tag: '推荐' }
+    ], { theme: 'classic' });
+    expect(full).toContain('拉菲');
+    expect(full).toContain('推荐');            // tag 徽标
+    expect(full).toContain('波尔多一级庄');
+    expect(full).toContain('¥5999');
+
+    // 不带 tag / price 时不应残留空标签或空段落
+    const bare = renderBlocks([{ type: 'item', text: '木桐' }], { theme: 'classic' });
+    expect(bare).toContain('木桐');
+    expect(bare).not.toContain('border-radius:4px;font-size:12px');  // 无 tag 徽标
+    expect(bare).not.toContain('¥');                                 // 无价格行
+  });
+
+  test('lead 与 p 同形（经典主题下导语不加特殊样式）', () => {
+    const lead = renderBlocks([{ type: 'lead', text: 'L' }], { theme: 'classic' });
+    const para = renderBlocks([{ type: 'p', text: 'L' }], { theme: 'classic' });
+    expect(lead).toEqual(para);
+  });
+
+  test('quote 应渲染为斜体引用块', () => {
+    const html = renderBlocks([{ type: 'quote', text: '适量饮酒' }], { theme: 'classic' });
+    expect(html).toContain('<em>适量饮酒</em>');
+  });
+
+  test('sep 支持自定义文本，缺省为 ---', () => {
+    expect(renderBlocks([{ type: 'sep' }], { theme: 'classic' }))
+      .toContain('<p style="text-align:center;color:#ddd;margin:20px 0;">---</p>');
+    expect(renderBlocks([{ type: 'sep', text: '***' }], { theme: 'classic' }))
+      .toContain('>***</p>');
+  });
+
+  test('classic 主题下 box / item 的换行应原样保留（不转 <br/>，保持字节一致）', () => {
+    // 这是与历史产物字节一致的前提：早期模板不做 nl2br
+    const html = renderBlocks([{ type: 'box', heading: 'H', text: 'a\nb' }], { theme: 'classic' });
+    expect(html).toContain('a\nb');
+    expect(html).not.toContain('a<br/>b');
+  });
+
   test('should not insert separators between blocks (与历史产物一致的不变量)', () => {
     const html = renderBlocks([
       { type: 'p', text: 'A' },
