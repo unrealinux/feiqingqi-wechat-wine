@@ -64,10 +64,30 @@ const PROVIDERS = {
     keyEnv: 'GEMINI_API_KEY',
     modelEnv: 'GEMINI_IMAGE_MODEL',
     defaultModel: 'gemini-2.0-flash-exp-image-generation'
+  },
+  // 自定义 / 兼容 OpenAI 风格的图像 API（含 Agnes）。
+  // 只需环境变量即可接入，无需改代码：
+  //   <PREFIX>API_URL（必填）/ <PREFIX>API_KEY / <PREFIX>MODEL
+  //   <PREFIX>SIZE / <PREFIX>AUTH_HEADER / <PREFIX>AUTH_PREFIX / <PREFIX>EXTRA_JSON
+  agnes: {
+    label: 'Agnes',
+    keyEnv: 'AGNES_API_KEY',
+    urlEnv: 'AGNES_API_URL',
+    modelEnv: 'AGNES_MODEL',
+    defaultModel: '',
+    prefix: 'AGNES_'
+  },
+  custom: {
+    label: '自定义图像 API',
+    keyEnv: 'CUSTOM_IMAGE_API_KEY',
+    urlEnv: 'CUSTOM_IMAGE_API_URL',
+    modelEnv: 'CUSTOM_IMAGE_MODEL',
+    defaultModel: '',
+    prefix: 'CUSTOM_IMAGE_'
   }
 };
 
-const DEFAULT_ORDER = ['glm', 'zimage', 'gemini'];
+const DEFAULT_ORDER = ['glm', 'zimage', 'gemini', 'agnes', 'custom'];
 
 /** 由分类构造写实场景提示词 */
 function buildCoverPrompt(spec = {}) {
@@ -84,12 +104,17 @@ function buildCoverPrompt(spec = {}) {
  * @param {string} [requested] 显式指定（COVER_AI_PROVIDER 或 options.provider）
  */
 function availableProviders(env = process.env, requested = '') {
+  const usable = (name) => {
+    const meta = PROVIDERS[name];
+    if (!env[meta.keyEnv]) {return false;}
+    // 自定义类提供商必须同时给出 API_URL，否则选中也只会失败
+    return !meta.urlEnv || Boolean(env[meta.urlEnv]);
+  };
   const want = String(requested || env.COVER_AI_PROVIDER || '').trim().toLowerCase();
   if (want && want !== 'auto') {
-    const p = PROVIDERS[want];
-    return p && env[p.keyEnv] ? [want] : [];
+    return PROVIDERS[want] && usable(want) ? [want] : [];
   }
-  return DEFAULT_ORDER.filter((name) => env[PROVIDERS[name].keyEnv]);
+  return DEFAULT_ORDER.filter(usable);
 }
 
 /** 从 URL 或 base64 取出图片 Buffer */
@@ -148,6 +173,72 @@ async function callGemini(prompt, { axios, env, timeout, model }) {
 }
 
 const CALLERS = { glm: callGlm, zimage: callZImage, gemini: callGemini };
+
+/**
+ * 从各种常见响应结构中取出图片引用（URL 或 base64）。
+ * 覆盖 OpenAI（data[].url / data[].b64_json）、部分平台（data[].image / images[] / output[]）。
+ */
+function extractImageRef(data, responseType = 'auto') {
+  const pick = (obj) => {
+    if (!obj) {return null;}
+    if (typeof obj === 'string') {return obj;}
+    return obj.url || obj.b64_json || obj.image || obj.image_url || obj.base64 || null;
+  };
+
+  if (responseType === 'url' || responseType === 'b64') {
+    // 指定类型时仍然按位置找，只是不做形状猜测
+    const item = Array.isArray(data && data.data) ? data.data[0] : null;
+    return pick(item) || (responseType === 'url' ? null : pick(data));
+  }
+
+  return pick(data && data.data && data.data[0])
+    || pick(data && data.images && data.images[0])
+    || pick(data && data.output && data.output[0])
+    || pick(data && data.result)
+    || pick(data);
+}
+
+/** 读取自定义提供商的配置 */
+function genericConfig(prefix, env) {
+  const get = (name) => env[`${prefix}${name}`];
+  let extra = {};
+  if (get('EXTRA_JSON')) {
+    try { extra = JSON.parse(get('EXTRA_JSON')); } catch { extra = {}; }
+  }
+  return {
+    url: get('API_URL') || get('BASE_URL') || '',
+    key: get('API_KEY') || '',
+    model: get('MODEL') || '',
+    size: get('SIZE') || '1024x1024',
+    authHeader: get('AUTH_HEADER') || 'Authorization',
+    // 显式设为空字符串时不加前缀
+    authPrefix: get('AUTH_PREFIX') === undefined ? 'Bearer ' : get('AUTH_PREFIX'),
+    responseType: String(get('RESPONSE_TYPE') || 'auto').toLowerCase(),
+    extra
+  };
+}
+
+/** 兼容 OpenAI 风格的通用图像接口 */
+async function callGeneric(prompt, { axios, env, timeout, model, prefix }) {
+  const cfg = genericConfig(prefix, env);
+  if (!cfg.url) {throw new Error(`未配置 ${prefix}API_URL`);}
+
+  const headers = { 'Content-Type': 'application/json' };
+  if (cfg.key) {headers[cfg.authHeader] = `${cfg.authPrefix}${cfg.key}`;}
+
+  const body = { prompt, ...cfg.extra };
+  const useModel = model || cfg.model;
+  if (useModel) {body.model = useModel;}
+  if (cfg.size) {body.size = cfg.size;}
+
+  const res = await axios.post(cfg.url, body, { headers, timeout });
+  const ref = extractImageRef(res.data, cfg.responseType);
+  if (!ref) {throw new Error('响应中未找到图片 URL / base64');}
+  return fetchImageBuffer(axios, ref, timeout);
+}
+
+CALLERS.agnes = (prompt, ctx) => callGeneric(prompt, { ...ctx, prefix: PROVIDERS.agnes.prefix });
+CALLERS.custom = (prompt, ctx) => callGeneric(prompt, { ...ctx, prefix: PROVIDERS.custom.prefix });
 
 /**
  * 合成封面：裁剪到目标尺寸 + 叠加标题/分类/页脚。
@@ -237,7 +328,7 @@ async function generateAiCover(spec, options = {}) {
         const buffer = await composeCover(raw, spec, { ...options, sharp: options.sharp });
         return { buffer, provider: name, model, prompt };
       } catch (err) {
-        errors.push(`${meta.label} [${model}]: ${err.message}`);
+        errors.push(`${meta.label}${model ? ` [${model}]` : ''}: ${err.message}`);
       }
     }
   }
@@ -259,6 +350,7 @@ module.exports = {
   buildCoverPrompt,
   availableProviders,
   modelsFor,
+  extractImageRef,
   buildOverlaySvg,
   composeCover,
   generateAiCover,

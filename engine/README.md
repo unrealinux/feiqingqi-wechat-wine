@@ -122,6 +122,7 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 | 智谱 CogView | `GLM_API_KEY` | 国内直连可用；`cogview-4` 余额不足时自动降级到免费的 `cogview-3-flash`（右下角带「AI生成」标识，属合规要求） |
 | ModelScope Z-Image | `ZIMAGE_API_KEY` | 需 ModelScope 的 API Token（非登录密码） |
 | Google Gemini | `GEMINI_API_KEY` | 国内需配 `HTTP(S)_PROXY` |
+| Agnes / 自定义 | `AGNES_API_KEY` + `AGNES_API_URL` | 兼容 OpenAI 风格的图像接口，零改动接入；非标准接口可用 `AGNES_AUTH_HEADER` / `AGNES_EXTRA_JSON` 等覆盖（见 `.env.example`） |
 
 - 提供商顺序 `glm -> zimage -> gemini`，可用 `COVER_AI_PROVIDER` 指定；
   单个提供商内还有**模型级回退**（如 `cogview-4 -> cogview-3-flash`）。

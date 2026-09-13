@@ -12,6 +12,7 @@ const {
   availableProviders,
   modelsFor,
   hasImageProvider,
+  extractImageRef,
   buildOverlaySvg,
   composeCover,
   generateAiCover,
@@ -149,5 +150,86 @@ describe('generateAiCover（假 axios + 真实 sharp）', () => {
 
     expect(axios.get).toHaveBeenCalledWith('https://img.example/y.png',
       expect.objectContaining({ responseType: 'arraybuffer' }));
+  });
+});
+
+describe('extractImageRef（兼容多种响应结构）', () => {
+  test.each([
+    [{ data: [{ url: 'u' }] }, 'u'],
+    [{ data: [{ b64_json: 'b' }] }, 'b'],
+    [{ data: [{ image: 'i' }] }, 'i'],
+    [{ images: ['x'] }, 'x'],
+    [{ output: [{ url: 'o' }] }, 'o'],
+    [{ result: { url: 'r' } }, 'r'],
+    [{ url: 'top' }, 'top']
+  ])('从 %j 取出引用', (payload, expected) => {
+    expect(extractImageRef(payload)).toBe(expected);
+  });
+
+  test('找不到时返回 null', () => {
+    expect(extractImageRef({ foo: 'bar' })).toBeNull();
+    expect(extractImageRef(null)).toBeNull();
+  });
+});
+
+describe('自定义 / Agnes 提供商（OpenAI 风格即可接入）', () => {
+  const makeAxios = () => ({ post: jest.fn(), get: jest.fn() });
+  const AGNES_URL = 'https://agnes.example/v1/images/generations';
+
+  test('必须同时有 API_KEY 与 API_URL 才可用', () => {
+    expect(availableProviders({ AGNES_API_KEY: 'k' })).toEqual([]);
+    expect(availableProviders({ AGNES_API_KEY: 'k', AGNES_API_URL: AGNES_URL })).toEqual(['agnes']);
+  });
+
+  test('COVER_AI_PROVIDER=agnes 可强制指定', () => {
+    const env = { COVER_AI_PROVIDER: 'agnes', AGNES_API_KEY: 'k', AGNES_API_URL: AGNES_URL };
+    expect(availableProviders(env)).toEqual(['agnes']);
+  });
+
+  test('OpenAI 风格 data[0].url：请求体/鉴权头正确', async () => {
+    const axios = makeAxios();
+    axios.post.mockResolvedValue({ data: { data: [{ url: 'https://img/x.png' }] } });
+    axios.get.mockResolvedValue({ data: tinyPng });
+
+    const env = { AGNES_API_KEY: 'k', AGNES_API_URL: AGNES_URL, AGNES_MODEL: 'agnes-image-1' };
+    const r = await generateAiCover(SPEC, { env, axios, sharp });
+
+    expect(r.provider).toBe('agnes');
+    expect(r.model).toBe('agnes-image-1');
+    const [url, body, opts] = axios.post.mock.calls[0];
+    expect(url).toBe(AGNES_URL);
+    expect(body).toMatchObject({ model: 'agnes-image-1', size: '1024x1024' });
+    expect(typeof body.prompt).toBe('string');
+    expect(opts.headers.Authorization).toBe('Bearer k');
+  });
+
+  test('data[0].b64_json 内联图片无需再下载', async () => {
+    const axios = makeAxios();
+    axios.post.mockResolvedValue({ data: { data: [{ b64_json: tinyPng.toString('base64') }] } });
+
+    const env = { CUSTOM_IMAGE_API_KEY: 'k', CUSTOM_IMAGE_API_URL: 'https://c/i' };
+    const r = await generateAiCover(SPEC, { env, axios, sharp, provider: 'custom' });
+
+    expect(r.provider).toBe('custom');
+    expect(axios.get).not.toHaveBeenCalled();
+  });
+
+  test('EXTRA_JSON 合并进请求体，且 AUTH_HEADER / AUTH_PREFIX 可定制', async () => {
+    const axios = makeAxios();
+    axios.post.mockResolvedValue({ data: { images: ['https://img/z.png'] } });
+    axios.get.mockResolvedValue({ data: tinyPng });
+
+    const env = {
+      CUSTOM_IMAGE_API_KEY: 'k',
+      CUSTOM_IMAGE_API_URL: 'https://c/i',
+      CUSTOM_IMAGE_EXTRA_JSON: '{"steps":8}',
+      CUSTOM_IMAGE_AUTH_PREFIX: '',
+      CUSTOM_IMAGE_AUTH_HEADER: 'X-Key'
+    };
+    await generateAiCover(SPEC, { env, axios, sharp, provider: 'custom' });
+
+    const [, body, opts] = axios.post.mock.calls[0];
+    expect(body.steps).toBe(8);
+    expect(opts.headers['X-Key']).toBe('k');
   });
 });

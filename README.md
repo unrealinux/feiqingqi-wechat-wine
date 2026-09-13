@@ -47,6 +47,11 @@ node engine/cli.js articles/xxx.json --update-draft <media_id>  # 更新已有�
 > 需要 `GLM_API_KEY` / `ZIMAGE_API_KEY` / `GEMINI_API_KEY` 之一（见 `.env.example`）。
 > 实测：GLM 国内直连可用（`cogview-4` 余额不足时自动降级到免费但带「AI生成」标识的
 > `cogview-3-flash`）；Z-Image 需 ModelScope 的 API Token；Gemini 国内需配代理。
+>
+> **其它图像 API（含 Agnes）无需改代码即可接入**：只要接口是 OpenAI 风格
+> （`POST {url}` `{model,prompt,size}` → `{data:[{url|b64_json}]}`），在 `.env` 填
+> `AGNES_API_URL` / `AGNES_API_KEY` / `AGNES_MODEL`，再把 `COVER_AI_PROVIDER=agnes` 即可；
+> 非标准接口可用 `AGNES_EXTRA_JSON` / `AGNES_AUTH_HEADER` / `AGNES_AUTH_PREFIX` 等覆盖。
 
 ## 目录结构
 
