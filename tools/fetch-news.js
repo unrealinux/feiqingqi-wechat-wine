@@ -111,7 +111,8 @@ const TYPE_LABELS = {
   market: '市场',
   industry: '行业',
   blog: '博客',
-  rating: '评分'
+  rating: '评分',
+  regional: '产区'
 };
 
 /** 解码常见 HTML 实体（含数字实体） */
@@ -265,26 +266,111 @@ function buildDraft(item, source, options = {}) {
   };
 }
 
-/** 抓取单个信息源并解析 RSS */
+/**
+ * 判定「响应体其实是 HTML 页面」。
+ * 反爬、需登录、feed 地址失效时，服务器常返回 200 + HTML（甚至跳转到首页/captcha），
+ * 若直接交给 XML 解析器，会得到“Attribute without value”这类误导性错误。
+ */
+function looksLikeHtml(body, contentType = '') {
+  if (/text\/html/i.test(contentType)) {return true;}
+  const head = String(body || '').replace(/^\uFEFF/, '').trimStart().slice(0, 300).toLowerCase();
+  return head.startsWith('<!doctype html') || head.startsWith('<html');
+}
+
+/**
+ * 清理畸形 XML，使其能被严格解析器接受。
+ * 只做「安全、可逆性损失极小」的修正，避免把正文改坏：
+ *   1. 去掉 XML 1.0 不允许的控制字符（保留 \t \n \r）；
+ *   2. 转义 CDATA 之外的裸 &（保留 &amp; / &#39; / &#x27; 等合法实体）；
+ *   CDATA 段整体保护，避免误改其中的 & 。
+ */
+function sanitizeXml(xml) {
+  let s = String(xml || '');
+
+  // 1) 非法控制字符（保留 \t \n \r）—— 清理它们正是本函数职责
+  // eslint-disable-next-line no-control-regex
+  s = s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+
+  // 2) 保护 CDATA 段（哨兵用私有区字符，避免与正文冲突）
+  const cdata = [];
+  s = s.replace(/<!\[CDATA\[[\s\S]*?\]\]>/g, (m) => {
+    cdata.push(m);
+    return `\uE000CDATA${cdata.length - 1}\uE000`;
+  });
+
+  // 3) 裸 & -> &amp;
+  s = s.replace(/&(?!(?:[a-zA-Z][a-zA-Z0-9]*|#[0-9]+|#x[0-9a-fA-F]+);)/g, '&amp;');
+
+  // 4) 还原 CDATA
+  s = s.replace(/\uE000CDATA(\d+)\uE000/g, (_, i) => cdata[Number(i)]);
+  return s;
+}
+
+/** 把网络/HTTP 错误翻译成可操作的提示 */
+function describeFetchError(err, source = {}) {
+  const status = err && err.response && err.response.status;
+  const msg = (err && err.message) || String(err);
+  const res = err && err.response && err.response.request && err.response.request.res;
+  const finalUrl = res && res.responseUrl;
+  const at = finalUrl && finalUrl !== source.url ? `（final=${finalUrl}）` : '';
+
+  if (status === 403) {return `HTTP 403（被拒绝，可能反爬）${at}｜ ${source.url}`;}
+  if (status === 404 || status === 410) {return `HTTP ${status}（URL 已失效，请更新源）${at}｜ ${source.url}`;}
+  if (status === 406) {return `HTTP 406（内容协商被拒，可能要求特定 UA）${at}｜ ${source.url}`;}
+  if (/certificate|self.signed|unable to verify|altnames/i.test(msg)) {
+    return `TLS 证书校验失败（${msg}）｜ ${source.url}`;
+  }
+  if (/timeout/i.test(msg)) {return `请求超时（${msg}）｜ ${source.url}`;}
+  if (status) {return `HTTP ${status}${at}｜ ${source.url}`;}
+  return `${msg}${at}`;
+}
+
+/** 抓取单个信息源并解析 RSS（含容错） */
 async function fetchSource(source, deps = {}) {
   const axios = deps.axios || require('axios');
   const timeout = deps.timeout || 15000;
   const Parser = deps.Parser || require('rss-parser');
   const parser = deps.parser || new Parser({ timeout });
 
-  const res = await axios.get(source.url, {
-    ...getAxiosProxyConfig(),
-    timeout,
-    responseType: 'text',
-    headers: {
-      'User-Agent': UA,
-      Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*'
-    }
-  });
+  let res;
+  try {
+    res = await axios.get(source.url, {
+      ...getAxiosProxyConfig(),
+      timeout,
+      responseType: 'text',
+      headers: {
+        'User-Agent': UA,
+        Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*'
+      }
+    });
+  } catch (err) {
+    throw new Error(describeFetchError(err, source));
+  }
 
+  const contentType = (res.headers && res.headers['content-type']) || '';
   const xml = typeof res.data === 'string' ? res.data : String(res.data);
-  const feed = await parser.parseString(xml);
-  return { source, feedTitle: feed.title || source.name, items: feed.items || [] };
+  const finalUrl = (res.request && res.request.res && res.request.res.responseUrl) || source.url;
+
+  // 先分清「不是 feed」与「feed 解析失败」，否则反爬页面会被报成 XML 语法错误
+  if (looksLikeHtml(xml, contentType)) {
+    throw new Error(`返回的是 HTML 而非 RSS（可能被反爬 / 需登录 / 链接已失效）｜ final=${finalUrl}`);
+  }
+
+  try {
+    const feed = await parser.parseString(xml);
+    return { source, feedTitle: feed.title || source.name, items: feed.items || [], sanitized: false };
+  } catch (firstErr) {
+    const fixed = sanitizeXml(xml);
+    if (fixed === xml) {
+      throw new Error(`RSS 解析失败：${firstErr.message}｜ ${source.url}`);
+    }
+    try {
+      const feed = await parser.parseString(fixed);
+      return { source, feedTitle: feed.title || source.name, items: feed.items || [], sanitized: true };
+    } catch (secondErr) {
+      throw new Error(`RSS 解析失败（容错重试后仍失败）：${secondErr.message}｜ ${source.url}`);
+    }
+  }
 }
 
 /** 收集已存在的标题/链接，用于跨运行去重 */
@@ -418,7 +504,9 @@ async function main() {
   settled.forEach((r, i) => {
     if (r.status === 'fulfilled') {
       fetched.push(r.value);
-      log(opts, `   ✅ ${sources[i].name}：${r.value.items.length} 条`);
+      const mark = r.value.sanitized ? '⚠️ ' : '✅';
+      const note = r.value.sanitized ? '（XML 已容错清洗）' : '';
+      log(opts, `   ${mark} ${sources[i].name}：${r.value.items.length} 条${note}`);
     } else {
       failures.push({ source: sources[i].name, error: r.reason && r.reason.message ? r.reason.message : String(r.reason) });
       log(opts, `   ❌ ${sources[i].name}：${failures[failures.length - 1].error}`);
@@ -449,6 +537,7 @@ async function main() {
     console.log(JSON.stringify({
       ok: invalid.length === 0,
       fetched: fetched.length,
+      sanitized: fetched.filter((f) => f.sanitized).map((f) => f.source.name),
       failures,
       drafts: drafts.map((d) => ({ name: d.name, title: d.title, category: d.category, blocks: d.content.length })),
       skipped,
@@ -495,6 +584,9 @@ module.exports = {
   inferCategory,
   inferTags,
   buildDraft,
+  looksLikeHtml,
+  sanitizeXml,
+  describeFetchError,
   fetchSource,
   collectSeen,
   buildDrafts,

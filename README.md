@@ -54,7 +54,7 @@ tools/
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
   win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
-tests/                 259 个测试（12 个套件）
+tests/                 274 个测试（12 个套件）
 archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -210,7 +210,7 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 259 个用例，12 个套件
+npm test        # 274 个用例，12 个套件
 npm run lint    # 0 error / 0 warning
 ```
 
@@ -286,6 +286,12 @@ RSS 信息源 ──tools/fetch-news.js──► articles/_incoming/*.json（引
   因此不会被误渲染/发布；
 - 按标题与原文链接**跨运行去重**；
 - 分类由关键词自动推断，但受引擎 8 类白名单约束；
+- **解析容错**：先把「不是 feed」与「feed 坏了」分开报：
+  · 服务器返回 HTML（反爬 / 需登录 / 链接失效）→ 明确指出，而非含糊的 XML 语法错误；
+  · HTTP 403 / 404 / 406 / 证书 / 超时 → 分类翻译成可操作提示；
+  · 真·畸形 XML（如裸 `&`）→ 自动清洗（含 CDATA 保护）后重试，并在结果里标记 ⚠️；
+- 信息源清单只收录**实测可返回真 RSS** 的源（当前 7 个英文源）；
+  旧的中文源目前均不可用（captcha / 404 / 证书链），已在 `tools/news-sources.js` 注明；
 - 不重新引入旧的 aggregator / generator / publisher —— 版权、事实核对与文风
   仍由人工把关。
 

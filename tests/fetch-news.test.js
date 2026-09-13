@@ -27,6 +27,9 @@ const {
   inferCategory,
   inferTags,
   buildDraft,
+  looksLikeHtml,
+  sanitizeXml,
+  describeFetchError,
   fetchSource,
   collectSeen,
   buildDrafts,
@@ -187,6 +190,57 @@ describe('slugFor', () => {
   });
 });
 
+describe('sanitizeXml（畸形 XML 清洗）', () => {
+  test('转义裸 & 但保留合法实体', () => {
+    expect(sanitizeXml('a & b')).toBe('a &amp; b');
+    expect(sanitizeXml('a &amp; b &#39; &#x27; &#20013;')).toBe('a &amp; b &#39; &#x27; &#20013;');
+  });
+
+  test('CDATA 内部的 & 不被转义', () => {
+    expect(sanitizeXml('<d><![CDATA[a & b < c]]></d>')).toBe('<d><![CDATA[a & b < c]]></d>');
+  });
+
+  test('去掉非法控制字符，但保留制表/换行', () => {
+    expect(sanitizeXml('a\u0000b\u0007c\td\ne')).toBe('abc\td\ne');
+  });
+
+  test('对正常 XML 不做无谓改动', () => {
+    const feed = '<?xml version="1.0"?><rss><channel><title>A &amp; B</title></channel></rss>';
+    expect(sanitizeXml(feed)).toBe(feed);
+  });
+});
+
+describe('looksLikeHtml', () => {
+  test('DOCTYPE / <html> 开头判为 HTML', () => {
+    expect(looksLikeHtml('<!DOCTYPE html><html>...', '')).toBe(true);
+    expect(looksLikeHtml('\uFEFF  <html lang="en">', '')).toBe(true);
+  });
+
+  test('content-type 为 text/html 时判为 HTML', () => {
+    expect(looksLikeHtml('whatever', 'text/html; charset=utf-8')).toBe(true);
+  });
+
+  test('XML feed 不判为 HTML', () => {
+    expect(looksLikeHtml('<?xml version="1.0"?><rss>', 'application/rss+xml')).toBe(false);
+    expect(looksLikeHtml('<rss version="2.0">', 'application/xml')).toBe(false);
+  });
+});
+
+describe('describeFetchError', () => {
+  test('403 提示反爬', () => {
+    expect(describeFetchError({ response: { status: 403 }, message: 'x' }, { url: 'u' })).toMatch(/403.*反爬/);
+  });
+  test('404 提示 URL 失效', () => {
+    expect(describeFetchError({ response: { status: 404 }, message: 'x' }, { url: 'u' })).toMatch(/404.*失效/);
+  });
+  test('证书错误单独分类', () => {
+    expect(describeFetchError({ message: 'unable to verify the first certificate' }, { url: 'u' })).toMatch(/证书/);
+  });
+  test('超时单独分类', () => {
+    expect(describeFetchError({ message: 'timeout of 1000ms exceeded' }, { url: 'u' })).toMatch(/超时/);
+  });
+});
+
 describe('fetchSource（mock axios + 真实 rss-parser）', () => {
   const RSS = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
@@ -199,18 +253,59 @@ describe('fetchSource（mock axios + 真实 rss-parser）', () => {
   </item>
 </channel></rss>`;
 
+  // 裸 &（无 CDATA）：严格解析器会拒绝，需清洗后重试
+  const MALFORMED = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>A & B Feed</title>
+  <item>
+    <title>Wine & Food</title>
+    <link>https://example.com/m</link>
+    <description><![CDATA[<p>C&D pairing</p>]]></description>
+  </item>
+</channel></rss>`;
+
   test('解析出条目，并以文本方式请求（便于走代理）', async () => {
-    axios.get.mockResolvedValue({ data: RSS });
+    axios.get.mockResolvedValue({ data: RSS, headers: { 'content-type': 'application/rss+xml' } });
 
     const out = await fetchSource(SOURCE);
 
     expect(out.items).toHaveLength(1);
     expect(out.items[0].title).toBe('Hello Wine');
     expect(out.feedTitle).toBe('Test Feed');
+    expect(out.sanitized).toBe(false);
     expect(axios.get).toHaveBeenCalledWith(
       SOURCE.url,
       expect.objectContaining({ responseType: 'text' })
     );
+  });
+
+  test('裸 & 的畸形 XML 会清洗后重试成功', async () => {
+    axios.get.mockResolvedValue({ data: MALFORMED, headers: { 'content-type': 'application/rss+xml' } });
+
+    const out = await fetchSource(SOURCE);
+
+    expect(out.sanitized).toBe(true);
+    expect(out.items).toHaveLength(1);
+    expect(out.items[0].title).toBe('Wine & Food');
+  });
+
+  test('响应是 HTML 时给出可操作错误（而非 XML 语法错误）', async () => {
+    axios.get.mockResolvedValue({
+      data: '<!DOCTYPE html><html><head><title>Just a moment...</title></head></html>',
+      headers: { 'content-type': 'text/html; charset=utf-8' }
+    });
+
+    await expect(fetchSource(SOURCE)).rejects.toThrow(/HTML 而非 RSS/);
+  });
+
+  test('HTTP 403 被翻译为反爬提示', async () => {
+    axios.get.mockRejectedValue({ response: { status: 403 }, message: 'Request failed with status code 403' });
+    await expect(fetchSource(SOURCE)).rejects.toThrow(/403.*反爬/);
+  });
+
+  test('HTTP 404 被翻译为 URL 失效提示', async () => {
+    axios.get.mockRejectedValue({ response: { status: 404 }, message: 'Request failed with status code 404' });
+    await expect(fetchSource(SOURCE)).rejects.toThrow(/404.*失效/);
   });
 });
 
