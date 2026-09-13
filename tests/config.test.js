@@ -46,7 +46,7 @@ describe('config.publish.endpoints', () => {
   test('键名与 engine/wechat.js 的 API 常量一致', () => {
     const { endpoints } = loadConfig().publish;
     expect(Object.keys(endpoints).sort()).toEqual(
-      ['addDraft', 'addMaterial', 'getDraftCount', 'token', 'uploadImg'].sort()
+      ['addDraft', 'addMaterial', 'getDraftCount', 'token', 'updateDraft', 'uploadImg'].sort()
     );
   });
 
@@ -54,6 +54,7 @@ describe('config.publish.endpoints', () => {
     const { endpoints } = loadConfig().publish;
     expect(endpoints.token).toBe('https://api.weixin.qq.com/cgi-bin/token');
     expect(endpoints.addDraft).toBe('https://api.weixin.qq.com/cgi-bin/draft/add');
+    expect(endpoints.updateDraft).toBe('https://api.weixin.qq.com/cgi-bin/draft/update');
     expect(endpoints.addMaterial).toBe('https://api.weixin.qq.com/cgi-bin/material/add_material');
     expect(endpoints.uploadImg).toBe('https://api.weixin.qq.com/cgi-bin/media/uploadimg');
     expect(endpoints.getDraftCount).toBe('https://api.weixin.qq.com/cgi-bin/draft/count');

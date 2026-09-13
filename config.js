@@ -20,6 +20,7 @@ module.exports = {
       addMaterial: 'https://api.weixin.qq.com/cgi-bin/material/add_material',
       uploadImg: process.env.WECHAT_UPLOAD_URL || 'https://api.weixin.qq.com/cgi-bin/media/uploadimg',
       addDraft: process.env.WECHAT_DRAFT_URL || 'https://api.weixin.qq.com/cgi-bin/draft/add',
+      updateDraft: process.env.WECHAT_UPDATE_DRAFT_URL || 'https://api.weixin.qq.com/cgi-bin/draft/update',
       getDraftCount: 'https://api.weixin.qq.com/cgi-bin/draft/count',
     },
   },

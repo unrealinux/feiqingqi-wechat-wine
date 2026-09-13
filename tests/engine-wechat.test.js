@@ -210,3 +210,44 @@ describe('uploadThumb', () => {
     await expect(client.uploadThumb(Buffer.from('x'))).rejects.toThrow(/invalid file type/);
   });
 });
+
+describe('updateDraft', () => {
+  test('缺少 mediaId 时拒绝', async () => {
+    const client = new WeChatClient(CREDENTIALS);
+    await expect(client.updateDraft({ article: validArticle() })).rejects.toThrow(/mediaId/);
+  });
+
+  test('校验失败时不请求 token 与接口（fail-fast）', async () => {
+    const client = new WeChatClient(CREDENTIALS);
+    await expect(
+      client.updateDraft({ mediaId: 'M', article: { ...validArticle(), title: '' } })
+    ).rejects.toThrow('文章字段校验失败');
+    expect(axios.get).not.toHaveBeenCalled();
+    expect(axios.post).not.toHaveBeenCalled();
+  });
+
+  test('提交 draft/update，articles 为单个对象（区别于 add 的数组）', async () => {
+    axios.get.mockResolvedValue({ data: { access_token: 'T', expires_in: 7200 } });
+    axios.post.mockResolvedValue({ data: { errcode: 0, errmsg: 'ok' } });
+
+    const client = new WeChatClient(CREDENTIALS);
+    await client.updateDraft({ mediaId: 'DRAFT_ID', index: 0, article: validArticle() });
+
+    const [url, payload] = axios.post.mock.calls[0];
+    expect(url).toContain('draft/update');
+    expect(url).toContain('access_token=T');
+    expect(payload.media_id).toBe('DRAFT_ID');
+    expect(payload.index).toBe(0);
+    expect(Array.isArray(payload.articles)).toBe(false);
+    expect(payload.articles.title).toBe(validArticle().title);
+  });
+
+  test('接口报错时抛出 WeChatError', async () => {
+    axios.get.mockResolvedValue({ data: { access_token: 'T', expires_in: 7200 } });
+    axios.post.mockResolvedValue({ data: { errcode: 40007, errmsg: 'invalid media_id' } });
+
+    const client = new WeChatClient(CREDENTIALS);
+    await expect(client.updateDraft({ mediaId: 'X', article: validArticle() }))
+      .rejects.toThrow(/invalid media_id/);
+  });
+});

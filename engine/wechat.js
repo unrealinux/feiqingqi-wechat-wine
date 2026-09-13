@@ -20,6 +20,7 @@ const API = {
   addMaterial: 'https://api.weixin.qq.com/cgi-bin/material/add_material',
   uploadImg: 'https://api.weixin.qq.com/cgi-bin/media/uploadimg',
   addDraft: 'https://api.weixin.qq.com/cgi-bin/draft/add',
+  updateDraft: 'https://api.weixin.qq.com/cgi-bin/draft/update',
   getDraftCount: 'https://api.weixin.qq.com/cgi-bin/draft/count',
 };
 
@@ -272,6 +273,49 @@ class WeChatClient {
       });
       if (res.data.errcode) {
         throw new WeChatError(describeApiError(res.data, '查询草稿数'), res.data);
+      }
+      return res.data;
+    });
+  }
+
+  /**
+   * 更新已有草稿（用于替换封面/正文，不新建草稿）。
+   * @param {{mediaId: string, index?: number, article: object}} params
+   * @returns {Promise<{errcode?: number}>}
+   */
+  updateDraft({ mediaId, index = 0, article }) {
+    if (!mediaId) {
+      return Promise.reject(new WeChatError('updateDraft 需要 mediaId'));
+    }
+    const errors = validateArticle(article);
+    if (errors.length) {
+      // 同 addDraft：校验失败也以 rejected Promise 暴露，且不发起 token 请求
+      return Promise.reject(new WeChatError(`文章字段校验失败:\n  - ${errors.join('\n  - ')}`));
+    }
+
+    // 注意：draft/update 的 articles 是单个对象（不是 add 那样的数组）
+    const payload = {
+      media_id: mediaId,
+      index,
+      articles: {
+        title: article.title,
+        author: article.author || '',
+        digest: article.digest || '',
+        content: article.content,
+        thumb_media_id: article.thumbMediaId,
+        show_cover_pic: article.showCoverPic === undefined ? 1 : article.showCoverPic,
+        need_open_comment: article.needOpenComment === undefined ? 0 : article.needOpenComment,
+        only_fans_can_comment: 0,
+      },
+    };
+
+    return this.withToken(async (token) => {
+      const res = await axios.post(`${this.endpoints.updateDraft}?access_token=${token}`, payload, {
+        timeout: this.timeout,
+        maxBodyLength: Infinity,
+      });
+      if (res.data.errcode) {
+        throw new WeChatError(describeApiError(res.data, '更新草稿'), res.data);
       }
       return res.data;
     });

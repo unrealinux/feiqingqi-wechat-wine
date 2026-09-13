@@ -9,7 +9,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { parseArgs, processOne, buildPreviewHtml } = require('../engine/cli');
+const { parseArgs, processOne, buildPreviewHtml, buildCoverBuffer } = require('../engine/cli');
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLE = path.join(ROOT, 'articles', 'bbq_pairing.json');
@@ -24,9 +24,9 @@ afterEach(() => {
   fs.rmSync(tmpDir, { recursive: true, force: true });
 });
 
-/** processOne 需要的选项对象（默认静默，避免测试输出噪音） */
+/** processOne 需要的选项对象（默认静默 + 关闭 AI 封面，避免单测触网） */
 function options(overrides = {}) {
-  return { out: tmpDir, quiet: true, ...overrides };
+  return { out: tmpDir, quiet: true, coverAi: false, ...overrides };
 }
 
 describe('cli: parseArgs', () => {
@@ -59,6 +59,44 @@ describe('cli: parseArgs', () => {
 
   test('未知选项应抛错而不是静默忽略', () => {
     expect(() => parseArgs(['--nope'])).toThrow('未知选项');
+  });
+
+  test('--cover-ai / --no-cover-ai / --cover-ai-provider', () => {
+    expect(parseArgs(['--cover-ai']).coverAi).toBe(true);
+    expect(parseArgs(['--no-cover-ai']).coverAi).toBe(false);
+    expect(parseArgs([]).coverAi).toBeUndefined(); // 默认自动
+    expect(parseArgs(['--cover-ai-provider', 'gemini']).coverAiProvider).toBe('gemini');
+  });
+
+  test('--update-draft 需要 media_id', () => {
+    expect(parseArgs(['--update-draft', 'MID']).updateDraft).toBe('MID');
+    expect(parseArgs([]).updateDraft).toBe('');
+  });
+});
+
+describe('cli: buildCoverBuffer', () => {
+  const keys = ['GLM_API_KEY', 'ZIMAGE_API_KEY', 'GEMINI_API_KEY'];
+  let saved;
+
+  beforeEach(() => {
+    saved = {};
+    for (const k of keys) { saved[k] = process.env[k]; delete process.env[k]; }
+  });
+  afterEach(() => {
+    for (const k of keys) { if (saved[k] === undefined) { delete process.env[k]; } else { process.env[k] = saved[k]; } }
+  });
+
+  const article = { title: '测试封面标题', digest: '摘要', category: 'wine-knowledge', tags: ['t'] };
+
+  test('未配置任何图像 Key 时回退矢量封面（仍输出 PNG）', async () => {
+    const buf = await buildCoverBuffer({ theme: { name: 'rich' } }, article, { quiet: true });
+    expect(buf.slice(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+  });
+
+  test('--no-cover-ai 即使配置了 Key 也不调用大模型（离线可用）', async () => {
+    process.env.GLM_API_KEY = 'fake-key';
+    const buf = await buildCoverBuffer({ theme: { name: 'rich' } }, article, { quiet: true, coverAi: false });
+    expect(buf.slice(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
   });
 });
 

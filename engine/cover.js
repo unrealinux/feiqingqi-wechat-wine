@@ -62,7 +62,7 @@ function wrapByWidth(text, maxWidth, maxLines) {
     /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE6F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(ch) ? 2 : 1;
 
   // 把连续的 ASCII 字母数字视为一个整体，避免把 “72” / “Chardonnay” 从中间折断
-  const tokens = clean.match(/[0-9A-Za-z]+(?:[.'’\-][0-9A-Za-z]+)*|\s|[\s\S]/g) || [];
+  const tokens = clean.match(/[0-9A-Za-z]+(?:[.'’-][0-9A-Za-z]+)*|\s|[\s\S]/g) || [];
 
   const lines = [];
   let line = '';

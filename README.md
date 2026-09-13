@@ -31,6 +31,23 @@ node engine/cli.js --all --cover --publish
 
 没有 `build_*.py`，也没有 `generate-*.js` —— 新增一篇专题只需新建一个 `articles/<name>.json`。详见 [engine/README.md](engine/README.md)。
 
+### 封面：AI 写实图（推荐）vs 矢量兜底
+
+`--cover` / `--publish` 会**优先调用图像大模型**生成写实封面（1200×630），
+按 `glm -> zimage -> gemini` 顺序自动选择已配置 Key 的提供商；调用失败或未配置 Key 时
+自动回退到矢量封面（`engine/cover.js`），不影响发布。
+
+```bash
+node engine/cli.js articles/xxx.json --cover                 # 默认：有 Key 就用 AI
+node engine/cli.js articles/xxx.json --cover --no-cover-ai   # 强制矢量封面（离线可用）
+node engine/cli.js articles/xxx.json --cover-ai-provider glm # 指定提供商
+node engine/cli.js articles/xxx.json --update-draft <media_id>  # 更新已有草稿（换封面/正文）
+```
+
+> 需要 `GLM_API_KEY` / `ZIMAGE_API_KEY` / `GEMINI_API_KEY` 之一（见 `.env.example`）。
+> 实测：GLM 国内直连可用（`cogview-4` 余额不足时自动降级到免费但带「AI生成」标识的
+> `cogview-3-flash`）；Z-Image 需 ModelScope 的 API Token；Gemini 国内需配代理。
+
 ## 目录结构
 
 ```
@@ -40,7 +57,8 @@ articles/              99 篇文章数据（唯一真相）
 engine/                渲染引擎
   blocks.js            17 种内容块的校验与渲染分发
   themes/              classic（第一代风格）/ rich（主题色风格）
-  cover.js             封面生成（SVG -> PNG）
+  cover.js             矢量封面（SVG -> PNG，带兜底）
+  ai-cover.js          AI 写实封面（GLM / Z-Image / Gemini，失败回退 cover.js）
   wechat.js            微信 API 客户端
   article.js           数据 -> 成品文章
   cli.js               命令行入口
@@ -54,7 +72,7 @@ tools/
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
   win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
-tests/                 274 个测试（12 个套件）
+tests/                 298 个测试（13 个套件）
 archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -210,7 +228,7 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 274 个用例，12 个套件
+npm test        # 298 个用例，13 个套件
 npm run lint    # 0 error / 0 warning
 ```
 

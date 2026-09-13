@@ -36,7 +36,8 @@ engine/
 ├── themes/
 │   ├── classic.js       第一代模板风格（暗金配色），与历史产物字节一致
 │   └── rich.js          第二代模板风格（主题色），修复了丢块问题
-├── cover.js             封面生成（SVG -> PNG，微信素材接口所需）
+├── cover.js             矢量封面（SVG -> PNG，兜底）
+├── ai-cover.js          AI 写实封面（GLM / Z-Image / Gemini）
 ├── wechat.js            微信 API 客户端（token 缓存 / 素材上传 / 建草稿）
 ├── article.js           数据 -> 成品文章对象组装
 └── cli.js               命令行入口
@@ -102,10 +103,32 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 | `--date <YYYYMMDD>` | 覆盖发布日期 |
 | `--author <name>` | 覆盖作者 |
 | `--check` | 仅校验，不写文件 |
-| `--cover` | 生成封面 PNG |
+| `--cover` | 生成封面 PNG（优先 AI 写实图） |
+| `--cover-ai` | 强制用图像大模型生成写实封面（默认：已配置 Key 时自动启用） |
+| `--no-cover-ai` | 强制使用矢量封面（离线可用） |
+| `--cover-ai-provider <name>` | 指定图像提供商：`glm` / `zimage` / `gemini` |
 | `--html` | 额外输出 HTML 预览 |
 | `--publish` | 上传封面并创建公众号草稿 |
+| `--update-draft <media_id>` | 更新已有草稿（不新建），常用于替换封面 |
 | `--quiet` | 精简输出 |
+
+### 封面
+
+`--cover` / `--publish` 默认**优先调用图像大模型**生成写实封面（1200×630），
+未配置 Key 或调用失败时回退到 `engine/cover.js` 的矢量封面（不影响发布）：
+
+| 提供商 | 环境变量 | 实测说明 |
+|---|---|---|
+| 智谱 CogView | `GLM_API_KEY` | 国内直连可用；`cogview-4` 余额不足时自动降级到免费的 `cogview-3-flash`（右下角带「AI生成」标识，属合规要求） |
+| ModelScope Z-Image | `ZIMAGE_API_KEY` | 需 ModelScope 的 API Token（非登录密码） |
+| Google Gemini | `GEMINI_API_KEY` | 国内需配 `HTTP(S)_PROXY` |
+
+- 提供商顺序 `glm -> zimage -> gemini`，可用 `COVER_AI_PROVIDER` 指定；
+  单个提供商内还有**模型级回退**（如 `cogview-4 -> cogview-3-flash`）。
+- 覆盖控制：`--cover-ai` 强制、`--no-cover-ai` 关闭（离线可用）、`--cover-ai-provider` 指定。
+- 提示词由文章 `category` 映射到写实场景（`ai-cover.js` 的 `SCENES`），并要求画面不出现文字；
+  标题、分类标签、页脚由引擎用 SVG 叠加合成。
+- `--update-draft <media_id>` 可把新封面/正文写回**已有草稿**（`draft/update`），不新建草稿。
 
 ## 数据格式
 
@@ -312,5 +335,5 @@ npm run engine:render    # 渲染全部文章
 npm run engine:verify    # 回归比对
 npm run engine:extract   # 从旧 build_*.py 提取数据
 npm run news:fetch       # 抓取 RSS -> articles/_incoming/ 草稿
-npm test                 # 259 个用例
+npm test                 # 298 个用例
 ```

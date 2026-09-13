@@ -23,8 +23,12 @@
  *   --author <name>    覆盖作者
  *   --check            仅校验
  *   --cover            生成封面 PNG 到输出目录
+ *   --cover-ai         强制用图像大模型生成写实封面（默认：已配置 Key 时自动启用）
+ *   --no-cover-ai      强制使用矢量封面（不调大模型）
+ *   --cover-ai-provider <name>  指定图像提供商：glm / zimage / gemini
  *   --html             额外输出 HTML 预览
  *   --publish          发布到微信公众号草稿箱
+ *   --update-draft <media_id>  更新已有的某篇草稿（不新建）
  *   --quiet            精简输出
  */
 
@@ -53,8 +57,11 @@ function parseArgs(argv) {
     author: '',
     check: false,
     cover: false,
+    coverAi: undefined,
+    coverAiProvider: '',
     html: false,
     publish: false,
+    updateDraft: '',
     quiet: false,
   };
 
@@ -67,8 +74,12 @@ function parseArgs(argv) {
     case '--author': opts.author = argv[++i]; break;
     case '--check': opts.check = true; break;
     case '--cover': opts.cover = true; break;
+    case '--cover-ai': opts.coverAi = true; break;
+    case '--no-cover-ai': opts.coverAi = false; break;
+    case '--cover-ai-provider': opts.coverAiProvider = argv[++i] || ''; break;
     case '--html': opts.html = true; break;
     case '--publish': opts.publish = true; break;
+    case '--update-draft': opts.updateDraft = argv[++i] || ''; break;
     case '--quiet': opts.quiet = true; break;
     case '-h':
     case '--help': opts.help = true; break;
@@ -135,6 +146,42 @@ function buildPreviewHtml(article) {
 `;
 }
 
+/**
+ * 生成封面：优先调用图像大模型（写实图像），未配置 Key 或调用失败时回退矢量封面。
+ * --cover-ai 强制启用；--no-cover-ai 强制关闭。
+ */
+async function buildCoverBuffer(spec, article, opts) {
+  const { hasImageProvider, generateAiCover } = require('./ai-cover');
+
+  const useAi = opts.coverAi === false ? false : (opts.coverAi === true || hasImageProvider());
+  if (useAi) {
+    try {
+      const r = await generateAiCover(
+        { title: article.title, digest: article.digest, category: article.category, tags: article.tags },
+        { provider: opts.coverAiProvider || '' }
+      );
+      log(opts, `   🎨 AI 封面 · ${r.provider} (${r.model})`);
+      return r.buffer;
+    } catch (err) {
+      const first = String(err.message).split('\n')[0];
+      log(opts, `   ⚠️  AI 封面失败，改用矢量封面：${first}`);
+    }
+  }
+
+  // 矢量兜底：封面色优先取文章自带的 cover.color，其次取主题主色
+  const themePrimary = typeof spec.theme === 'object' && spec.theme ? spec.theme.primary : null;
+  const themeSecondary = typeof spec.theme === 'object' && spec.theme ? spec.theme.secondary : null;
+  const coverColor = (spec.cover && spec.cover.color) || themePrimary;
+
+  return renderCoverPng(
+    { title: article.title, subtitle: article.digest, category: article.category },
+    {
+      ...(coverColor ? { colorTo: coverColor } : {}),
+      ...(themeSecondary ? { accent: themeSecondary } : {}),
+    }
+  );
+}
+
 /** 处理单篇文章。 */
 async function processOne(file, opts) {
   const spec = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -169,23 +216,8 @@ async function processOne(file, opts) {
   }
 
   let coverBuffer = null;
-  if (opts.cover || opts.publish) {
-    // 封面色优先取文章自带的 cover.color，其次取主题主色
-    const themePrimary = typeof spec.theme === 'object' && spec.theme ? spec.theme.primary : null;
-    const themeSecondary = typeof spec.theme === 'object' && spec.theme ? spec.theme.secondary : null;
-    const coverColor = (spec.cover && spec.cover.color) || themePrimary;
-
-    coverBuffer = await renderCoverPng(
-      {
-        title: article.title,
-        subtitle: article.digest,
-        category: article.category,
-      },
-      {
-        ...(coverColor ? { colorTo: coverColor } : {}),
-        ...(themeSecondary ? { accent: themeSecondary } : {}),
-      }
-    );
+  if (opts.cover || opts.publish || opts.updateDraft) {
+    coverBuffer = await buildCoverBuffer(spec, article, opts);
     if (opts.cover) {
       const coverPath = path.join(opts.out, article.coverImage);
       fs.writeFileSync(coverPath, coverBuffer);
@@ -194,11 +226,11 @@ async function processOne(file, opts) {
     }
   }
 
-  if (opts.publish) {
+  if (opts.publish || opts.updateDraft) {
     const { WeChatClient } = require('./wechat');
     const client = new WeChatClient();
 
-    // 发布前置检查：先确认凭据与 IP 白名单可用，再动任何上传。
+    // 前置检查：先确认凭据与 IP 白名单可用，再动任何上传。
     // getAccessToken 会缓存结果，后面的 uploadThumb 直接复用，不产生额外请求。
     try {
       await client.getAccessToken();
@@ -212,16 +244,25 @@ async function processOne(file, opts) {
     const material = await client.uploadThumb(coverBuffer, article.coverImage.replace(/\.png$/i, '.png'));
     log(opts, `   ⬆️  封面素材 media_id=${material.media_id}`);
 
-    const draft = await client.addDraft({
+    const payload = {
       title: article.title,
       author: article.author,
       digest: article.digest,
       content: article.content,
       thumbMediaId: material.media_id,
-    });
-    log(opts, `   ✅ 草稿已创建 media_id=${draft.media_id}`);
-    result.status = 'published';
-    result.draftMediaId = draft.media_id;
+    };
+
+    if (opts.updateDraft) {
+      await client.updateDraft({ mediaId: opts.updateDraft, index: 0, article: payload });
+      log(opts, `   ✅ 草稿已更新 media_id=${opts.updateDraft}`);
+      result.status = 'updated';
+      result.draftMediaId = opts.updateDraft;
+    } else {
+      const draft = await client.addDraft(payload);
+      log(opts, `   ✅ 草稿已创建 media_id=${draft.media_id}`);
+      result.status = 'published';
+      result.draftMediaId = draft.media_id;
+    }
   }
 
   return result;
@@ -248,7 +289,7 @@ async function main() {
     process.exit(2);
   }
 
-  log(opts, `🚀 渲染引擎启动 · ${files.length} 篇文章${opts.publish ? ' · 发布模式' : ''}`);
+  log(opts, `🚀 渲染引擎启动 · ${files.length} 篇文章${opts.publish ? ' · 发布模式' : ''}${opts.updateDraft ? ' · 更新草稿模式' : ''}`);
 
   const results = [];
   let failed = 0;
@@ -277,4 +318,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, processOne, buildPreviewHtml };
+module.exports = { parseArgs, processOne, buildPreviewHtml, buildCoverBuffer };
