@@ -384,6 +384,12 @@ describe('cover', () => {
     expect(wrapByWidth('波尔多红酒吧', 8, 3)).toEqual(['波尔多红', '酒吧']);
   });
 
+  test('wrapByWidth 不应把连续 ASCII 字母/数字从中间折断', () => {
+    // 回归：封面标题曾把 “72” 折成 “7” / “2 小时”
+    expect(wrapByWidth('葡萄的 72 小时', 8, 2)).toEqual(['葡萄的', '72 小时']);
+    expect(wrapByWidth('Chardonnay 与霞多丽', 10, 2)).toEqual(['Chardonnay', '与霞多丽']);
+  });
+
   test('wrapByWidth should truncate with an ellipsis beyond maxLines', () => {
     const lines = wrapByWidth('一'.repeat(50), 10, 2);
     expect(lines).toHaveLength(2);

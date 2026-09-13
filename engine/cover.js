@@ -58,27 +58,36 @@ function wrapByWidth(text, maxWidth, maxLines) {
   const clean = String(text || '').replace(/\s+/g, ' ').trim();
   if (!clean) {return [];}
 
+  const widthOf = (ch) =>
+    /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE6F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(ch) ? 2 : 1;
+
+  // 把连续的 ASCII 字母数字视为一个整体，避免把 “72” / “Chardonnay” 从中间折断
+  const tokens = clean.match(/[0-9A-Za-z]+(?:[.'’\-][0-9A-Za-z]+)*|\s|[\s\S]/g) || [];
+
   const lines = [];
   let line = '';
   let width = 0;
+  let truncated = false;
 
-  for (const ch of clean) {
-    const w = /[\u1100-\u115F\u2E80-\uA4CF\uAC00-\uD7A3\uF900-\uFAFF\uFE30-\uFE6F\uFF00-\uFF60\uFFE0-\uFFE6]/.test(ch) ? 2 : 1;
-    if (width + w > maxWidth && line) {
-      lines.push(line);
+  for (const token of tokens) {
+    const w = [...token].reduce((sum, ch) => sum + widthOf(ch), 0);
+    if (width + w > maxWidth && line.trim()) {
+      lines.push(line.replace(/\s+$/, ''));
       line = '';
       width = 0;
-      if (lines.length === maxLines) {break;}
+      if (lines.length === maxLines) {truncated = true; break;}
+      if (/^\s+$/.test(token)) {continue;} // 丢弃换行后的行首空白
     }
-    line += ch;
+    line += token;
     width += w;
   }
 
-  if (line && lines.length < maxLines) {lines.push(line);}
+  if (!truncated && line.trim() && lines.length < maxLines) {
+    lines.push(line.replace(/\s+$/, ''));
+  }
 
   // 被截断时补省略号
-  const consumed = lines.join('').length;
-  if (consumed < clean.length && lines.length) {
+  if (truncated && lines.length) {
     lines[lines.length - 1] = lines[lines.length - 1].replace(/.$/, '') + '…';
   }
   return lines;
