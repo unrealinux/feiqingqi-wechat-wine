@@ -74,10 +74,11 @@ tools/
   verify_parity.js     与历史产物逐字节回归比对
   check-wechat-ip.js   发布前自检（出口 IP / 白名单 / 凭据）
   ip-watch.js          出口 IP 变化监控 + 告警
+  publish-pending.js   发布未发布的文章（幂等，供定时任务调用）
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
-  win/                 Windows 任务计划程序注册脚本（纯 ASCII + CRLF）
-tests/                 298 个测试（13 个套件）
+  win/                 Windows 任务计划（IP 监控 + 内容发布，纯 ASCII + CRLF）
+tests/                 334 个测试（15 个套件）
 archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -90,7 +91,10 @@ logs/                  日志与监控状态（gitignore）
 | `npm run wechat:check` | **发布前自检**：出口 IP / IP 白名单 / 凭据 |
 | `npm run wechat:watch` | **常驻监控**出口 IP 变化，变了就通知你 |
 | `npm run wechat:watch:once` | 检查一次（必要时通知） |
-| `tools\win\setup-task.cmd` | 注册 Windows 计划任务（开机自启，见下文） |
+| `tools\win\setup-task.cmd` | 注册 IP 监控计划任务（默认每天 08:00，见下文） |
+| `npm run publish:pending` | **发布未发布的文章**（幂等，只建草稿） |
+| `npm run publish:pending -- --dry-run` | 只列出会发什么，不建草稿 |
+| `tools\win\setup-publish-task.cmd` | 注册内容发布计划任务（默认每天 09:00，见下文） |
 | `npm run notify:verify` | **验证通知链路**（本地模拟，不需真实凭据） |
 | `npm run engine:check` | 校验 `articles/` 下全部数据 |
 | `npm run engine:render` | 渲染全部文章并生成封面与预览 |
@@ -195,10 +199,50 @@ tools\win\setup-task.cmd uninstall
 |---|---|
 | `setup-task.cmd` | 注册 / 注销 / 查看 / 立即运行，可重复执行（幂等） |
 | `run-ip-watch.cmd` | 定位 node（绝对路径）、`cd` 到项目根（否则读不到 `.env`）、写日志与 1MB 轮转 |
+| `setup-publish-task.cmd` | 同上，用于「发布未发布文章」（默认每天 09:00） |
+| `run-publish.cmd` | 同上，运行 `tools/publish-pending.js` |
 | `run-hidden.vbs` | 消除控制台窗口闪现；并等待结束，使任务结果真实反映退出码 |
 
 > **任务计划程序的「上次结果」会显示 `1`**，这是刻意的 —— 它不是任务执行失败，
 > 而是自检发现需要你处理的问题：`0` 可发布 ｜ `1` IP 被阻断 ｜ `2` 凭据缺失 ｜ `127` 找不到 node。
+
+### 定时发布内容（新建草稿）
+
+内容发布也有对应的计划任务：扫描 `articles/` 顶层，把**还没有草稿**的文章
+渲染 + 生成封面 + 建草稿，并把结果记到 `logs/publish-state.json`，
+因此**重复运行不会重复建草稿**。
+
+```cmd
+:: 安装（默认每天 09:00）
+tools\win\setup-publish-task.cmd
+
+:: 每天 21:30
+tools\win\setup-publish-task.cmd install DAILY 21:30
+
+:: 先看会发什么（不建草稿）
+npm run publish:pending -- --dry-run
+
+:: 立即跑一次
+tools\win\setup-publish-task.cmd run
+
+:: 删除任务
+tools\win\setup-publish-task.cmd uninstall
+```
+
+| 命令 | 说明 |
+|---|---|
+| `npm run publish:pending` | 发布所有待发布文章 |
+| `npm run publish:pending -- --dry-run` | 只列出会发什么 |
+| `npm run publish:pending -- --include-existing` | 连现有文章一起发 |
+| `npm run publish:pending -- --force` | 忽略状态，全部重发 |
+
+> **首次运行只记基线**：状态文件不存在时，它只把当前 `articles/` 里的文章记为「已处理」，
+> **不会**把上百篇历史文章一次性建成草稿 —— 否则第一次定时执行就会把草稿箱塞满。
+> 确实要把现有文章全部建库时，显式加 `--include-existing`。
+>
+> **只建草稿，不群发**：定时任务每天把新文章排进草稿箱，你审一遍再手动群发。
+> 退出码：`0` 正常（含无待发布）｜ `1` 有失败 ｜ `127` 找不到 node。
+> 日志在 `logs/publish.log`（UTF-8，超 1MB 自动归档为 `.log.1`）。
 
 > **这些脚本刻意保持纯 ASCII（英文提示）**：实测表明，含多字节字符的 `.cmd`
 > 会因代码页不同而被 cmd 按字节偏移错误解析，把 `rem` 注释行当命令执行，
@@ -233,7 +277,7 @@ node tools/verify-notify.js --live     # 用 .env 里的真实渠道发一条测
 ## 测试与质量
 
 ```bash
-npm test        # 298 个用例，13 个套件
+npm test        # 334 个用例，15 个套件
 npm run lint    # 0 error / 0 warning
 ```
 
