@@ -75,7 +75,11 @@ describe('cli: parseArgs', () => {
 });
 
 describe('cli: buildCoverBuffer', () => {
-  const keys = ['GLM_API_KEY', 'ZIMAGE_API_KEY', 'GEMINI_API_KEY'];
+  const keys = [
+    'GLM_API_KEY', 'ZIMAGE_API_KEY', 'GEMINI_API_KEY',
+    'AGNES_API_KEY', 'AGNES_API_URL', 'CUSTOM_IMAGE_API_KEY', 'CUSTOM_IMAGE_API_URL',
+    'COVER_AI_PROVIDER'
+  ];
   let saved;
 
   beforeEach(() => {
