@@ -72,6 +72,15 @@ describe('cli: parseArgs', () => {
     expect(parseArgs(['--update-draft', 'MID']).updateDraft).toBe('MID');
     expect(parseArgs([]).updateDraft).toBe('');
   });
+
+  test('发布状态登记默认开启，可用 --no-mark-published 关掉', () => {
+    expect(parseArgs([]).markPublished).toBe(true);
+    expect(parseArgs(['--publish']).markPublished).toBe(true);
+    expect(parseArgs(['--mark-published']).markPublished).toBe(true);
+    expect(parseArgs(['--no-mark-published']).markPublished).toBe(false);
+    // 后写的开关生效，便于脚本拼接
+    expect(parseArgs(['--no-mark-published', '--mark-published']).markPublished).toBe(true);
+  });
 });
 
 describe('cli: buildCoverBuffer', () => {
@@ -199,5 +208,19 @@ describe('cli: processOne', () => {
     const nested = path.join(tmpDir, 'a', 'b', 'c');
     const r = await processOne(ARTICLE, options({ out: nested }));
     expect(fs.existsSync(r.jsonPath)).toBe(true);
+  });
+
+  test('未发布时不得触碰发布状态表（只渲染就写状态会误伤定时任务）', async () => {
+    const statePath = path.join(tmpDir, 'publish-state.json');
+    const saved = process.env.PUBLISH_STATE;
+    process.env.PUBLISH_STATE = statePath;
+    try {
+      const r = await processOne(ARTICLE, options({ render: true, markPublished: true }));
+      expect(r.status).toBe('rendered');
+      expect(r.statePath).toBeUndefined();
+      expect(fs.existsSync(statePath)).toBe(false);
+    } finally {
+      if (saved === undefined) {delete process.env.PUBLISH_STATE;} else {process.env.PUBLISH_STATE = saved;}
+    }
   });
 });

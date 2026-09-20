@@ -30,27 +30,13 @@ const fs = require('fs');
 const path = require('path');
 
 const { parseArgs, processOne } = require('../engine/cli');
+const { resolveStatePath, loadState, saveState, recordPublished } = require('../engine/publish-state');
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
-const DEFAULT_STATE_PATH = path.join(ROOT, 'logs', 'publish-state.json');
 
-/** 读取发布状态（损坏/缺失都视为空） */
-function loadState(statePath) {
-  try {
-    const parsed = JSON.parse(fs.readFileSync(statePath, 'utf8'));
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
-}
-
-/** 写入发布状态（自动建目录） */
-function saveState(statePath, state) {
-  fs.mkdirSync(path.dirname(statePath), { recursive: true });
-  fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
-  return true;
-}
+// loadState / saveState 由 engine/publish-state.js 统一提供（引擎侧 --publish 也要写同一个
+// 文件，两份实现会漂移）；这里重新导出，保持本模块对外的既有接口不变。
 
 /** 列出 articles/ 顶层的文章文件（与 engine --all 一致：不递归） */
 function listArticleFiles(articlesDir = ARTICLES_DIR) {
@@ -100,8 +86,13 @@ async function publishPending({ pending, state, statePath, opts, processOne: run
       const r = await run(file, opts);
       results.push({ name, status: r.status, mediaId: r.draftMediaId || null });
       if (r.status === 'published' || r.status === 'updated') {
-        state[name] = { mediaId: r.draftMediaId || null, publishedAt: now() };
-        saveState(statePath, state);
+        // 条目形状统一由 engine/publish-state.js 决定（引擎侧 --publish 也写同一份文件）
+        state[name] = recordPublished(
+          statePath,
+          name,
+          { mediaId: r.draftMediaId || null, status: r.status },
+          now
+        );
         log(`   ✅ ${name} -> 草稿 ${r.draftMediaId}`);
       } else {
         results[results.length - 1].status = 'unexpected';
@@ -141,7 +132,7 @@ async function main() {
   const cli = parseCliArgs(process.argv.slice(2));
   if (cli.help) {usage(); return 0;}
 
-  const statePath = process.env.PUBLISH_STATE || DEFAULT_STATE_PATH;
+  const statePath = resolveStatePath();
   const state = loadState(statePath);
   const { baseline, pending } = planPublishing({
     articlesDir: ARTICLES_DIR,

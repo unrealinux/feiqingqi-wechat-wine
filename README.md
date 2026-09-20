@@ -22,7 +22,7 @@ npm run engine:check
 # 渲染 + 生成封面 + HTML 预览
 node engine/cli.js articles/bbq_pairing.json --cover --html
 
-# 发布到公众号草稿箱
+# 发布到公众号草稿箱（成功后自动登记发布状态，见下文「定时发布内容」）
 node engine/cli.js articles/bbq_pairing.json --publish
 
 # 批量发布
@@ -261,6 +261,12 @@ tools\win\setup-publish-task.cmd uninstall
 > **只建草稿，不群发**：定时任务每天把新文章排进草稿箱，你审一遍再手动群发。
 > 退出码：`0` 正常（含无待发布）｜ `1` 有失败 ｜ `127` 找不到 node。
 > 日志在 `logs/publish.log`（UTF-8，超 1MB 自动归档为 `.log.1`）。
+
+> **手工发布也会登记状态**：`engine/cli.js --publish` / `--update-draft` 成功后，会把
+> 「这篇文章已有草稿」写进同一个 `logs/publish-state.json`（失败只告警，不影响已建好的草稿）。
+> 否则手工发过的文章第二天 09:00 又会被定时任务当成新文章，重复建一个草稿、
+> 并多花一次封面生成的额度。需要临时关闭时加 `--no-mark-published`。
+> 状态文件的读写统一在 `engine/publish-state.js`，两处入口共用一份实现。
 
 > **这些脚本刻意保持纯 ASCII（英文提示）**：实测表明，含多字节字符的 `.cmd`
 > 会因代码页不同而被 cmd 按字节偏移错误解析，把 `rem` 注释行当命令执行，

@@ -31,7 +31,14 @@
  *   --html             额外输出 HTML 预览
  *   --publish          发布到微信公众号草稿箱
  *   --update-draft <media_id>  更新已有的某篇草稿（不新建）
+ *   --no-mark-published 发布成功后不登记发布状态（默认会自动登记，见下）
  *   --quiet            精简输出
+ *
+ * 发布状态登记
+ * ------------
+ *   发布/更新成功后，默认把「这篇文章已有草稿」写进 logs/publish-state.json
+ *   （engine/publish-state.js）。不写的话，tools/publish-pending.js 每天 09:00
+ *   仍会把它当成新文章，再建一个重复草稿。要临时关闭用 --no-mark-published。
  */
 
 // dotenv 为可选依赖：纯渲染/校验流程不需要它时不应阻塞启动
@@ -66,6 +73,7 @@ function parseArgs(argv) {
     html: false,
     publish: false,
     updateDraft: '',
+    markPublished: true,
     quiet: false,
   };
 
@@ -86,6 +94,8 @@ function parseArgs(argv) {
     case '--html': opts.html = true; break;
     case '--publish': opts.publish = true; break;
     case '--update-draft': opts.updateDraft = argv[++i] || ''; break;
+    case '--mark-published': opts.markPublished = true; break;
+    case '--no-mark-published': opts.markPublished = false; break;
     case '--quiet': opts.quiet = true; break;
     case '-h':
     case '--help': opts.help = true; break;
@@ -281,6 +291,26 @@ async function processOne(file, opts) {
       log(opts, `   ✅ 草稿已创建 media_id=${draft.media_id}`);
       result.status = 'published';
       result.draftMediaId = draft.media_id;
+    }
+
+    // 登记发布状态：草稿已经建好，这一步只是让定时任务不再重复发同一篇。
+    // 写失败不能反过来把已经成功的发布判为失败，因此只告警。
+    if (opts.markPublished === false) {
+      log(opts, '   ℹ️  --no-mark-published：未登记状态，定时任务可能重复建草稿');
+    } else {
+      try {
+        const { recordPublished, resolveStatePath } = require('./publish-state');
+        const statePath = resolveStatePath();
+        recordPublished(statePath, name, {
+          mediaId: result.draftMediaId,
+          status: result.status === 'updated' ? 'updated' : 'published'
+        });
+        result.statePath = statePath;
+        log(opts, `   📝 已登记发布状态 -> ${path.relative(ROOT, statePath)}（定时任务不会重复建草稿）`);
+      } catch (err) {
+        const first = String(err.message).split('\n')[0];
+        log(opts, `   ⚠️  发布状态登记失败（草稿已建好，不影响）：${first}`);
+      }
     }
   }
 

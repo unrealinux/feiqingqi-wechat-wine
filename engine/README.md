@@ -39,6 +39,7 @@ engine/
 ├── cover.js             矢量封面（SVG -> PNG，兜底）
 ├── ai-cover.js          AI 写实封面（GLM / Z-Image / Gemini）
 ├── wechat.js            微信 API 客户端（token 缓存 / 素材上传 / 建草稿）
+├── publish-state.js     发布状态表读写（引擎与定时任务共用的幂等依据）
 ├── article.js           数据 -> 成品文章对象组装
 └── cli.js               命令行入口
 
@@ -110,8 +111,9 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 | `--cover-title` | 把文章标题叠在封面上（**默认不叠**：正文列表里已显示标题） |
 | `--cover-category` | 把分类标签叠在封面上（**默认不显示**） |
 | `--html` | 额外输出 HTML 预览 |
-| `--publish` | 上传封面并创建公众号草稿 |
+| `--publish` | 上传封面并创建公众号草稿（成功后自动登记发布状态） |
 | `--update-draft <media_id>` | 更新已有草稿（不新建），常用于替换封面 |
+| `--no-mark-published` | 发布成功后**不**登记 `logs/publish-state.json`（默认会登记） |
 | `--quiet` | 精简输出 |
 
 ### 封面
@@ -139,6 +141,11 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 - 矢量兜底封面（`engine/cover.js`）同样默认不写文字：渐变色卡 + 柔光圆点 + 品牌页脚；
   传 `showTitle` / `showCategory`（CLI 的 `--cover-title` / `--cover-category`）可写回标题与分类。
 - `--update-draft <media_id>` 可把新封面/正文写回**已有草稿**（`draft/update`），不新建草稿。
+- **发布成功后默认登记发布状态**：`--publish` / `--update-draft` 成功时会往
+  `logs/publish-state.json` 写一条 `{ mediaId, publishedAt }`（更新草稿额外记 `updatedAt`，
+  并保留首次 `publishedAt`）。不写这一笔的话，`tools/publish-pending.js` 第二天仍会
+  把它当新文章，再建一个重复草稿。登记失败只告警 —— 草稿已经建好，不应因此判为失败。
+  关闭用 `--no-mark-published`。状态文件的读写实现统一在 `engine/publish-state.js`。
 
 ## 数据格式
 
