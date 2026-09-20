@@ -27,19 +27,57 @@ const NO_PROVIDER_MSG =
 const NEGATIVE_PROMPT =
   '文字, 字母, 水印, logo, 签名, 模糊, 低质量, 卡通, 变形, 过曝, text, watermark, letters, signature, blurry, low quality, cartoon, deformed';
 
-/** 分类 -> 写实场景（英文提示对多数模型更稳定） */
+/**
+ * 分类 -> 写实场景（英文提示对多数模型更稳定）。
+ *
+ * 每个分类给多个变体：只按分类出图会让同一分类的文章「千人一面」
+ * —— 之前两篇 wine-knowledge 的封面都是「暗背景上一杯红酒 + 葡萄」。
+ * 变体按文章 name 稳定挑选（同一篇每次生成结果一致，不同篇大概率不同）。
+ */
 const SCENES = {
-  'wine-knowledge': 'an elegant crystal wine glass filled with deep red wine on a dark wooden table, soft rim lighting, grapes beside it, professional product photography, shallow depth of field, dark moody background',
-  'wine-food': 'a glass of red wine beside a beautifully plated gourmet dish on a rustic wooden table, warm ambient light, food and wine pairing, professional food photography, shallow depth of field',
-  'wine-culture': 'an old stone wine cellar with oak barrels and dusty bottles, warm candlelight, atmospheric haze, cinematic photography, rich textures',
-  'market-trends': 'premium wine bottles and a crystal decanter on a mahogany desk, elegant dark office, moody lighting, professional still life photography',
-  'practical-guide': 'a wine corkscrew, decanter and two wine glasses arranged on a clean table, soft studio lighting, elegant minimal still life, professional photography',
-  'wine-health': 'a single glass of red wine with fresh grapes on a bright table, clean natural light, minimal still life, professional photography',
-  'wine-myth': 'dramatic chiaroscuro still life of a wine glass and bottle, deep shadows, fine art photography, dark background',
-  lifestyle: 'a wine picnic at golden hour with a vineyard in the background, warm sunset light, lifestyle photography, shallow depth of field'
+  'wine-knowledge': [
+    'an elegant crystal wine glass filled with deep red wine on a dark wooden table, soft rim lighting, professional product photography, shallow depth of field, dark moody background',
+    'a close-up of ripe dark grapes still on the vine among green leaves, morning dew, backlit by soft sunlight, vineyard bokeh in the background, macro photography',
+    'a rustic oak barrel and a glass of red wine inside a dim stone cellar, warm lamp light, fine dust in the air, cinematic photography',
+    'a winemaker holding a tasting glass beside stainless steel tanks in a modern winery, cool clean daylight, documentary photography'
+  ],
+  'wine-food': [
+    'a glass of red wine beside a beautifully plated gourmet dish on a rustic wooden table, warm ambient light, food and wine pairing, professional food photography, shallow depth of field',
+    'overhead flat lay of a cheese and charcuterie board with a glass of red wine, linen napkin, natural window light, food magazine style photography',
+    'a summer table seen from above with grilled dishes, fresh herbs and two glasses of wine, warm sunlight, lifestyle food photography'
+  ],
+  'wine-culture': [
+    'an old stone wine cellar with oak barrels and dusty bottles, warm candlelight, atmospheric haze, cinematic photography, rich textures',
+    'a historic chateau facade with vineyards in the foreground at golden hour, dramatic clouds, architectural travel photography',
+    'hands of an elderly winemaker sorting grapes on a wooden table, warm workshop light, reportage photography, shallow depth of field'
+  ],
+  'market-trends': [
+    'premium wine bottles and a crystal decanter on a mahogany desk, elegant dark office, moody lighting, professional still life photography',
+    'an auction catalogue, a gavel and a bottle of fine wine on a dark table, dramatic side light, editorial still life photography',
+    'stacked wooden wine cases inside a climate controlled wine storage room, rows of bottles behind, cool precise lighting, documentary photography'
+  ],
+  'practical-guide': [
+    'a wine corkscrew, decanter and two wine glasses arranged on a clean table, soft studio lighting, elegant minimal still life, professional photography',
+    'a wine bottle lying in a temperature controlled wine fridge with a digital thermometer, clean product photography, soft light',
+    'a hand pouring red wine from a decanter into a glass, dark background, motion of the pour frozen, studio photography'
+  ],
+  'wine-health': [
+    'a single glass of red wine with fresh grapes on a bright table, clean natural light, minimal still life, professional photography',
+    'a glass of red wine beside a bowl of berries and olive oil on a light kitchen counter, healthy Mediterranean still life, soft daylight'
+  ],
+  'wine-myth': [
+    'dramatic chiaroscuro still life of a wine glass and bottle, deep shadows, fine art photography, dark background',
+    'two wine glasses side by side on a dark reflective surface, one backlit, strong contrast, conceptual fine art photography'
+  ],
+  lifestyle: [
+    'a wine picnic at golden hour with a vineyard in the background, warm sunset light, lifestyle photography, shallow depth of field',
+    'two friends toasting with red wine on a terrace overlooking vineyards, warm evening light, candid lifestyle photography',
+    'a travel scene of a wine route through rolling hills, a bottle and glasses on a stone wall, late afternoon light, landscape photography'
+  ]
 };
 
-const DEFAULT_SCENE = SCENES['wine-knowledge'];
+/** 未知分类时的兜底分类 */
+const DEFAULT_CATEGORY = 'wine-knowledge';
 
 /** 提供商注册表 */
 const PROVIDERS = {
@@ -89,13 +127,60 @@ const PROVIDERS = {
 
 const DEFAULT_ORDER = ['glm', 'zimage', 'gemini', 'agnes', 'custom'];
 
-/** 由分类构造写实场景提示词 */
-function buildCoverPrompt(spec = {}) {
-  const scene = SCENES[spec.category] || DEFAULT_SCENE;
-  const theme = String(spec.title || '').trim();
-  const hint = theme ? `。主题：${theme}` : '';
-  const style = '。写实摄影，真实光影，专业布光，高清细节，浅景深，画面中不要出现任何文字';
-  return `${scene}${hint}${style}`;
+/** FNV-1a：把文章名映射成一个稳定的数字，用于挑选场景变体 */
+function hashKey(str) {
+  let h = 2166136261;
+  const s = String(str || '');
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+/**
+ * 按分类挑一个场景变体。key 用文章 name（回退 title），保证同一篇稳定、不同篇分散。
+ * @param {string} category
+ * @param {string} [key]
+ */
+function pickScene(category, key = '') {
+  const list = SCENES[category] || SCENES[DEFAULT_CATEGORY];
+  return list[hashKey(key) % list.length];
+}
+
+/**
+ * 从 slug 与英文 tag 里取「画面内容关键词」。
+ *
+ * 为什么不用中文标题：多数图像模型会把提示词里的文字画进画面（中文更容易被画成
+ * 乱码字），而 slug（balkan_native_grapes）与英文 tag（DWWA / Plavac Mali）
+ * 本来就是英文，既能给模型有效线索，又没有画字的副作用。
+ */
+function topicHint(spec = {}) {
+  const parts = [];
+  const slug = String(spec.name || '').trim();
+  if (slug) {parts.push(slug.replace(/[_-]+/g, ' '));}
+  const asciiTags = (Array.isArray(spec.tags) ? spec.tags : [])
+    .filter((t) => typeof t === 'string' && /^[\x20-\x7E]{2,}$/.test(t));
+  parts.push(...asciiTags.slice(0, 3));
+  return parts.join(', ');
+}
+
+/**
+ * 由分类 + 文章信息构造写实场景提示词。
+ *
+ * 优先级：文章自带的 spec.cover.prompt（完全自定义）> 分类场景变体 + 关键词。
+ */
+function buildCoverPrompt(spec = {}, options = {}) {
+  const custom = (spec.cover && typeof spec.cover === 'object' && spec.cover.prompt)
+    || spec.coverPrompt;
+  if (custom) {return String(custom).trim();}
+
+  const key = spec.name || spec.title || '';
+  const scene = options.scene || pickScene(spec.category, key);
+  const hint = topicHint(spec);
+  const topic = hint ? `。画面内容：${hint}（不要把文字写进画面）` : '';
+  const style = '。写实摄影，真实光影，专业布光，高清细节，浅景深，画面中不要出现任何文字、字母或水印';
+  return `${scene}${topic}${style}`;
 }
 
 /**
@@ -267,8 +352,18 @@ function buildOverlaySvg(spec = {}, options = {}) {
   const titleFontSize = options.titleFontSize || 46;
   const lineHeight = Math.round(titleFontSize * 1.28);
 
-  const maxUnits = Math.max(8, Math.floor((width - pad * 2) / (titleFontSize / 2)));
-  const titleLines = wrapByWidth(spec.title || '', maxUnits, 2);
+  // 默认不把标题/分类烧进封面：标题在公众号正文列表里本就显示，
+  // 图上再叠一次既冗余、又容易被裁切。
+  // 需要旧行为时传 { showTitle: true } / { showCategory: true }
+  // （CLI: --cover-title / --cover-category）。
+  const showTitle = options.showTitle === true;
+  const showCategory = options.showCategory === true;
+  const hasText = showTitle || showCategory;
+
+  // 每行允许的半角宽度。旧算法按 fontSize/2 估算（假定半角恰好 0.5em），
+  // 对加粗大写英文明显偏窄，长标题会溢出画布右侧被裁掉；这里留足余量。
+  const maxUnits = Math.max(8, Math.floor((width - pad * 2) / (titleFontSize * 0.58)));
+  const titleLines = showTitle ? wrapByWidth(spec.title || '', maxUnits, 2) : [];
 
   const footerY = height - 30;
   const categoryY = footerY - 34;
@@ -283,6 +378,25 @@ function buildOverlaySvg(spec = {}, options = {}) {
   const category = escapeXml(String(spec.category || '').toUpperCase());
   const footerText = escapeXml(footer);
 
+  // 底部渐变只为文字可读性服务；没有任何叠加文字时不画，封面保持干净。
+  const scrimTop = showTitle ? 0.42 : 0.7;
+  const scrim = hasText
+    ? `<rect x="0" y="${Math.round(height * scrimTop)}" width="${width}" height="${Math.round(height * (1 - scrimTop))}" fill="url(#shade)"/>`
+    : '';
+  const accentBar = hasText
+    ? `<rect x="${pad}" y="${categoryY - 18}" width="56" height="4" fill="${escapeXml(accent)}"/>`
+    : '';
+  const categoryEl = showCategory
+    ? `<text x="${pad}" y="${categoryY + 14}" font-size="18" letter-spacing="2" fill="${escapeXml(accent)}"
+        font-family="Microsoft YaHei, PingFang SC, sans-serif">${category}</text>`
+    : '';
+
+  // 页脚叠在照片上，先用深色描边打底再填色，保证在亮背景上也能看清
+  const footerAttrs = `x="${width - pad}" y="${footerY}" font-size="14" text-anchor="end"`
+    + ' font-family="sans-serif"';
+  const footerEl = `<text ${footerAttrs} fill="none" stroke="rgba(0,0,0,0.55)" stroke-width="3">${footerText}</text>
+  <text ${footerAttrs} fill="rgba(255,255,255,0.88)">${footerText}</text>`;
+
   return `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
@@ -290,22 +404,21 @@ function buildOverlaySvg(spec = {}, options = {}) {
       <stop offset="100%" stop-color="#000000" stop-opacity="0.82"/>
     </linearGradient>
   </defs>
-  <rect x="0" y="${Math.round(height * 0.42)}" width="${width}" height="${Math.round(height * 0.58)}" fill="url(#shade)"/>
-  <rect x="${pad}" y="${categoryY - 18}" width="56" height="4" fill="${escapeXml(accent)}"/>
+  ${scrim}
+  ${accentBar}
   ${titleTspans}
-  <text x="${pad}" y="${categoryY + 14}" font-size="18" letter-spacing="2" fill="${escapeXml(accent)}"
-        font-family="Microsoft YaHei, PingFang SC, sans-serif">${category}</text>
-  <text x="${width - pad}" y="${footerY}" font-size="14" text-anchor="end" fill="rgba(255,255,255,0.75)"
-        font-family="sans-serif">${footerText}</text>
+  ${categoryEl}
+  ${footerEl}
 </svg>`;
 }
 
 /**
  * 调用图像大模型生成封面。
- * @param {object} spec {title, category, digest?}
+ * @param {object} spec {name, title, category, tags?, digest?}
  * @param {object} [options]
  * @param {object} [options.env] 环境变量（默认 process.env）
  * @param {string} [options.provider] 指定提供商
+ * @param {boolean} [options.showTitle] 是否把标题叠在封面上（默认 false）
  * @param {number} [options.timeout] 单次请求超时（毫秒）
  * @returns {Promise<{buffer: Buffer, provider: string, model: string, prompt: string}>}
  */
@@ -343,6 +456,10 @@ function hasImageProvider(env = process.env) {
 
 module.exports = {
   SCENES,
+  DEFAULT_CATEGORY,
+  pickScene,
+  topicHint,
+  hashKey,
   PROVIDERS,
   DEFAULT_ORDER,
   NEGATIVE_PROMPT,

@@ -402,7 +402,10 @@ describe('cover', () => {
   });
 
   test('buildCoverSvg should produce a valid, escaped SVG', () => {
-    const svg = buildCoverSvg({ title: 'A & B <tag>', subtitle: 'sub', category: 'wine' });
+    const svg = buildCoverSvg(
+      { title: 'A & B <tag>', subtitle: 'sub', category: 'wine' },
+      { showTitle: true, showCategory: true }
+    );
     expect(svg.startsWith('<svg')).toBe(true);
     expect(svg).toContain('</svg>');
     expect(svg).toContain('A &amp; B &lt;tag&gt;');
@@ -410,8 +413,16 @@ describe('cover', () => {
     expect(svg).toContain('WINE');
   });
 
+  test('buildCoverSvg 默认不把标题/分类写进封面（只留品牌页脚）', () => {
+    const svg = buildCoverSvg({ title: 'A & B', subtitle: 'sub', category: 'wine' });
+    expect(svg.startsWith('<svg')).toBe(true);
+    expect(svg).not.toContain('A &amp; B');
+    expect(svg).not.toContain('WINE');
+    expect(svg).toContain('feiqingqi WeChat MP');
+  });
+
   test('buildCoverSvg should stay valid when the title contains quotes', () => {
-    const svg = buildCoverSvg({ title: '"引号" 测试' });
+    const svg = buildCoverSvg({ title: '"引号" 测试' }, { showTitle: true });
     // 属性与文本节点均不应被未转义的引号破坏
     expect(svg).toContain('&quot;引号&quot; 测试');
   });
@@ -424,7 +435,7 @@ describe('cover', () => {
   });
 
   test('renderCoverPng 参数非法时应以 rejected Promise 暴露（而非同步抛出）', async () => {
-    // buildCoverSvg 会读 spec.title，传 undefined 会在构造期抛错；
+    // buildCoverSvg 对非对象入参显式抛错；
     // 契约要求它被转换为 rejection，调用方才能统一用 .catch()/await 处理。
     await expect(renderCoverPng(undefined)).rejects.toThrow();
   });

@@ -30,23 +30,51 @@ beforeAll(async () => {
 });
 
 describe('buildCoverPrompt', () => {
-  test('按分类选用写实场景，并带上标题与“无文字”约束', () => {
+  test('按分类选用写实场景，并带上“无文字”约束', () => {
     const prompt = buildCoverPrompt(SPEC);
-    expect(prompt).toMatch(/wine glass/i);
-    expect(prompt).toContain('采收季');
+    expect(prompt).toMatch(/wine glass|grapes on the vine|oak barrel|stainless steel tanks/i);
     expect(prompt).toContain('不要出现任何文字');
+    // 中文标题不再进提示词：避免模型把标题文字画进画面
+    expect(prompt).not.toContain(SPEC.title);
+  });
+
+  test('同一篇文章提示词稳定，不同文章（同分类）会不同', () => {
+    const a1 = buildCoverPrompt({ ...SPEC, name: 'balkan_native_grapes' });
+    const a2 = buildCoverPrompt({ ...SPEC, name: 'balkan_native_grapes' });
+    expect(a2).toBe(a1);
+
+    const names = ['balkan_native_grapes', 'harvest_season', 'oak_barrels', 'old_vines', 'wine_scoring'];
+    const scenes = new Set(names.map((n) => buildCoverPrompt({ ...SPEC, name: n })));
+    expect(scenes.size).toBeGreaterThan(1);
+  });
+
+  test('slug 与英文 tag 会作为画面关键词进入提示词', () => {
+    const prompt = buildCoverPrompt({
+      name: 'balkan_native_grapes',
+      category: 'wine-knowledge',
+      tags: ['DWWA', '本土品种', 'Plavac Mali']
+    });
+    expect(prompt).toContain('balkan native grapes');
+    expect(prompt).toContain('DWWA');
+    expect(prompt).toContain('Plavac Mali');
+  });
+
+  test('spec.cover.prompt 可完全自定义提示词', () => {
+    const prompt = buildCoverPrompt({ ...SPEC, cover: { prompt: 'steep stone terraces above the Adriatic sea' } });
+    expect(prompt).toBe('steep stone terraces above the Adriatic sea');
   });
 
   test('不同分类得到不同场景', () => {
     const a = buildCoverPrompt({ category: 'wine-food', title: 'x' });
     const b = buildCoverPrompt({ category: 'wine-culture', title: 'x' });
     expect(a).not.toBe(b);
-    expect(a).toMatch(/dish|food/i);
-    expect(b).toMatch(/cellar|barrel/i);
+    expect(a).toMatch(/dish|cheese|grilled|food/i);
+    expect(b).toMatch(/cellar|chateau|winemaker/i);
   });
 
   test('未知分类回退到默认场景', () => {
-    expect(buildCoverPrompt({ category: 'nope', title: 'x' })).toMatch(/wine glass/i);
+    expect(buildCoverPrompt({ category: 'nope', title: 'x' }))
+      .toMatch(/wine glass|grapes on the vine|oak barrel|stainless steel tanks/i);
   });
 });
 
@@ -75,15 +103,37 @@ describe('availableProviders / modelsFor / hasImageProvider', () => {
 });
 
 describe('buildOverlaySvg', () => {
-  test('包含标题、分类（大写）与底部渐变', () => {
+  test('默认封面只有品牌页脚：不叠标题、不显示分类标签', () => {
     const svg = buildOverlaySvg(SPEC, { width: 1200, height: 630 });
-    expect(svg).toContain('采收季');
-    expect(svg).toContain('WINE-KNOWLEDGE');
-    expect(svg).toContain('linearGradient');
+    expect(svg).not.toContain('采收季');
+    expect(svg).not.toContain('WINE-KNOWLEDGE');
+    expect(svg).toContain('feiqingqi WeChat MP');
+    // 没有叠加文字时不再画底部渐变
+    expect(svg).not.toContain('<rect x="0" y=');
+  });
+
+  test('showTitle / showCategory 可分别把标题、分类叠加回封面', () => {
+    const withTitle = buildOverlaySvg(SPEC, { showTitle: true });
+    expect(withTitle).toContain('采收季');
+    expect(withTitle).toContain('linearGradient');
+    expect(withTitle).not.toContain('WINE-KNOWLEDGE');
+
+    const withCategory = buildOverlaySvg(SPEC, { showCategory: true });
+    expect(withCategory).toContain('WINE-KNOWLEDGE');
+    expect(withCategory).not.toContain('采收季');
+  });
+
+  test('长标题折行，不会溢出画布右侧', () => {
+    const svg = buildOverlaySvg(
+      { title: '🍷 巴尔干本土品种的丰收年：DWWA 2026 的三个启示', category: 'wine-knowledge' },
+      { width: 1200, height: 630, showTitle: true }
+    );
+    // 折行后至少两行（每行一个 <text>），旧算法会挤成一行并被裁切
+    expect(svg.match(/font-weight="bold"/g).length).toBeGreaterThan(1);
   });
 
   test('标题中的 XML 特殊字符被转义', () => {
-    const svg = buildOverlaySvg({ title: 'A & B <tag>', category: 'x' }, {});
+    const svg = buildOverlaySvg({ title: 'A & B <tag>', category: 'x' }, { showTitle: true });
     expect(svg).toContain('A &amp; B &lt;tag&gt;');
   });
 });

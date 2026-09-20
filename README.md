@@ -41,9 +41,19 @@ node engine/cli.js --all --cover --publish
 node engine/cli.js articles/xxx.json --cover                 # 默认：有 Key 就用 AI
 node engine/cli.js articles/xxx.json --cover --no-cover-ai   # 强制矢量封面（离线可用）
 node engine/cli.js articles/xxx.json --cover-ai-provider glm # 指定提供商
+node engine/cli.js articles/xxx.json --cover-title           # 叠加标题（默认不叠）
+node engine/cli.js articles/xxx.json --cover-category        # 叠加分类标签（默认不显示）
 node engine/cli.js articles/xxx.json --update-draft <media_id>  # 更新已有草稿（换封面/正文）
 ```
 
+> **封面默认只有品牌页脚**：不叠标题、不显示分类标签 —— 标题在公众号正文列表里已显示，
+> 分类也能从正文看出，烧进图里既冗余又容易被裁切。
+> 需要旧行为加 `--cover-title` / `--cover-category`。
+>
+> **同一分类的文章不会出同一张图**：场景按 `category` 取变体、按文章 `name` 稳定挑选，
+> 并把 slug 与英文 tag（如 `DWWA` / `Plavac Mali`）作为画面关键词带入；
+> 想完全指定画面，在文章里写 `"cover": { "prompt": "..." }` 覆盖整段提示词。
+>
 > 需要 `GLM_API_KEY` / `ZIMAGE_API_KEY` / `GEMINI_API_KEY` 之一（见 `.env.example`）。
 > 实测：GLM 国内直连可用（`cogview-4` 余额不足时自动降级到免费但带「AI生成」标识的
 > `cogview-3-flash`）；Z-Image 需 ModelScope 的 API Token；Gemini 国内需配代理。

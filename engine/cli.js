@@ -26,6 +26,8 @@
  *   --cover-ai         强制用图像大模型生成写实封面（默认：已配置 Key 时自动启用）
  *   --no-cover-ai      强制使用矢量封面（不调大模型）
  *   --cover-ai-provider <name>  指定图像提供商：glm / zimage / gemini
+ *   --cover-title      把文章标题叠在封面上（默认不叠：标题在正文列表里已显示）
+ *   --cover-category   把分类标签叠在封面上（默认不显示）
  *   --html             额外输出 HTML 预览
  *   --publish          发布到微信公众号草稿箱
  *   --update-draft <media_id>  更新已有的某篇草稿（不新建）
@@ -59,6 +61,8 @@ function parseArgs(argv) {
     cover: false,
     coverAi: undefined,
     coverAiProvider: '',
+    coverTitle: false,
+    coverCategory: false,
     html: false,
     publish: false,
     updateDraft: '',
@@ -77,6 +81,8 @@ function parseArgs(argv) {
     case '--cover-ai': opts.coverAi = true; break;
     case '--no-cover-ai': opts.coverAi = false; break;
     case '--cover-ai-provider': opts.coverAiProvider = argv[++i] || ''; break;
+    case '--cover-title': opts.coverTitle = true; break;
+    case '--cover-category': opts.coverCategory = true; break;
     case '--html': opts.html = true; break;
     case '--publish': opts.publish = true; break;
     case '--update-draft': opts.updateDraft = argv[++i] || ''; break;
@@ -157,8 +163,19 @@ async function buildCoverBuffer(spec, article, opts) {
   if (useAi) {
     try {
       const r = await generateAiCover(
-        { title: article.title, digest: article.digest, category: article.category, tags: article.tags },
-        { provider: opts.coverAiProvider || '' }
+        {
+          name: spec.name,
+          title: article.title,
+          digest: article.digest,
+          category: article.category,
+          tags: article.tags,
+          cover: spec.cover
+        },
+        {
+          provider: opts.coverAiProvider || '',
+          showTitle: opts.coverTitle === true,
+          showCategory: opts.coverCategory === true
+        }
       );
       log(opts, `   🎨 AI 封面 · ${r.provider} (${r.model})`);
       return r.buffer;
@@ -176,6 +193,8 @@ async function buildCoverBuffer(spec, article, opts) {
   return renderCoverPng(
     { title: article.title, subtitle: article.digest, category: article.category },
     {
+      showTitle: opts.coverTitle === true,
+      showCategory: opts.coverCategory === true,
       ...(coverColor ? { colorTo: coverColor } : {}),
       ...(themeSecondary ? { accent: themeSecondary } : {}),
     }

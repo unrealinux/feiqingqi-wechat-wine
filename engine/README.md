@@ -107,6 +107,8 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 | `--cover-ai` | 强制用图像大模型生成写实封面（默认：已配置 Key 时自动启用） |
 | `--no-cover-ai` | 强制使用矢量封面（离线可用） |
 | `--cover-ai-provider <name>` | 指定图像提供商：`glm` / `zimage` / `gemini` |
+| `--cover-title` | 把文章标题叠在封面上（**默认不叠**：正文列表里已显示标题） |
+| `--cover-category` | 把分类标签叠在封面上（**默认不显示**） |
 | `--html` | 额外输出 HTML 预览 |
 | `--publish` | 上传封面并创建公众号草稿 |
 | `--update-draft <media_id>` | 更新已有草稿（不新建），常用于替换封面 |
@@ -127,8 +129,15 @@ node tools/ip-watch.js --interval 60    # 每 60 分钟
 - 提供商顺序 `glm -> zimage -> gemini`，可用 `COVER_AI_PROVIDER` 指定；
   单个提供商内还有**模型级回退**（如 `cogview-4 -> cogview-3-flash`）。
 - 覆盖控制：`--cover-ai` 强制、`--no-cover-ai` 关闭（离线可用）、`--cover-ai-provider` 指定。
-- 提示词由文章 `category` 映射到写实场景（`ai-cover.js` 的 `SCENES`），并要求画面不出现文字；
-  标题、分类标签、页脚由引擎用 SVG 叠加合成。
+- **封面默认只有品牌页脚**：不叠标题、不显示分类标签 —— 标题在公众号正文列表里本就显示，
+  分类也能从正文看出，烧进图里既冗余又容易被裁切（叠加文字时才会画底部渐变）。
+  需要旧行为时加 `--cover-title` / `--cover-category`。
+- **同一分类也能出不同画面**：提示词由 `category` 映射到一组写实场景变体（`SCENES`），
+  按文章 `name` 稳定挑选（同一篇每次一致，不同篇大概率不同），并自动把 slug 与英文
+  tag（如 `DWWA` / `Plavac Mali`）作为画面关键词带入。
+- **单篇完全自定义**：在文章里写 `"cover": { "prompt": "..." }` 即可整段覆盖提示词。
+- 矢量兜底封面（`engine/cover.js`）同样默认不写文字：渐变色卡 + 柔光圆点 + 品牌页脚；
+  传 `showTitle` / `showCategory`（CLI 的 `--cover-title` / `--cover-category`）可写回标题与分类。
 - `--update-draft <media_id>` 可把新封面/正文写回**已有草稿**（`draft/update`），不新建草稿。
 
 ## 数据格式

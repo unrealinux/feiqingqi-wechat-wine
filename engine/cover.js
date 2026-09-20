@@ -23,6 +23,11 @@ const DEFAULTS = {
   subtitleFontSize: 20,
   footerFontSize: 14,
   lineHeight: 60,
+  // 默认不把标题/副标题/分类写进封面（保持与 AI 封面一致的「纯图 + 品牌页脚」风格）。
+  // 这里保留为矢量封面，是因为没有 AI Key 时它就是一张渐变色卡；
+  // 需要旧行为时传 showTitle: true / showCategory: true。
+  showTitle: false,
+  showCategory: false,
 };
 
 /**
@@ -100,11 +105,18 @@ function wrapByWidth(text, maxWidth, maxLines) {
  * @returns {string} SVG 源码
  */
 function buildCoverSvg(spec, options = {}) {
+  // renderCoverPng 依赖「构造期抛错」的契约：调用完全方传 undefined 时必须
+  // 以 rejected Promise 暴露（见 tests/engine-render.test.js）。
+  if (!spec || typeof spec !== 'object') {
+    throw new Error('封面数据必须是对象（至少包含 title）');
+  }
+
   const opt = { ...DEFAULTS, ...options };
   const { width, height } = opt;
 
-  const titleLines = wrapByWidth(spec.title, 30, opt.maxLines);
-  const subtitleLine = wrapByWidth(spec.subtitle || '', 44, 1)[0] || '';
+  const showTitle = opt.showTitle === true;
+  const titleLines = showTitle ? wrapByWidth(spec.title, 30, opt.maxLines) : [];
+  const subtitleLine = showTitle ? (wrapByWidth(spec.subtitle || '', 44, 1)[0] || '') : '';
 
   // 标题块整体垂直居中，略高于圆心
   const blockHeight = titleLines.length * opt.lineHeight;
@@ -125,15 +137,33 @@ function buildCoverSvg(spec, options = {}) {
       `font-size="${opt.subtitleFontSize}" font-family="sans-serif">${escapeXml(subtitleLine)}</text>`
     : '';
 
-  const categoryEl = spec.category
+  const categoryEl = opt.showCategory === true && spec.category
     ? `<text x="${width / 2}" y="${height - 72}" text-anchor="middle" fill="#c9a227" ` +
       `font-size="16" font-family="sans-serif" letter-spacing="2">${escapeXml(String(spec.category).toUpperCase())}</text>`
     : '';
 
+  // 居中圆环是为了框住标题文字；不叠标题时改用它右侧的柔光圆点（bokeh）做装饰，
+  // 否则中间一个空圈看起来像「文字没渲染出来」。
+  const ringEl = showTitle
+    ? `<circle cx="${width / 2}" cy="${height / 2}" r="200" fill="none" stroke="${opt.accent}" stroke-width="2" opacity="0.3"/>`
+    : '';
+  const bokehEl = showTitle
+    ? ''
+    : [
+      { x: 0.76, y: 0.28, r: 150, o: 0.1 },
+      { x: 0.9, y: 0.64, r: 92, o: 0.08 },
+      { x: 0.64, y: 0.74, r: 58, o: 0.07 },
+      { x: 0.16, y: 0.82, r: 74, o: 0.06 }
+    ]
+      .map((b) => `<circle cx="${Math.round(width * b.x)}" cy="${Math.round(height * b.y)}" `
+        + `r="${b.r}" fill="${opt.accent}" opacity="${b.o}"/>`)
+      .join('\n');
+
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">
 <defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:${opt.colorFrom}"/><stop offset="100%" style="stop-color:${opt.colorTo}"/></linearGradient></defs>
 <rect width="${width}" height="${height}" fill="url(#g)"/>
-<circle cx="${width / 2}" cy="${height / 2}" r="200" fill="none" stroke="${opt.accent}" stroke-width="2" opacity="0.3"/>
+${ringEl}
+${bokehEl}
 ${titleTspans}
 ${subtitleEl}
 ${categoryEl}
