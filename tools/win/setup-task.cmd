@@ -18,6 +18,10 @@ rem    * Paths are written with \" escaping, so a project path containing
 rem      spaces still works (verified empirically).
 rem    * Re-installing is idempotent (delete-then-create).
 rem    * Runs as the CURRENT USER, so NO administrator rights are required.
+rem    * StartWhenAvailable is turned on AFTER creation (schtasks has no switch
+rem      for it), so a run that was missed because the PC was off is caught up
+rem      once after the next boot + logon instead of being dropped silently.
+rem      Re-running this script keeps that option (it does not reset it).
 rem
 rem  NOTE: kept ASCII-only on purpose. Batch files containing multi-byte
 rem        characters are parsed unreliably depending on the active code page
@@ -72,6 +76,27 @@ if "%MODIFIER%"=="" (
 
 if errorlevel 1 goto :fail
 
+rem --- Missed-run catch-up -----------------------------------------------
+rem  Default for schtasks is StartWhenAvailable=OFF: if the PC happens to be
+rem  off (or nobody is logged on) at the scheduled time, that day's run is
+rem  dropped and NOT retried. schtasks /create has no switch for this, so set
+rem  it through PowerShell afterwards. Non-fatal: registration already
+rem  succeeded, so only warn.
+powershell -NoProfile -Command "$ErrorActionPreference='Stop'; try { $t = Get-ScheduledTask -TaskName '%TASK_NAME%'; $t.Settings.StartWhenAvailable = $true; Set-ScheduledTask -TaskName '%TASK_NAME%' -Settings $t.Settings | Out-Null } catch { exit 1 }" >nul 2>&1
+if not errorlevel 1 goto :catchup_ok
+
+rem NOTE: no parentheses in these echo lines -- an unescaped ')' inside a
+rem parenthesised if(...) block would be parsed as the end of the block.
+echo [i] could not enable missed-run catch-up - option StartWhenAvailable.
+echo     The task itself is registered and will still run on schedule.
+echo     Tick "Run task as soon as possible after a scheduled start is missed"
+echo     by hand in Task Scheduler if you want the catch-up behaviour.
+goto :registered
+
+:catchup_ok
+echo [OK] missed-run catch-up enabled - option StartWhenAvailable
+
+:registered
 echo.
 echo [OK] task registered.
 echo      check status :  setup-task.cmd status
