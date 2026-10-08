@@ -29,7 +29,7 @@ node engine/cli.js articles/bbq_pairing.json --publish
 node engine/cli.js --all --cover --publish
 ```
 
-没有 `build_*.py`，也没有 `generate-*.js` —— 新增一篇专题只需新建一个 `articles/<name>.json`。详见 [engine/README.md](engine/README.md)。
+手写一篇专题只需新建一个 `articles/<name>.json`；也可以让 `tools/generate-article.js` 拿素材自动写（见下文「自动写稿」）。详见 [engine/README.md](engine/README.md)。
 
 ### 封面：AI 写实图（推荐）vs 矢量兜底
 
@@ -69,16 +69,20 @@ node engine/cli.js articles/xxx.json --update-draft <media_id>  # 更新已有�
 articles/              99 篇文章数据（唯一真相）
   _superseded/         同名冲突中被取代的版本（不参与发布）
   _incoming/           抓取草稿暂存区（不参与 --all，gitignore）
+  _review/             自动写稿的人工过目区（不参与 --all，满意后手工移到顶层）
 engine/                渲染引擎
   blocks.js            17 种内容块的校验与渲染分发
   themes/              classic（第一代风格）/ rich（主题色风格）
   cover.js             矢量封面（SVG -> PNG，带兜底）
   ai-cover.js          AI 写实封面（GLM / Z-Image / Gemini，失败回退 cover.js）
+  llm.js               文本大模型客户端（自动写稿用，OpenAI 兼容）
+  wine-writer.js       写稿提示词 + 守门（数字溯源 / 译名雷区 / 结构硬门槛）
   wechat.js            微信 API 客户端
   article.js           数据 -> 成品文章
   cli.js               命令行入口
 tools/
   fetch-news.js        RSS -> engine 草稿（整合抓取能力）
+  generate-article.js  素材 -> 大模型写稿 -> articles/<name>.json（可立即建草稿）
   news-sources.js      抓取信息源清单
   extract_articles.py  从旧 build_*.py 提取数据为 JSON（AST 静态解析）
   verify_parity.js     与历史产物逐字节回归比对
@@ -87,8 +91,8 @@ tools/
   publish-pending.js   发布未发布的文章（幂等，供定时任务调用）
   notifier.js          统一通知（Webhook / 邮件）
   verify-notify.js     通知链路验证（本地模拟，无需凭据）
-  win/                 Windows 任务计划（IP 监控 + 内容发布，纯 ASCII + CRLF）
-tests/                 334 个测试（15 个套件）
+  win/                 Windows 任务计划（IP 监控 + 内容发布 + 自动写稿，纯 ASCII + CRLF）
+tests/                 438 个测试（20 个套件）
 archive/first-gen/     第一代新闻聚合流水线（已归档，不参与 CI）
 output/                生成产物（gitignore）
 logs/                  日志与监控状态（gitignore）
@@ -105,6 +109,9 @@ logs/                  日志与监控状态（gitignore）
 | `npm run publish:pending` | **发布未发布的文章**（幂等，只建草稿） |
 | `npm run publish:pending -- --dry-run` | 只列出会发什么，不建草稿 |
 | `tools\win\setup-publish-task.cmd` | 注册内容发布计划任务（默认每天 09:00，见下文） |
+| `npm run article:generate` | **自动写稿**（素材 -> 大模型 -> `articles/`，见下文） |
+| `npm run article:generate -- --dry-run` | 只生成并打印，不写文件（省一次草稿） |
+| `tools\win\setup-generate-task.cmd` | 注册自动写稿计划任务（默认每天 07:30，见下文） |
 | `npm run notify:verify` | **验证通知链路**（本地模拟，不需真实凭据） |
 | `npm run engine:check` | 校验 `articles/` 下全部数据 |
 | `npm run engine:render` | 渲染全部文章并生成封面与预览 |
@@ -274,6 +281,104 @@ tools\win\setup-publish-task.cmd uninstall
 
 > 日志在 `logs/ip-watch.log`（合法 UTF-8，含时间戳、退出码与状态判定），
 > 超过 1MB 自动归档为 `.log.1`。
+
+### 自动写稿（素材 -> 大模型 -> 文章）
+
+不想每周手写 `articles/*.json` 时，可以把「写稿」这一步也交给大模型：
+
+```
+articles/_incoming/*.json    ─┐
+  （RSS 抓取素材，人工可改）   │
+                            ▼
+tools/generate-article.js  ─ 提示词 -> 文本大模型 -> 守门 -> articles/<name>.json
+                            ▼
+tools/publish-pending.js   ─ 渲染 + AI 封面 + 建草稿（幂等，只建草稿）
+```
+
+> **默认全自动**：定时任务 07:30 直接建草稿，不经人工。草稿箱是中转站，不是发布 ——
+> 红线是「只建草稿，绝不群发」，错了删一个草稿即可，不会对粉丝发错文。
+> 想让机器稿先过目再入队：任何一条命令加 `--review`（写到 `articles/_review/`），
+> 或把 `tools\win\run-generate.cmd` 里的 `--publish` 换成 `--review`。
+
+```bash
+# 先看能不能写（不写文件、不建草稿）
+npm run article:generate -- --dry-run
+
+# 正式写一篇（落到 articles/，由 09:00 的任务建草稿）
+npm run article:generate
+
+# 生成 + 立即建草稿（不等到 09:00）
+npm run article:generate -- --fetch --publish
+
+# 让人先过目（写到 articles/_review/，不进发布队列）
+npm run article:generate -- --review
+
+# 指定素材/分类，或换模型
+npm run article:generate -- --material articles/_incoming/x.json --category wine-food --provider zhipu
+```
+
+| 选项 | 说明 |
+|---|---|
+| `--dry-run` | 只生成并打印统计，不写文件 |
+| `--review` | 写到 `articles/_review/`，人工过目后再手工移到顶层（默认**不**开启） |
+| `--publish` | 写完后立即建草稿（不依赖 09:00 队列） |
+| `--fetch` | 先跑一次 `fetch-news` 抓新素材 |
+| `--material <file>` | 指定素材（可多次），不再自动挑最新未用的 |
+| `--limit N` | 一次用几条素材（默认 3） |
+| `--category <c>` | 指定分类，默认由模型自选 |
+| `--provider <name>` | 指定文本模型提供商（默认 auto） |
+| `--allow-reuse` | 允许重复使用已用过的素材 |
+| `--json` | 机器可读输出（便于接入别的脚本） |
+
+**三条守门规则（不合格就不写文件、不建草稿）：**
+
+| 守门 | 作用 |
+|---|---|
+| 数字溯源 | 素材里没出现的数字一律不写；表格行里的数字查不到出处时**整行删掉**（不上图） |
+| 译名雷区 | `body=酒体`（不是身体）、`nose=香气`（不是鼻子）等硬译命中即整篇重写 |
+| 结构硬门槛 | 正文 `<1200` 字、`h2 <3` 个、缺大标题、分类不在白名单 —— 都算不合格 |
+
+> **fail-closed 是故意的**：模型不可用、三次生成都不合格、或输出根本不是 JSON 时，
+> 工具退出码 `1` 并且**什么都不写**。理由：红酒稿里的年份/价格/评分都是能被读者
+> 核实的事实，一篇编造数据的稿子比今天不出稿伤得多。
+> 实测 `glm-4-flash`（旧版）连续三次都写不到 1200 字，所以默认用 `glm-4-flash-250414`，
+> 第三次重试自动升档到 `glm-4.5-flash`（同一把 `GLM_API_KEY`，无需额外配置）。
+> 连模型都选不出来的清单与实测结果见 `.env.example` 末节。
+
+> **重试会把失败原因回填给模型**（「上一次只有 530 字，必须 >=1200 字」），
+> 比单纯重跑有效得多；三次仍不合格时，最后一次的原始输出会落到
+> `logs/last-generation.txt`，方便调提示词而不是盲猜。
+
+> **每天不会写出重复篇目**：用过哪条素材、写过哪篇稿都记在
+> `logs/generate-state.json`；已用素材默认跳过，已写标题会喂给模型避免重复选题。
+> 想重写同一批素材：加 `--allow-reuse`，或删掉状态文件里对应的 `materials` 条目。
+
+**定时自动写稿**（默认每天 07:30，写完直接建草稿）：
+
+```cmd
+:: 安装（默认每天 07:30）
+tools\win\setup-generate-task.cmd
+
+:: 换时间
+tools\win\setup-generate-task.cmd install DAILY 06:30
+
+:: 立即跑一次（与计划任务完全同一入口）
+tools\win\setup-generate-task.cmd run
+tools\win\setup-generate-task.cmd status
+```
+
+> **任务干什么**：`generate-article.js --fetch --publish` —— 抓最新素材、写一篇、
+> 过守门后落到 `articles/`，并立即渲染 + 生成封面 + 建草稿。**只建草稿，不群发**。
+>
+> **风险与应对**：全自动意味着模型写错的年份/价格会进草稿箱（不会到粉丝），
+> 需要你每天扫一眼草稿箱删掉不行的。这是因为两条流水线风险不同而做的取舍：
+> AI 号的稿子发错只丢一篇，红酒号的稿子发错丢品牌。所以守门（数字溯源 / 译名
+> 雷区 / 结构硬门槛）是唯一栏在模型和草稿箱之间的东西，它不合格就一个字不写。
+> 想要人工把关：把 `tools\win\run-generate.cmd` 里的 `--publish` 换成 `--review`。
+>
+> **为什么是 07:30 而不是 09:00**：09:00 那条是**兜底重试**。写稿成功但建草稿
+> 失败时，文章已在 `articles/` 里，09:00 会自动补发；两条任务顺序不能反，
+> 否则兜底会跑在产物之前。日志在 `logs/generate.log`（UTF-8，超 1MB 自动归档为 `.log.1`）。
 
 ### 验证通知链路
 

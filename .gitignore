@@ -59,6 +59,9 @@ coverage/
 # ===== 抓取草稿（工作产物，不入库）=====
 articles/_incoming/*.json
 
+# ===== 自动写稿的人工过目区（未认可的稿子不入库）=====
+articles/_review/*.json
+
 # ===== 一次性调试产物 =====
 *_debug.txt
 *_preview.txt
