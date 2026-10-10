@@ -112,6 +112,16 @@ describe('extractJson', () => {
   test('JSON 语法错误会抛错，不会被静默吞掉', () => {
     expect(() => extractJson('{bad json}')).toThrow();
   });
+
+  test('兜底修复字符串值里未转义的英文引号', () => {
+    const raw = '{"content":[{"type":"p","text":"以其独特的"文化景观"而闻名"}]}';
+    expect(extractJson(raw).content[0].text).toBe('以其独特的"文化景观"而闻名');
+  });
+
+  test('修复时不会重复转义已正确转义的引号', () => {
+    const raw = '{"a":"他说：\\"你好\\"，又："好的""}';
+    expect(extractJson(raw)).toEqual({ a: '他说："你好"，又："好的"' });
+  });
 });
 
 describe('数字工具', () => {

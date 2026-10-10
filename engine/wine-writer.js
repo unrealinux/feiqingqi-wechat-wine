@@ -151,6 +151,43 @@ content 只能使用下面这些块类型（type 字段写英文原名）：
 ${formatMaterials(materials)}`;
 }
 
+/**
+ * 给字符串值里的裸双引号补转义。
+ * 模型写正文时常把「文化景观」的引号直接写成英文 "，导致 JSON 解析失败。
+ * 判断依据：合法的字符串结尾后面只能跟 , } ] :，否则就是正文里的引号。
+ */
+function escapeStrayQuotes(text) {
+  let out = '';
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (!inString) {
+      out += ch;
+      if (ch === '"') {inString = true;}
+      continue;
+    }
+    if (ch === '\\') {
+      out += ch + (text[i + 1] || '');
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text[j])) {j++;}
+      const next = text[j];
+      if (next === ',' || next === '}' || next === ']' || next === ':') {
+        out += ch;
+        inString = false;
+      } else {
+        out += '\\"';
+      }
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 /** 去掉 Markdown 围栏、截取第一个完整 JSON 对象。 */
 function extractJson(raw) {
   let text = String(raw || '').trim();
@@ -160,7 +197,17 @@ function extractJson(raw) {
   if (start === -1 || end === -1 || end < start) {
     throw new Error('模型输出里找不到 JSON 对象');
   }
-  return JSON.parse(text.slice(start, end + 1));
+  const json = text.slice(start, end + 1);
+  try {
+    return JSON.parse(json);
+  } catch (err) {
+    // shortcut: 只补裸引号这一种模型高频错误；仍失败就抛原始错误，保持 fail-closed
+    try {
+      return JSON.parse(escapeStrayQuotes(json));
+    } catch {
+      throw err;
+    }
+  }
 }
 
 /** 全角数字/字母 -> 半角，便于数字溯源比较。 */
