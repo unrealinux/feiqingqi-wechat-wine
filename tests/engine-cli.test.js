@@ -111,6 +111,42 @@ describe('cli: buildCoverBuffer', () => {
     const buf = await buildCoverBuffer({ theme: { name: 'rich' } }, article, { quiet: true, coverAi: false });
     expect(buf.slice(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
   });
+
+  test('AI 封面首次失败会重试一次，第二次成功就用 AI 图', async () => {
+    const aiCover = require('../engine/ai-cover');
+    const hasSpy = jest.spyOn(aiCover, 'hasImageProvider').mockReturnValue(true);
+    const genSpy = jest.spyOn(aiCover, 'generateAiCover')
+      .mockRejectedValueOnce(new Error('AI 封面生成失败（已尝试 1 个模型）:\n  - Agnes [x]: 临时错误'))
+      .mockResolvedValueOnce({ buffer: Buffer.from('AI'), provider: 'agnes', model: 'x' });
+    try {
+      const buf = await buildCoverBuffer({ theme: { name: 'rich' } }, article, { quiet: true });
+      expect(genSpy).toHaveBeenCalledTimes(2);
+      expect(buf.toString()).toBe('AI');
+    } finally {
+      hasSpy.mockRestore();
+      genSpy.mockRestore();
+    }
+  });
+
+  test('两次都失败才回退矢量图，且日志保留完整错误（不只第一行）', async () => {
+    const aiCover = require('../engine/ai-cover');
+    const hasSpy = jest.spyOn(aiCover, 'hasImageProvider').mockReturnValue(true);
+    const genSpy = jest.spyOn(aiCover, 'generateAiCover')
+      .mockRejectedValue(new Error('AI 封面生成失败（已尝试 1 个模型）:\n  - Agnes [x]: getaddrinfo ENOTFOUND cos.example'));
+    const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      const buf = await buildCoverBuffer({ theme: { name: 'rich' } }, article, { quiet: false });
+      expect(genSpy).toHaveBeenCalledTimes(2);
+      expect(buf.slice(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+      const logged = logSpy.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(logged).toContain('getaddrinfo ENOTFOUND cos.example');
+      expect(logged).toContain('改用矢量封面');
+    } finally {
+      hasSpy.mockRestore();
+      genSpy.mockRestore();
+      logSpy.mockRestore();
+    }
+  });
 });
 
 describe('cli: buildPreviewHtml', () => {

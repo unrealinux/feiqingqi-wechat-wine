@@ -171,27 +171,32 @@ async function buildCoverBuffer(spec, article, opts) {
 
   const useAi = opts.coverAi === false ? false : (opts.coverAi === true || hasImageProvider());
   if (useAi) {
-    try {
-      const r = await generateAiCover(
-        {
-          name: spec.name,
-          title: article.title,
-          digest: article.digest,
-          category: article.category,
-          tags: article.tags,
-          cover: spec.cover
-        },
-        {
-          provider: opts.coverAiProvider || '',
-          showTitle: opts.coverTitle === true,
-          showCategory: opts.coverCategory === true
-        }
-      );
-      log(opts, `   🎨 AI 封面 · ${r.provider} (${r.model})`);
-      return r.buffer;
-    } catch (err) {
-      const first = String(err.message).split('\n')[0];
-      log(opts, `   ⚠️  AI 封面失败，改用矢量封面：${first}`);
+    // 一次偶发失败（DNS 抖动、接口超时）不值得丢掉 AI 封面，重试一次再退回矢量
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const r = await generateAiCover(
+          {
+            name: spec.name,
+            title: article.title,
+            digest: article.digest,
+            category: article.category,
+            tags: article.tags,
+            cover: spec.cover
+          },
+          {
+            provider: opts.coverAiProvider || '',
+            showTitle: opts.coverTitle === true,
+            showCategory: opts.coverCategory === true
+          }
+        );
+        log(opts, `   🎨 AI 封面 · ${r.provider} (${r.model})`);
+        return r.buffer;
+      } catch (err) {
+        // 完整错误必须落盘：只留第一行会永远查不出为什么退成矢量图
+        const detail = String(err.message).split('\n').map((s) => s.trim()).filter(Boolean).join(' | ');
+        const label = attempt === 1 ? 'AI 封面失败，重试一次' : 'AI 封面失败，改用矢量封面';
+        log(opts, `   ⚠️  ${label}：${detail}`);
+      }
     }
   }
 
