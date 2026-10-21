@@ -19,6 +19,7 @@ const {
   numbersIn,
   specTexts,
   checkTerms,
+  checkGrapes,
   groundTableRows,
   findUngroundedNumbers,
   checkStructure,
@@ -168,6 +169,35 @@ describe('译名雷区', () => {
   test('命中雷区时 guardSpec 直接判为错误（不写文件）', () => {
     const g = guardSpec(longSpec({ content: [{ type: 'p', text: '这款酒的身体很饱满' }] }), { material: '' });
     expect(g.errors.join()).toMatch(/译名错误/);
+  });
+});
+
+describe('品种译名与素材一致', () => {
+  const spec = (text, title = '') => ({ title, digest: '摘要', tags: [], content: [{ type: 'p', text }] });
+
+  test('素材是 Sauvignon Blanc，正文写成霞多丽 -> 判为错误', () => {
+    const g = guardSpec(
+      longSpec({ title: '小众霞多丽', content: [{ type: 'p', text: '这款霞多丽来自卢瓦尔河谷' }] }),
+      { material: 'We Asked 10 Sommeliers: What’s the Most Underrated Sauvignon Blanc?' }
+    );
+    expect(g.errors.join()).toMatch(/品种与素材不符/);
+    expect(g.errors.join()).toMatch(/霞多丽/);
+  });
+
+  test('译名正确时不报错', () => {
+    expect(checkGrapes(spec('这款长相思来自卢瓦尔河谷'), 'Sauvignon Blanc')).toEqual([]);
+  });
+
+  test('素材是中文品种名时也不误伤', () => {
+    expect(checkGrapes(spec('这款长相思来自卢瓦尔河谷'), '素材讲的是长相思')).toEqual([]);
+  });
+
+  test('同义词（Shiraz / Syrah）只要命中一个就算有据', () => {
+    expect(checkGrapes(spec('这款西拉很有力量'), 'Shiraz from Barossa')).toEqual([]);
+  });
+
+  test('标题里的品种也会被检查', () => {
+    expect(checkGrapes({ title: '小众霞多丽', content: [] }, 'Sauvignon Blanc')).toEqual(['霞多丽（Chardonnay）']);
   });
 });
 

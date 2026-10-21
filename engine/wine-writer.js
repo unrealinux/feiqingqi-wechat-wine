@@ -56,6 +56,54 @@ const TERM_GUARD = [
   { pattern: /软木(?:塞)?(?:的)?味道/, term: 'corked', suggest: '软木塞污染（corked）' },
 ];
 
+/**
+ * 常见葡萄品种的英文 / 中文对照。
+ * 模型最容易在这里张冠李戴：10-21 那篇素材是 Sauvignon Blanc，正文全写成了「霞多丽」。
+ */
+const GRAPE_NAMES = [
+  ['Sauvignon Blanc', '长相思'],
+  ['Cabernet Sauvignon', '赤霞珠'],
+  ['Cabernet Franc', '品丽珠'],
+  ['Chardonnay', '霞多丽'],
+  ['Merlot', '梅洛'],
+  ['Pinot Noir', '黑皮诺'],
+  ['Riesling', '雷司令'],
+  ['Shiraz', '西拉'],
+  ['Syrah', '西拉'],
+  ['Tempranillo', '丹魄'],
+  ['Sangiovese', '桑娇维塞'],
+  ['Nebbiolo', '内比奥罗'],
+  ['Grenache', '歌海娜'],
+  ['Malbec', '马尔贝克'],
+  ['Zinfandel', '仙粉黛'],
+  ['Chenin Blanc', '白诗南'],
+  ['Viognier', '维欧尼'],
+];
+
+/** 正文出现的品种，素材里完全没有 -> 张冠李戴或凭空添加 */
+function checkGrapes(spec, materialText) {
+  const text = [
+    spec && spec.title,
+    spec && spec.digest,
+    ...((spec && spec.tags) || []),
+    ...specTexts(spec)
+  ].filter(Boolean).join('\n');
+  const pool = String(materialText || '').toLowerCase();
+  const byZh = new Map();
+  for (const [en, zh] of GRAPE_NAMES) {
+    if (!byZh.has(zh)) {byZh.set(zh, []);}
+    byZh.get(zh).push(en);
+  }
+  const hits = [];
+  for (const [zh, ens] of byZh) {
+    if (!text.includes(zh)) {continue;}
+    // 素材里只要出现任一同义词或中文名，就算有据
+    if (pool.includes(zh) || ens.some((en) => pool.includes(en.toLowerCase()))) {continue;}
+    hits.push(`${zh}（${ens[0]}）`);
+  }
+  return hits;
+}
+
 /** 分类白名单（来自 engine/article.js，新增类别请先去那边登记） */
 const ALLOWED_CATEGORIES = CATEGORIES;
 
@@ -361,6 +409,9 @@ function guardSpec(spec, { material = '', strict = true } = {}) {
   const badTerms = checkTerms(spec);
   if (badTerms.length && strict) {errors.push(`译名错误: ${badTerms.join('、')}`);}
 
+  const badGrapes = checkGrapes(spec, materialText);
+  if (badGrapes.length && strict) {errors.push(`品种与素材不符（素材里没有该品种）: ${badGrapes.join('、')}`);}
+
   // 复制一份再改，避免调用方拿到的对象被就地修改
   const working = JSON.parse(JSON.stringify(spec));
   const dropped = groundTableRows(working, materialText);
@@ -381,6 +432,8 @@ module.exports = {
   DEFAULT_THEME,
   BLOCK_GUIDE,
   TERM_GUARD,
+  GRAPE_NAMES,
+  checkGrapes,
   ALLOWED_CATEGORIES,
   LENGTH,
   todayString,
