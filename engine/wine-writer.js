@@ -80,14 +80,8 @@ const GRAPE_NAMES = [
   ['Viognier', '维欧尼'],
 ];
 
-/** 正文出现的品种，素材里完全没有 -> 张冠李戴或凭空添加 */
-function checkGrapes(spec, materialText) {
-  const text = [
-    spec && spec.title,
-    spec && spec.digest,
-    ...((spec && spec.tags) || []),
-    ...specTexts(spec)
-  ].filter(Boolean).join('\n');
+/** 文本里出现的、素材完全不支持的品种名 */
+function unsupportedGrapes(text, materialText) {
   const pool = String(materialText || '').toLowerCase();
   const byZh = new Map();
   for (const [en, zh] of GRAPE_NAMES) {
@@ -102,6 +96,19 @@ function checkGrapes(spec, materialText) {
     hits.push(`${zh}（${ens[0]}）`);
   }
   return hits;
+}
+
+/**
+ * 品种核对。
+ * 标题/摘要/标签是文章的「主语」，写错就是张冠李戴 -> error（触发重生成）。
+ * 正文里提到素材没有的品种多为举例/类比，误报成本高 -> 只告警，留给人工判断。
+ */
+function checkGrapes(spec, materialText) {
+  const head = [spec && spec.title, spec && spec.digest, ...((spec && spec.tags) || [])].filter(Boolean).join('\n');
+  const body = specTexts(spec).join('\n');
+  const errors = unsupportedGrapes(head, materialText);
+  const warnings = unsupportedGrapes(body, materialText).filter((x) => !errors.includes(x));
+  return { errors, warnings };
 }
 
 /** 分类白名单（来自 engine/article.js，新增类别请先去那边登记） */
@@ -410,7 +417,8 @@ function guardSpec(spec, { material = '', strict = true } = {}) {
   if (badTerms.length && strict) {errors.push(`译名错误: ${badTerms.join('、')}`);}
 
   const badGrapes = checkGrapes(spec, materialText);
-  if (badGrapes.length && strict) {errors.push(`品种与素材不符（素材里没有该品种）: ${badGrapes.join('、')}`);}
+  if (badGrapes.errors.length && strict) {errors.push(`品种与素材不符（标题/摘要/标签）: ${badGrapes.errors.join('、')}`);}
+  if (badGrapes.warnings.length) {warnings.push(`正文提到素材未出现的品种（请人工复核）: ${badGrapes.warnings.join('、')}`);}
 
   // 复制一份再改，避免调用方拿到的对象被就地修改
   const working = JSON.parse(JSON.stringify(spec));

@@ -185,19 +185,30 @@ describe('品种译名与素材一致', () => {
   });
 
   test('译名正确时不报错', () => {
-    expect(checkGrapes(spec('这款长相思来自卢瓦尔河谷'), 'Sauvignon Blanc')).toEqual([]);
+    expect(checkGrapes(spec('这款长相思来自卢瓦尔河谷'), 'Sauvignon Blanc')).toEqual({ errors: [], warnings: [] });
   });
 
   test('素材是中文品种名时也不误伤', () => {
-    expect(checkGrapes(spec('这款长相思来自卢瓦尔河谷'), '素材讲的是长相思')).toEqual([]);
+    expect(checkGrapes(spec('这款长相思来自卢瓦尔河谷'), '素材讲的是长相思')).toEqual({ errors: [], warnings: [] });
   });
 
   test('同义词（Shiraz / Syrah）只要命中一个就算有据', () => {
-    expect(checkGrapes(spec('这款西拉很有力量'), 'Shiraz from Barossa')).toEqual([]);
+    expect(checkGrapes(spec('这款西拉很有力量'), 'Shiraz from Barossa')).toEqual({ errors: [], warnings: [] });
   });
 
-  test('标题里的品种也会被检查', () => {
-    expect(checkGrapes({ title: '小众霞多丽', content: [] }, 'Sauvignon Blanc')).toEqual(['霞多丽（Chardonnay）']);
+  test('标题里的品种会被判为错误', () => {
+    expect(checkGrapes({ title: '小众霞多丽', content: [] }, 'Sauvignon Blanc')).toEqual({
+      errors: ['霞多丽（Chardonnay）'],
+      warnings: []
+    });
+  });
+
+  test('正文里提到素材没有的品种只告警，不拦稿', () => {
+    const base = longSpec();
+    base.content.push({ type: 'p', text: '不像霞多丽那样饱满' });
+    const g = guardSpec(base, { material: 'Sauvignon Blanc' });
+    expect(g.errors).toEqual([]);
+    expect(g.warnings.join()).toMatch(/霞多丽/);
   });
 });
 
