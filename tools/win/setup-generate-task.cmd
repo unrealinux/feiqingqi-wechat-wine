@@ -6,6 +6,7 @@ rem  Usage:
 rem    setup-generate-task.cmd                          Install (daily at 07:30)
 rem    setup-generate-task.cmd install DAILY 06:30     Daily at 06:30
 rem    setup-generate-task.cmd install HOURLY 08:00 4  Every 4 hours
+rem    setup-generate-task.cmd install DAILY 07:30 - 14:30     Twice daily (the - = no modifier)
 rem    setup-generate-task.cmd run                      Run once now (verify setup)
 rem    setup-generate-task.cmd status                   Show task state + recent log
 rem    setup-generate-task.cmd uninstall                Remove the task
@@ -17,10 +18,12 @@ rem    Fully automatic: no human step before the draft box.
 rem    Details and the draft-only red line: tools\generate-article.js
 rem
 rem  Ordering with the publish task:
-rem    07:30  FeiqingqiWechatMP-Generate  writes the article + creates the draft
+rem    07:30  FeiqingqiWechatMP-Generate  writes article #1 + creates the draft
+rem    14:30  same task, second trigger  writes article #2 + creates the draft
 rem    09:00  FeiqingqiWechatMP-Publish   retry path: drafts anything still
 rem                                       undrafted (idempotent)
 rem    Keep 07:30 earlier than 09:00 or the retry path runs before the product.
+rem    A 14:30 draft that fails only gets retried at 09:00 the next day.
 rem
 rem  Design notes:
 rem    * Action = wscript.exe -> run-hidden.vbs -> run-generate.cmd
@@ -51,6 +54,10 @@ set "ACTION=%~1"
 set "SCHEDULE=%~2"
 set "STARTTIME=%~3"
 set "MODIFIER=%~4"
+set "SECOND=%~5"
+rem  "-" is the placeholder for "no modifier": an empty "" argument is passed
+rem  through as escaped quotes by some shells and breaks /MO.
+if "%MODIFIER%"=="-" set "MODIFIER="
 
 if /i "%ACTION%"=="uninstall" goto :uninstall
 if /i "%ACTION%"=="remove"    goto :uninstall
@@ -87,6 +94,14 @@ if "%MODIFIER%"=="" (
 
 if errorlevel 1 goto :fail
 
+rem  schtasks can print an error (bad /MO, locked task) yet still exit 0, so
+rem  trusting errorlevel alone lets the script claim success on a no-op.
+schtasks /query /tn "%TASK_NAME%" >nul 2>&1
+if errorlevel 1 (
+  echo [X] task was NOT registered - see the schtasks error above
+  goto :fail
+)
+
 rem --- Missed-run catch-up -----------------------------------------------
 rem  Default for schtasks is StartWhenAvailable=OFF: if the PC happens to be
 rem  off (or nobody is logged on) at the scheduled time, that day's run is
@@ -102,10 +117,25 @@ echo [i] could not enable missed-run catch-up - option StartWhenAvailable.
 echo     The task itself is registered and will still run on schedule.
 echo     Tick "Run task as soon as possible after a scheduled start is missed"
 echo     by hand in Task Scheduler if you want the catch-up behaviour.
-goto :registered
+goto :second_trigger
 
 :catchup_ok
 echo [OK] missed-run catch-up enabled - option StartWhenAvailable
+
+:second_trigger
+rem  schtasks /create takes only ONE daily start time, so an optional second
+rem  run (arg 5) is added afterwards as an extra trigger via PowerShell.
+if "%SECOND%"=="" goto :registered
+powershell -NoProfile -Command "$ErrorActionPreference='Stop'; try { $t = Get-ScheduledTask -TaskName '%TASK_NAME%'; $n = New-ScheduledTaskTrigger -Daily -At '%SECOND%'; Set-ScheduledTask -TaskName '%TASK_NAME%' -Trigger ($t.Triggers + $n) | Out-Null } catch { exit 1 }" >nul 2>&1
+if errorlevel 1 goto :second_failed
+echo [OK] second daily trigger enabled - %SECOND%
+goto :registered
+
+:second_failed
+echo [i] could not add the second daily trigger %SECOND%.
+echo     The task still runs at its first time only.
+echo     Add %SECOND% by hand: Task Scheduler - the task - Add trigger - Daily.
+goto :registered
 
 :registered
 echo.
@@ -177,10 +207,11 @@ endlocal & exit /b 0
 :usage
 echo Usage:
 echo   setup-generate-task.cmd                          install (daily 07:30)
-echo   setup-generate-task.cmd install ^<SC^> ^<ST^> ^<MO^>
+echo   setup-generate-task.cmd install ^<SC^> ^<ST^> ^<MO^> ^<2ND^>
 echo        SC = MINUTE ^| HOURLY ^| DAILY ^| WEEKLY ^| MONTHLY ^| ONCE
 echo        ST = start time HH:mm (default 07:30)
 echo        MO = recurrence, e.g. 4 under HOURLY means every 4 hours
+echo        2ND = optional second daily start time, e.g. 14:30
 echo   setup-generate-task.cmd run                      run once now
 echo   setup-generate-task.cmd status                   show task state and log
 echo   setup-generate-task.cmd uninstall                remove the task
