@@ -95,6 +95,25 @@ if not defined TS set "TS=unknown-time"
 rem The cd is essential -- without it the tool cannot read .env
 cd /d "%PROJECT_DIR%"
 
+rem --- Daily quota: at most MAX_PER_DAY articles per calendar day ---
+rem  The task also has an "at logon" trigger (setup-generate-task.cmd) that
+rem  catches up runs missed while the PC was off. Without this cap every logon
+rem  would write another article. Counted by the article files themselves
+rem  (articles\ai_wine_YYYYMMDD_*.json), not by task run state.
+set "MAX_PER_DAY=2"
+set "TODAY_COUNT="
+for /f "delims=" %%I in ('powershell -NoProfile -Command "$d=Get-Date -Format yyyyMMdd; $f='ai_wine_'+$d+'_*.json'; $n=0; Get-ChildItem -LiteralPath '%PROJECT_DIR%\articles' -Filter $f -File -ErrorAction SilentlyContinue | ForEach-Object { $n++ }; $n" 2^>nul') do set "TODAY_COUNT=%%I"
+if not defined TODAY_COUNT set "TODAY_COUNT=0"
+rem  NOTE: no parentheses below -- an unescaped ')' inside a parenthesised
+rem        if(...) block would be parsed as the end of the block.
+if %TODAY_COUNT% GEQ %MAX_PER_DAY% (
+  >>"%LOG_FILE%" echo.
+  >>"%LOG_FILE%" echo ============================================================
+  >>"%LOG_FILE%" echo [%TS%] skipped: today already has %TODAY_COUNT% of %MAX_PER_DAY% articles
+  >>"%LOG_FILE%" echo status: OK - daily quota already met
+  endlocal & exit /b 0
+)
+
 >>"%LOG_FILE%" echo.
 >>"%LOG_FILE%" echo ============================================================
 >>"%LOG_FILE%" echo [%TS%] generate started  (node: %NODE_EXE%)

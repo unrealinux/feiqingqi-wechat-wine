@@ -125,16 +125,30 @@ echo [OK] missed-run catch-up enabled - option StartWhenAvailable
 :second_trigger
 rem  schtasks /create takes only ONE daily start time, so an optional second
 rem  run (arg 5) is added afterwards as an extra trigger via PowerShell.
-if "%SECOND%"=="" goto :registered
+rem  An "at logon" trigger is added too: on this machine StartWhenAvailable
+rem  does not fire after a missed start, so without it a day where the PC is
+rem  off at the first time silently loses that article. run-generate.cmd caps
+rem  the day at 2 articles, so extra logons are harmless no-ops.
+if "%SECOND%"=="" goto :logon_trigger
 powershell -NoProfile -Command "$ErrorActionPreference='Stop'; try { $t = Get-ScheduledTask -TaskName '%TASK_NAME%'; $n = New-ScheduledTaskTrigger -Daily -At '%SECOND%'; Set-ScheduledTask -TaskName '%TASK_NAME%' -Trigger ($t.Triggers + $n) | Out-Null } catch { exit 1 }" >nul 2>&1
 if errorlevel 1 goto :second_failed
 echo [OK] second daily trigger enabled - %SECOND%
-goto :registered
+goto :logon_trigger
 
 :second_failed
 echo [i] could not add the second daily trigger %SECOND%.
 echo     The task still runs at its first time only.
 echo     Add %SECOND% by hand: Task Scheduler - the task - Add trigger - Daily.
+goto :logon_trigger
+
+:logon_trigger
+powershell -NoProfile -Command "$ErrorActionPreference='Stop'; try { $t = Get-ScheduledTask -TaskName '%TASK_NAME%'; $l = New-ScheduledTaskTrigger -AtLogOn; Set-ScheduledTask -TaskName '%TASK_NAME%' -Trigger ($t.Triggers + $l) | Out-Null } catch { exit 1 }" >nul 2>&1
+if errorlevel 1 goto :logon_failed
+echo [OK] at-logon catch-up trigger enabled
+goto :registered
+
+:logon_failed
+echo [i] could not add the at-logon trigger. Add it by hand if you need it.
 goto :registered
 
 :registered
