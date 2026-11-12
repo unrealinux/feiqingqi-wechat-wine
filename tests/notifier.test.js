@@ -4,7 +4,7 @@
  * 不发真实请求：只验证渠道判定、正文构建与 HTML 转义。
  */
 
-const { Notifier, escapeHtml, LEVEL_ICON } = require('../tools/notifier');
+const { Notifier, escapeHtml, LEVEL_ICON, notifyDesktop, alert } = require('../tools/notifier');
 
 describe('Notifier 渠道判定', () => {
   test('未配置任何渠道时应为 disabled', () => {
@@ -80,5 +80,50 @@ describe('escapeHtml', () => {
   test('应处理 null/undefined', () => {
     expect(escapeHtml(null)).toBe('');
     expect(escapeHtml(undefined)).toBe('');
+  });
+});
+
+describe('失败告警（定时任务里叫到人）', () => {
+  test('NOTIFY_DESKTOP 未开启时跳过桌面通知', () => {
+    const calls = [];
+    const r = notifyDesktop({ title: 'T', lines: ['L'] }, { env: {}, spawn: (...a) => calls.push(a) });
+    expect(r.skipped).toBe(true);
+    expect(calls).toEqual([]);
+  });
+
+  test('NOTIFY_DESKTOP=1 时调 notify-send，并补上 cron 里缺的 DISPLAY/DBUS', () => {
+    let seen = null;
+    const spawn = (cmd, args, options) => {
+      seen = { cmd, args, options };
+      return { status: 0 };
+    };
+    const r = notifyDesktop({ title: '建草稿失败', lines: ['40164'], level: 'error' },
+      { env: { NOTIFY_DESKTOP: '1' }, spawn });
+    expect(r).toEqual({ channel: 'desktop', success: true, error: '' });
+    expect(seen.cmd).toBe('notify-send');
+    expect(seen.args).toEqual(['-u', 'critical', '建草稿失败', '40164']);
+    expect(seen.options.env.DISPLAY).toBe(':0');
+    expect(seen.options.env.DBUS_SESSION_BUS_ADDRESS).toMatch(/^unix:path=\/run\/user\/\d+\/bus$/);
+  });
+
+  test('alert 在有远端渠道时走 Notifier', async () => {
+    const calls = [];
+    const notifier = {
+      enabled: true,
+      send: (msg) => { calls.push(msg); return Promise.resolve({ enabled: true, sent: 1, failed: 0, results: [] }); }
+    };
+    const r = await alert({ title: 'T', level: 'error', lines: ['a'] }, { notifier, env: {} });
+    expect(calls).toHaveLength(1);
+    expect(r.sent).toBe(1);
+  });
+
+  test('alert 在没有远端渠道时退回桌面通知', async () => {
+    let used = false;
+    const spawn = () => { used = true; return { status: 0 }; };
+    const notifier = { enabled: false };
+    const r = await alert({ title: 'T', lines: [] },
+      { notifier, env: { NOTIFY_DESKTOP: '1' }, spawn });
+    expect(used).toBe(true);
+    expect(r).toMatchObject({ enabled: true, sent: 1, failed: 0 });
   });
 });

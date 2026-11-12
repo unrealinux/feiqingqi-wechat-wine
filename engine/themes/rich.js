@@ -67,6 +67,15 @@ function buildRenderers(theme) {
         theme
       ),
 
+    // 正文配图：src 是微信 uploadimg 返回的 mmbiz URL；caption 可选
+    img: (b) =>
+      '<section style="margin:18px 0;text-align:center">' +
+      `<img src="${b.src}" style="width:100%;border-radius:8px;display:block;" />` +
+      (b.caption
+        ? `<span style="display:block;color:#888;font-size:12px;margin-top:8px">${b.caption}</span>`
+        : '') +
+      '</section>',
+
     // 旧 rich_article.py 的唯一卡片类型：box
     box: (b) => riCard(b.heading || '', nl2br(b.text)),
 

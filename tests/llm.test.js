@@ -173,14 +173,14 @@ describe('env 真实读取（不联网）', () => {
     }
   });
 
-  test('dotenv 文件里确实配了 GLM_API_KEY（否则定时任务会静默不出稿）', () => {
+  test('.env 里至少配了一个文本模型 Key（否则定时任务会静默不出稿）', () => {
     const envPath = path.join(__dirname, '..', '.env');
     if (!fs.existsSync(envPath)) {return;}   // CI / 新克隆的仓库没有 .env
     const text = fs.readFileSync(envPath, 'utf8');
-    if (!/^GLM_API_KEY=.+/m.test(text)) {
-      // 只在真的缺 key 时给出可执行提示
-      expect(text).toMatch(/^GLM_API_KEY=.+/m);
-    }
+    // 不限定 GLM：engine/llm.js 支持多个提供商，任一 Key 都能出稿
+    const keys = [...new Set(Object.values(PROVIDERS).flatMap((p) => p.envKeys))];
+    const configured = keys.filter((k) => new RegExp(`^${k}=.+`, 'm').test(text));
+    expect(configured).not.toEqual([]);
   });
 });
 

@@ -24,9 +24,9 @@ const ARTICLES_DIR = path.resolve(__dirname, '..', 'articles');
 const loadSpec = (name) => JSON.parse(fs.readFileSync(path.join(ARTICLES_DIR, `${name}.json`), 'utf8'));
 
 describe('blocks: schema', () => {
-  test('should cover all 17 block types used across the repository', () => {
+  test('should cover all 18 block types used across the repository', () => {
     const expected = [
-      'title', 'subtitle', 'h2', 'h3', 'p', 'lead', 'tip', 'quote',
+      'title', 'subtitle', 'h2', 'h3', 'p', 'lead', 'img', 'tip', 'quote',
       'box', 'ri', 'card', 'info', 'item', 'table', 'list', 'sep', 'end'
     ];
     expect(SUPPORTED_TYPES.sort()).toEqual(expected.sort());
@@ -238,6 +238,7 @@ describe('blocks: renderBlocks (rich theme)', () => {
       case 'table': return { type, headers: ['a'], rows: [['b']] };
       case 'list': return { type, items: ['x'] };
       case 'sep': return { type };
+      case 'img': return { type, src: 'https://mmbiz.qpic.cn/x.png', caption: 'C' };
       default: return { type, text: 'T' };
       }
     });

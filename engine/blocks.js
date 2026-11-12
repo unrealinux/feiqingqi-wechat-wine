@@ -16,7 +16,7 @@
  * 支持的块类型（17 种，覆盖全仓库实际使用情况）：
  *   title / subtitle / h2 / h3 / p / lead / tip / quote
  *   box / ri / card / info / item
- *   table / list / sep / end
+ *   table / list / img / sep / end
  */
 
 const classic = require('./themes/classic');
@@ -36,6 +36,7 @@ const BLOCK_SPEC = {
   h3: { required: ['text'] },
   p: { required: ['text'] },
   lead: { required: ['text'] },
+  img: { required: ['src'], optional: ['caption'] },
   tip: { required: ['text'], optional: ['heading'] },
   quote: { required: ['text'] },
   box: { required: ['text'], optional: ['heading'] },

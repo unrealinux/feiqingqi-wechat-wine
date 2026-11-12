@@ -171,7 +171,7 @@ function buildSystemPrompt() {
 function buildUserPrompt({ materials = [], category = '', now = new Date(), avoidTitles = [] } = {}) {
   const today = todayString(now);
   const avoid = avoidTitles.length
-    ? `\n\n【已发布过的标题，禁止重复选题】\n${avoidTitles.slice(0, 40).map((t) => `- ${t}`).join('\n')}`
+    ? `\n\n【已发布过的标题，禁止重复选题】\n${avoidTitles.slice(0, 150).map((t) => `- ${t}`).join('\n')}`
     : '';
 
   return `基于下面的葡萄酒素材，写一篇中文公众号文章，并**只输出一个 JSON 对象**（不要 Markdown 围栏、不要任何解释文字）。

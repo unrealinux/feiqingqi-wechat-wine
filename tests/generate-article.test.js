@@ -19,6 +19,7 @@ const {
   listIncoming,
   pickMaterials,
   recentTitles,
+  pickCategory,
   buildName,
   generateSpec,
   parseCliArgs,
@@ -128,6 +129,41 @@ describe('选题去重', () => {
     fs.writeFileSync(path.join(tmpDir, 'x.json'), JSON.stringify({ title: '已发 A' }));
     const titles = recentTitles({ state: { articles: { k: { title: '已发 A' } } }, dir: tmpDir });
     expect(titles).toEqual(['已发 A']);
+  });
+
+  test('recentTitles 不只取最近 40 篇：人工稿标题也要覆盖到', () => {
+    for (let i = 0; i < 60; i += 1) {
+      fs.writeFileSync(
+        path.join(tmpDir, `a${String(i).padStart(2, '0')}.json`),
+        JSON.stringify({ title: `旧标题${i}`, publishDate: `202601${String((i % 28) + 1).padStart(2, '0')}` })
+      );
+    }
+    const titles = recentTitles({ state: {}, dir: tmpDir });
+    expect(titles).toHaveLength(60);
+    expect(titles).toContain('旧标题0');
+    expect(titles).toContain('旧标题59');
+  });
+});
+
+describe('分类轮转', () => {
+  const write = (name, category, publishDate) =>
+    fs.writeFileSync(path.join(tmpDir, `${name}.json`), JSON.stringify({ title: name, category, publishDate }));
+
+  test('选最近窗口内写得最少的分类', () => {
+    write('a', 'wine-knowledge', '20261101');
+    write('b', 'wine-knowledge', '20261102');
+    write('c', 'wine-food', '20261103');
+    write('d', 'wine-health', '20261104');
+    expect(pickCategory({ dir: tmpDir })).toBe('wine-myth');
+  });
+
+  test('只在最近 window 篇里统计：窗口外的高频分类不影响结果', () => {
+    write('old1', 'wine-myth', '20250101');
+    write('old2', 'wine-myth', '20250102');
+    write('new1', 'wine-food', '20261101');
+    write('new2', 'wine-health', '20261102');
+    // 只看 2 篇时，wine-knowledge / wine-culture / lifestyle 等都是 0，取白名单第一个
+    expect(pickCategory({ dir: tmpDir, window: 2 })).toBe('wine-knowledge');
   });
 });
 

@@ -31,6 +31,8 @@
 
 const LEVEL_ICON = { info: 'ℹ️', warn: '⚠️', error: '🔴', ok: '✅' };
 
+const { spawnSync } = require('child_process');
+
 class Notifier {
   constructor(options = {}) {
     const env = options.env || process.env;
@@ -208,4 +210,58 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;');
 }
 
-module.exports = { Notifier, LEVEL_ICON, escapeHtml };
+/**
+ * 桌面通知兜底：定时任务跑在本机，没配 webhook/邮件时也能看到失败。
+ * cron 没有 DISPLAY / DBUS 变量，所以按 uid 拼标准路径。永不抛异常。
+ * @returns {{channel: string, success: boolean, skipped?: boolean, error?: string}}
+ */
+function notifyDesktop({ title, lines = [], level = 'info' } = {}, options = {}) {
+  const env = options.env || process.env;
+  if (String(env.NOTIFY_DESKTOP || '') !== '1') {
+    return { channel: 'desktop', success: false, skipped: true };
+  }
+
+  const run = options.spawn || spawnSync;
+  const uid = typeof process.getuid === 'function' ? process.getuid() : 1000;
+  try {
+    const r = run(
+      'notify-send',
+      ['-u', level === 'error' ? 'critical' : 'normal', String(title || ''), lines.join('\n')],
+      {
+        timeout: 5000,
+        env: {
+          ...process.env,
+          DISPLAY: env.DISPLAY || ':0',
+          DBUS_SESSION_BUS_ADDRESS: env.DBUS_SESSION_BUS_ADDRESS || `unix:path=/run/user/${uid}/bus`
+        }
+      }
+    );
+    if (r && r.error) {return { channel: 'desktop', success: false, error: r.error.message };}
+    return { channel: 'desktop', success: Boolean(r && r.status === 0), error: r && r.status !== 0 ? `exit ${r.status}` : '' };
+  } catch (err) {
+    return { channel: 'desktop', success: false, error: err.message };
+  }
+}
+
+/**
+ * 发一条告警：有远端渠道走 Notifier，否则退回桌面通知。永不抛异常。
+ * @param {{title: string, lines?: string[], level?: string}} message
+ */
+async function alert(message, options = {}) {
+  const env = options.env || process.env;
+  const notifier = options.notifier || new Notifier({ env });
+  if (notifier.enabled) {
+    const sent = await notifier.send(message);
+    return sent;
+  }
+
+  const r = notifyDesktop(message, { env, spawn: options.spawn });
+  return {
+    enabled: !r.skipped,
+    sent: r.success ? 1 : 0,
+    failed: r.success || r.skipped ? 0 : 1,
+    results: [r]
+  };
+}
+
+module.exports = { Notifier, LEVEL_ICON, escapeHtml, notifyDesktop, alert };

@@ -95,6 +95,13 @@ describe('素材格式', () => {
     expect(p).toContain('已发布过的标题');
     expect(p).toContain('旧标题 A');
   });
+
+  test('去重列表不只截前 40 条：人工稿标题同样要带到', () => {
+    const titles = Array.from({ length: 60 }, (_, i) => `旧标题${i}`);
+    const p = buildUserPrompt({ materials: [], avoidTitles: titles });
+    expect(p).toContain('旧标题0');
+    expect(p).toContain('旧标题59');
+  });
 });
 
 describe('extractJson', () => {

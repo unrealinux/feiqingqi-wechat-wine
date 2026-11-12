@@ -14,8 +14,10 @@ const {
   saveState,
   listArticleFiles,
   planPublishing,
+  planBatch,
   publishPending,
-  parseCliArgs
+  parseCliArgs,
+  DEFAULT_LIMIT
 } = require('../tools/publish-pending');
 
 let tmpDir;
@@ -49,6 +51,14 @@ describe('loadState / saveState', () => {
     const p = path.join(tmpDir, 'nested', 'state.json');
     saveState(p, { a: { mediaId: 'M' } });
     expect(loadState(p)).toEqual({ a: { mediaId: 'M' } });
+  });
+
+  test('覆盖前留一份 .bak（状态丢失会把全部历史文章变成待发布）', () => {
+    const p = path.join(tmpDir, 'state.json');
+    saveState(p, { a: { mediaId: 'A' } });
+    saveState(p, { a: { mediaId: 'A' }, b: { mediaId: 'B' } });
+    expect(JSON.parse(fs.readFileSync(`${p}.bak`, 'utf8'))).toEqual({ a: { mediaId: 'A' } });
+    expect(loadState(p)).toEqual({ a: { mediaId: 'A' }, b: { mediaId: 'B' } });
   });
 });
 
@@ -196,9 +206,39 @@ describe('parseCliArgs', () => {
     expect(o.files).toEqual(['articles/a.json', 'articles/b.json']);
   });
 
+  test('解析 --limit，非法值回落到默认上限', () => {
+    expect(parseCliArgs(['--limit', '8']).limit).toBe(8);
+    expect(parseCliArgs(['--limit', 'abc']).limit).toBe(DEFAULT_LIMIT);
+    expect(parseCliArgs([]).limit).toBe(DEFAULT_LIMIT);
+  });
+
   test('默认值', () => {
     const o = parseCliArgs([]);
     expect(o).toMatchObject({ dryRun: false, force: false, includeExisting: false, help: false });
     expect(o.files).toEqual([]);
+  });
+});
+
+describe('planBatch（安全阀）', () => {
+  const many = (n) => Array.from({ length: n }, (_, i) => `a${i}.json`);
+
+  test('少量待发时按单次上限切片', () => {
+    const r = planBatch({ pending: many(8), limit: 5 });
+    expect(r.ok).toBe(true);
+    expect(r.batch).toHaveLength(5);
+    expect(r.rest).toHaveLength(3);
+  });
+
+  test('待发超过安全上限且没有 --force 时拒绝（状态文件丢失的场景）', () => {
+    const r = planBatch({ pending: many(129) });
+    expect(r.ok).toBe(false);
+    expect(r.batch).toEqual([]);
+    expect(r.reason).toContain('129');
+  });
+
+  test('--force 不限量', () => {
+    const r = planBatch({ pending: many(129), force: true });
+    expect(r.ok).toBe(true);
+    expect(r.batch).toHaveLength(129);
   });
 });

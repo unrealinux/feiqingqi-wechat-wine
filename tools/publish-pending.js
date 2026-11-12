@@ -18,12 +18,19 @@
  *
  * 用法：
  *   node tools/publish-pending.js --dry-run            # 只列出会发什么
- *   node tools/publish-pending.js                      # 发布全部待发布
+ *   node tools/publish-pending.js                      # 发布全部待发布（单次最多 5 篇）
+ *   node tools/publish-pending.js --limit 8            # 改单次上限
  *   node tools/publish-pending.js --include-existing   # 连现有文章一起发
  *   node tools/publish-pending.js --file articles/x.json [--file ...]
- *   node tools/publish-pending.js --force              # 忽略状态，全部重发
+ *   node tools/publish-pending.js --force              # 忽略状态与安全阀，全部重发
  *
- * 退出码：0 正常（含「无待发布」）｜ 1 有失败 ｜ 2 参数/环境错误
+ * 安全阀（为什么不是「有几篇发几篇」）：
+ *   logs/publish-state.json 一旦丢失/被重置，所有历史文章都会变成「待发布」。
+ *   一次给草稿箱灌 100+ 篇的代价远大于晚发几天，因此：
+ *     · 待发 > 10 篇且没有 --force → 直接拒绝，提示先核对状态文件；
+ *     · 正常情况单次只发 5 篇，剩下的下一次继续。
+ *
+ * 退出码：0 正常（含「无待发布」）｜ 1 有失败 ｜ 2 参数/环境错误（含撞安全阀）
  */
 
 const fs = require('fs');
@@ -31,9 +38,15 @@ const path = require('path');
 
 const { parseArgs, processOne } = require('../engine/cli');
 const { resolveStatePath, loadState, saveState, recordPublished } = require('../engine/publish-state');
+const { alert } = require('./notifier');
 
 const ROOT = path.resolve(__dirname, '..');
 const ARTICLES_DIR = path.join(ROOT, 'articles');
+
+/** 正常情况单次最多发几篇（防止一次给草稿箱灌一堆） */
+const DEFAULT_LIMIT = 5;
+/** 待发超过这个数量且没有 --force，视为状态文件异常，直接拒绝 */
+const MAX_UNGUARDED = 10;
 
 // loadState / saveState 由 engine/publish-state.js 统一提供（引擎侧 --publish 也要写同一个
 // 文件，两份实现会漂移）；这里重新导出，保持本模块对外的既有接口不变。
@@ -109,8 +122,13 @@ async function publishPending({ pending, state, statePath, opts, processOne: run
 
 function parseCliArgs(argv) {
   const files = [];
+  let limit = DEFAULT_LIMIT;
   for (let i = 0; i < argv.length; i += 1) {
     if (argv[i] === '--file') {files.push(argv[++i]);}
+    if (argv[i] === '--limit') {
+      const n = Number(argv[++i]);
+      if (Number.isFinite(n) && n > 0) {limit = Math.floor(n);}
+    }
   }
   return {
     dryRun: argv.includes('--dry-run'),
@@ -118,8 +136,26 @@ function parseCliArgs(argv) {
     includeExisting: argv.includes('--include-existing'),
     quiet: argv.includes('--quiet'),
     help: argv.includes('-h') || argv.includes('--help'),
+    limit,
     files: files.filter(Boolean)
   };
+}
+
+/**
+ * 本轮到底发哪几篇（安全阀）。
+ * @returns {{ok: boolean, batch: string[], rest: string[], reason?: string}}
+ */
+function planBatch({ pending = [], limit = DEFAULT_LIMIT, force = false } = {}) {
+  if (force) {return { ok: true, batch: pending.slice(), rest: [] };}
+  if (pending.length > MAX_UNGUARDED) {
+    return {
+      ok: false,
+      batch: [],
+      rest: pending.slice(),
+      reason: `待发布 ${pending.length} 篇，超过安全上限 ${MAX_UNGUARDED} 篇`
+    };
+  }
+  return { ok: true, batch: pending.slice(0, limit), rest: pending.slice(limit) };
 }
 
 function usage() {
@@ -144,14 +180,26 @@ async function main() {
 
   const say = cli.quiet ? () => {} : (...a) => console.log(...a);
 
+  const plan = planBatch({ pending, limit: cli.limit, force: cli.force });
+
   if (cli.dryRun) {
-    say(`🧪 dry-run：待发布 ${pending.length} 篇，基线 ${baseline.length} 篇`);
-    pending.forEach((f) => say(`   将发布  ${nameOf(f)}`));
+    say(`🧪 dry-run：待发布 ${pending.length} 篇（本次会发 ${plan.batch.length} 篇），基线 ${baseline.length} 篇`);
+    plan.batch.forEach((f) => say(`   将发布  ${nameOf(f)}`));
+    plan.rest.forEach((f) => say(`   留待下次 ${nameOf(f)}`));
     baseline.forEach((f) => say(`   记基线  ${nameOf(f)}`));
     if (!pending.length && baseline.length) {
       say('   （首次运行：只会记录基线，不建草稿）');
     }
+    if (!plan.ok) {say(`   ⛔ ${plan.reason}`);}
     return 0;
+  }
+
+  if (!plan.ok) {
+    say(`⛔ ${plan.reason}，已中止（未建任何草稿）。`);
+    say(`   多半是 ${path.relative(ROOT, statePath)} 丢了或被重置。先核对状态：`);
+    say('     node tools/publish-pending.js --dry-run');
+    say('   确认无误要一次发完，请加 --force；只想发某几篇用 --file。');
+    return 2;
   }
 
   if (!pending.length && baseline.length) {
@@ -174,9 +222,9 @@ async function main() {
   opts.publish = true;
   opts.quiet = cli.quiet;
 
-  say(`🚀 发布待发布文章 · ${pending.length} 篇`);
+  say(`🚀 发布待发布文章 · ${plan.batch.length} 篇${plan.rest.length ? `（另有 ${plan.rest.length} 篇留待下次）` : ''}`);
   const results = await publishPending({
-    pending,
+    pending: plan.batch,
     state,
     statePath,
     opts,
@@ -187,6 +235,14 @@ async function main() {
   const failed = results.filter((r) => r.status === 'failed');
   say(`\n${'─'.repeat(46)}`);
   say(`完成：成功 ${results.length - failed.length} ｜ 失败 ${failed.length}`);
+  if (failed.length) {
+    // 定时任务里没人盯日志，失败必须能叫到人
+    await alert({
+      title: '补发失败',
+      level: 'error',
+      lines: failed.map((r) => `${r.name}：${String(r.error || '').split('\n')[0]}`)
+    });
+  }
   return failed.length ? 1 : 0;
 }
 
@@ -204,6 +260,9 @@ module.exports = {
   saveState,
   listArticleFiles,
   planPublishing,
+  planBatch,
   publishPending,
-  parseCliArgs
+  parseCliArgs,
+  DEFAULT_LIMIT,
+  MAX_UNGUARDED
 };

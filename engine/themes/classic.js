@@ -66,6 +66,15 @@ const RENDERERS = {
   quote: (b) =>
     `<div style="${STYLE.tipWrap}"><p style="${STYLE.tipText}"><em>${b.text}</em></p></div>`,
 
+  // 正文配图：src 必须是微信 uploadimg 返回的 mmbiz URL（外部链接会被封掉）
+  img: (b) =>
+    '<p style="text-align:center;margin:18px 0;">' +
+    `<img src="${b.src}" style="width:100%;border-radius:8px;display:block;" />` +
+    (b.caption
+      ? `<span style="display:block;color:#888;font-size:12px;margin-top:6px;">${b.caption}</span>`
+      : '') +
+    '</p>',
+
   box: (b) => card(b),
 
   // ri / card / info 在第一代模板中未出现，这里统一按卡片渲染，

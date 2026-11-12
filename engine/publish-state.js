@@ -46,6 +46,10 @@ function loadState(statePath = DEFAULT_STATE_PATH) {
 /** 写入发布状态（自动建目录） */
 function saveState(statePath, state) {
   fs.mkdirSync(path.dirname(statePath), { recursive: true });
+  // 覆盖前留一份上一版：这份文件丟了，publish-pending 会把全部历史文章当「待发布」。
+  try {
+    if (fs.existsSync(statePath)) {fs.copyFileSync(statePath, `${statePath}.bak`);}
+  } catch { /* 备份失败不该阻断发布 */ }
   fs.writeFileSync(statePath, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
   return true;
 }

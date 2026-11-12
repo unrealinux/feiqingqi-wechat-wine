@@ -454,6 +454,46 @@ function hasImageProvider(env = process.env) {
   return availableProviders(env).length > 0;
 }
 
+/** 正文配图统一到 1080 宽 + JPEG：微信 uploadimg 限 1MB，PNG 写实图轻易超限 */
+async function normalizeBodyImage(buffer, options = {}) {
+  try {
+    const sharp = options.sharp || require('sharp');
+    return await sharp(buffer).resize({ width: 1080, withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer();
+  } catch (err) {
+    return buffer;
+  }
+}
+
+/**
+ * 生成正文配图。与封面同一套提供商，但不叠标题/页脚文字层。
+ * @returns {Promise<{buffer: Buffer, provider: string, model: string, prompt: string}>}
+ */
+async function generateBodyImage(spec, options = {}) {
+  const env = options.env || process.env;
+  const axios = options.axios || require('axios');
+  const timeout = options.timeout || Number(env.COVER_AI_TIMEOUT) || 60000;
+  const order = options.providers || availableProviders(env, options.provider);
+
+  if (order.length === 0) {throw new Error(NO_PROVIDER_MSG);}
+
+  const prompt = options.prompt
+    || `${buildCoverPrompt(spec)}。横向构图，作为公众号正文插图，主体居中`;
+  const errors = [];
+
+  for (const name of order) {
+    for (const model of modelsFor(name, env)) {
+      try {
+        const raw = await CALLERS[name](prompt, { axios, env, timeout, model });
+        return { buffer: await normalizeBodyImage(raw, options), provider: name, model, prompt };
+      } catch (err) {
+        errors.push(`${PROVIDERS[name].label}${model ? ` [${model}]` : ''}: ${err.message}`);
+      }
+    }
+  }
+
+  throw new Error(`正文配图生成失败（已尝试 ${errors.length} 个模型）:\n  - ${errors.join('\n  - ')}`);
+}
+
 module.exports = {
   SCENES,
   DEFAULT_CATEGORY,
@@ -471,5 +511,7 @@ module.exports = {
   buildOverlaySvg,
   composeCover,
   generateAiCover,
+  generateBodyImage,
+  normalizeBodyImage,
   hasImageProvider
 };

@@ -217,11 +217,48 @@ async function buildCoverBuffer(spec, article, opts) {
 }
 
 /** 处理单篇文章。 */
+/**
+ * 往正文里插一张图：优先生成正文专用图，失败/关闭时复用封面图（保证有图）。
+ * 图片必须上传到微信换 mmbiz URL，插在 lead 之后。
+ * @returns {Promise<string>} 微信侧图片 URL
+ */
+async function insertBodyImage(spec, article, coverBuffer, client, opts) {
+  const { hasImageProvider, generateBodyImage, normalizeBodyImage } = require('./ai-cover');
+  let buffer = null;
+
+  if (opts.coverAi !== false && hasImageProvider()) {
+    try {
+      const r = await generateBodyImage(
+        {
+          name: spec.name,
+          title: article.title,
+          category: article.category,
+          tags: article.tags,
+          cover: spec.cover
+        },
+        { provider: opts.coverAiProvider || '' }
+      );
+      buffer = r.buffer;
+      log(opts, `   🎨 正文配图 · ${r.provider} (${r.model})`);
+    } catch (err) {
+      log(opts, `   ⚠️  正文配图生成失败，改用封面图：${String(err.message).split('\n')[0]}`);
+    }
+  }
+
+  const src = await client.uploadContentImage(await normalizeBodyImage(buffer || coverBuffer), 'body.jpg');
+  const blocks = Array.isArray(spec.content) ? spec.content : [];
+  const lead = blocks.findIndex((b) => b && b.type === 'lead');
+  const subtitle = blocks.findIndex((b) => b && b.type === 'subtitle');
+  const at = lead >= 0 ? lead + 1 : (subtitle >= 0 ? subtitle + 1 : 1);
+  blocks.splice(at, 0, { type: 'img', src });
+  return src;
+}
+
 async function processOne(file, opts) {
   const spec = JSON.parse(fs.readFileSync(file, 'utf8'));
   const name = spec.name || path.basename(file, '.json');
 
-  const article = buildArticle(spec, { author: opts.author, date: opts.date });
+  let article = buildArticle(spec, { author: opts.author, date: opts.date });
   const stats = articleStats(spec, article);
 
   log(opts, `\n📄 ${name}`);
@@ -277,6 +314,16 @@ async function processOne(file, opts) {
 
     const material = await client.uploadThumb(coverBuffer, article.coverImage.replace(/\.png$/i, '.png'));
     log(opts, `   ⬆️  封面素材 media_id=${material.media_id}`);
+
+    // 正文配图：公众号正文里的图必须是微信自己的 URL，外部链接会被过滤。
+    // 所以先把图传上去换 url，再插块重建正文（排版仍由主题决定）。
+    try {
+      await insertBodyImage(spec, article, coverBuffer, client, opts);
+      article = buildArticle(spec, { author: opts.author, date: opts.date });
+      log(opts, '   🖼  正文配图已插入');
+    } catch (err) {
+      log(opts, `   ⚠️  正文配图跳过：${String(err.message).split('\n')[0]}`);
+    }
 
     const payload = {
       title: article.title,
@@ -372,4 +419,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseArgs, processOne, buildPreviewHtml, buildCoverBuffer };
+module.exports = { parseArgs, processOne, buildPreviewHtml, buildCoverBuffer, insertBodyImage };

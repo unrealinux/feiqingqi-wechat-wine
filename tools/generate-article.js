@@ -52,8 +52,10 @@ try {
 
 const { validateSpec, buildArticle, articleStats } = require('../engine/article');
 const { parseArgs, processOne } = require('../engine/cli');
+const { alert } = require('./notifier');
 const { LLMUnavailableError, chat, pickProvider } = require('../engine/llm');
 const {
+  ALLOWED_CATEGORIES,
   buildSystemPrompt,
   buildUserPrompt,
   extractJson,
@@ -124,21 +126,52 @@ function pickMaterials({ state = { materials: {} }, limit = 3, files = [], allow
 }
 
 /** 已发过/生成过的标题（喂给提示词，避免重复选题） */
-function recentTitles({ state, dir = ARTICLES_DIR, max = 40 }) {
+function recentTitles({ state, dir = ARTICLES_DIR, max = 150 }) {
   const titles = [];
   for (const name of Object.keys(state.articles || {})) {
     if (state.articles[name] && state.articles[name].title) {titles.push(state.articles[name].title);}
   }
+  // 按发布日倒序读全量，而不是按文件名取最近 40 个：
+  // 文件名里 ai_wine_* 永远排在人工稿之后，只取 40 个等于把 130 篇人工稿排除在去重之外。
   try {
-    const files = fs.readdirSync(dir).filter((f) => f.endsWith('.json')).sort().reverse().slice(0, max);
-    for (const f of files) {
+    const specs = [];
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.json'))) {
       try {
         const spec = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
-        if (spec.title) {titles.push(spec.title);}
+        if (spec.title) {specs.push({ title: spec.title, date: String(spec.publishDate || ''), file: f });}
       } catch (err) { /* 单篇读坏不影响选题列表 */ }
     }
+    specs.sort((a, b) => b.date.localeCompare(a.date) || b.file.localeCompare(a.file));
+    specs.forEach((s) => titles.push(s.title));
   } catch (err) { /* 目录不存在时忽略 */ }
   return [...new Set(titles)].slice(0, max);
+}
+
+/** 分类轮转窗口：看最近多少篇的分类分布 */
+const CATEGORY_WINDOW = 20;
+
+/**
+ * 选一个最近写得最少的分类。
+ * 模型自选分类总是偏向知识/趋势，不干预的话 wine-knowledge 会一路垄断。
+ */
+function pickCategory({ dir = ARTICLES_DIR, window = CATEGORY_WINDOW, categories = ALLOWED_CATEGORIES } = {}) {
+  const counts = Object.fromEntries(categories.map((c) => [c, 0]));
+  const seen = [];
+  try {
+    for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.json'))) {
+      try {
+        const spec = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+        if (spec.category) {seen.push({ category: spec.category, date: String(spec.publishDate || ''), file: f });}
+      } catch (err) { /* 单篇读坏不影响统计 */ }
+    }
+  } catch (err) { /* 目录不存在时按全 0 处理 */ }
+
+  seen.sort((a, b) => b.date.localeCompare(a.date) || b.file.localeCompare(a.file));
+  seen.slice(0, window).forEach((s) => {
+    if (counts[s.category] !== undefined) {counts[s.category] += 1;}
+  });
+
+  return categories.reduce((best, c) => (counts[c] < counts[best] ? c : best), categories[0]);
 }
 
 /** 文章 name：ASCII，避免中文文件名在 cmd/VBS 链路上出问题 */
@@ -327,15 +360,18 @@ async function main() {
   }
   if (!materials.length) {
     console.error('❌ 选中的素材全部无法读取');
+    await alert({ title: '自动写稿失败', level: 'error', lines: ['选中的素材全部无法读取'] });
     return 1;
   }
   say(`📚 使用素材 ${materials.length} 条：${picked.map((f) => path.basename(f)).join(', ')}`);
 
   let generated;
+  const category = cli.category || pickCategory();
+  if (!cli.category) {say(`🧭 分类轮转：${category}（最近 ${CATEGORY_WINDOW} 篇里最少）`);}
   try {
     generated = await generateSpec({
       materials,
-      category: cli.category,
+      category,
       avoidTitles: recentTitles({ state }),
       provider: cli.provider,
       log: say,
@@ -351,6 +387,11 @@ async function main() {
         console.error(`   原始输出已存到 ${path.relative(ROOT, dump)}（排查提示词用）`);
       } catch (writeErr) { /* 落盘失败不影响退出码 */ }
     }
+    await alert({
+      title: '自动写稿失败',
+      level: 'error',
+      lines: [String(err.message).split('\n')[0], '详情：logs/generate.log']
+    });
     return 1;
   }
 
@@ -416,13 +457,22 @@ async function main() {
       result.status = 'published';
       result.mediaId = r.draftMediaId || null;
     } catch (err) {
-      console.error(`❌ 建草稿失败（文章已落盘，09:00 队列会自动重试）：${String(err.message).split('\n')[0]}`);
+      // 只打首行会把微信错误码（如 40164 IP 不在白名单）和后续说明全丢掉，
+      // 定时任务里只剩一句「发布前置检查未通过」，排障时无从下手。
+      const detail = String(err.message).split('\n').map((line) => `     ${line}`).join('\n');
+      console.error(`❌ 建草稿失败（文章已落盘，11:00 的补发任务会重试）：\n${detail}`);
+      // 定时任务里没人盯着日志，失败必须能叫到人（无 webhook 时退桌面通知）
+      await alert({
+        title: '建草稿失败',
+        level: 'error',
+        lines: [String(err.message).split('\n')[0], '文章已落盘，11:00 会重试；详情：logs/generate.log']
+      });
       result.status = 'publish-failed';
       if (cli.json) {console.log(JSON.stringify(result, null, 2));}
       return 1;
     }
   } else {
-    say('➡️  文章已落盘，将在 09:00 的 publish-pending 任务里建草稿（或加 --publish 立即建）');
+    say('➡️  文章已落盘，将在 11:00 的 publish-pending 任务里建草稿（或加 --publish 立即建）');
     result.status = 'generated';
   }
 
@@ -446,6 +496,7 @@ module.exports = {
   listIncoming,
   pickMaterials,
   recentTitles,
+  pickCategory,
   buildName,
   generateSpec,
   parseCliArgs,

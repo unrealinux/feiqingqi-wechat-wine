@@ -12,6 +12,7 @@ jest.mock('../engine/wechat', () => {
   const client = {
     getAccessToken: jest.fn(),
     uploadThumb: jest.fn(),
+    uploadContentImage: jest.fn(),
     addDraft: jest.fn(),
     updateDraft: jest.fn()
   };
@@ -42,6 +43,7 @@ beforeEach(() => {
 
   client.getAccessToken.mockResolvedValue('TOKEN');
   client.uploadThumb.mockResolvedValue({ media_id: 'THUMB_ID' });
+  client.uploadContentImage.mockResolvedValue('https://mmbiz.qpic.cn/body.png');
   client.addDraft.mockResolvedValue({ media_id: 'DRAFT_ID' });
   client.updateDraft.mockResolvedValue({});
 });
@@ -129,5 +131,25 @@ describe('cli: --publish 与发布状态登记', () => {
     await expect(processOne(ARTICLE, options())).rejects.toThrow('发布前置检查未通过');
     expect(client.uploadThumb).not.toHaveBeenCalled();
     expect(fs.existsSync(statePath)).toBe(false);
+  });
+
+  test('建草稿时把正文配图换成微信 URL 再插进正文', async () => {
+    await processOne(ARTICLE, options());
+
+    expect(client.uploadContentImage).toHaveBeenCalledTimes(1);
+    const payload = client.addDraft.mock.calls[0][0];
+    expect(payload.content).toContain('https://mmbiz.qpic.cn/body.png');
+    // 插在 lead 之后，而不是沉到底部
+    const imgAt = payload.content.indexOf('body.png');
+    expect(imgAt).toBeGreaterThan(payload.content.indexOf('烧烤'));
+  });
+
+  test('正文配图上传失败不影响建草稿', async () => {
+    client.uploadContentImage.mockRejectedValue(new Error('uploadimg 45009'));
+
+    const r = await processOne(ARTICLE, options());
+
+    expect(r.status).toBe('published');
+    expect(client.addDraft.mock.calls[0][0].content).not.toContain('body.png');
   });
 });
